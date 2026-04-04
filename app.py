@@ -97,6 +97,90 @@ st.markdown("""
     .block-container { padding: 1rem 1.5rem 2rem !important; }
     .card-buy, .card-sell, .card-hold, .card-radar { font-size: 0.92rem !important; }
 }
+
+/* ── Responsivní grid pro peer comparison ── */
+.peer-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 8px;
+    margin-top: 8px;
+}
+.peer-card {
+    text-align: center;
+    padding: 8px 4px;
+    border-radius: 6px;
+    background: #1a1a2e;
+}
+.peer-card.peer-main {
+    background: #1e3a5f;
+    border: 1px solid #3b82f6;
+}
+.peer-ticker  { font-weight: bold; font-size: 0.9rem; }
+.peer-chg-pos { color: #22c55e; font-size: 1.05rem; font-weight: 600; }
+.peer-chg-neg { color: #ef4444; font-size: 1.05rem; font-weight: 600; }
+.peer-price   { color: #666; font-size: 0.78rem; margin-top: 2px; }
+
+/* ── Responsivní grid pro indikátory (5 sloupců → 2+3 na mobilu) ── */
+.indicator-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    margin: 8px 0 12px;
+}
+.indicator-card {
+    background: #1a1a2e;
+    border-radius: 8px;
+    padding: 10px 12px;
+    text-align: center;
+}
+.indicator-label { color: #94a3b8; font-size: 0.75rem; margin-bottom: 4px; }
+.indicator-value { font-size: 1.15rem; font-weight: 700; color: #e2e8f0; }
+.indicator-delta { font-size: 0.75rem; color: #94a3b8; margin-top: 2px; }
+
+/* ── Claude AI sekce ── */
+.claude-summary {
+    background: #1e293b;
+    border-left: 4px solid #60a5fa;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin-bottom: 12px;
+    line-height: 1.6;
+}
+.claude-label {
+    color: #94a3b8;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+}
+.claude-hint {
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-top: 8px;
+}
+
+@media (max-width: 768px) {
+    /* Indikátory: 2 + 3 */
+    .indicator-grid { grid-template-columns: repeat(2, 1fr) !important; }
+    .indicator-value { font-size: 1rem !important; }
+
+    /* Peer karty – minimálně 2 na řádek */
+    .peer-grid { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)) !important; }
+    .peer-ticker { font-size: 0.82rem !important; }
+
+    /* Claude sekce */
+    .claude-summary { padding: 10px 12px !important; font-size: 0.88rem !important; }
+    .claude-hint    { padding: 10px 12px !important; font-size: 0.88rem !important; }
+}
+
+@media (max-width: 1024px) and (min-width: 769px) {
+    /* Tablet: indikátory 3+2 */
+    .indicator-grid { grid-template-columns: repeat(3, 1fr) !important; }
+    /* Peer min 90px */
+    .peer-grid { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)) !important; }
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -599,59 +683,49 @@ elif page == "Detail akcie":
     # Indikátory
     st.subheader("Technické indikátory")
 
-    i1, i2, i3, i4, i5 = st.columns(5)
-    rsi_v = signals["rsi"]
-    i1.metric(
-        "RSI (14)",
-        f"{rsi_v:.1f}",
-        "Oversold – levná" if rsi_v < 30 else "Overbought – drahá" if rsi_v > 70 else "Neutrální",
-        help="RSI (Relative Strength Index) měří, zda je akcie překoupená nebo přeprodaná. "
-             "Pod 30 = akcie je levná/přeprodaná → signál ke koupi. "
-             "Nad 70 = akcie je drahá/překoupená → signál k prodeji. "
-             "Rozsah 0–100.",
-    )
-    i2.metric(
-        "MACD",
-        f"{signals['macd']:.3f}",
-        f"Signal linka: {signals['macd_signal']:.3f}",
-        help="MACD porovnává dva klouzavé průměry (12 a 26 dní). "
-             "Když MACD překříží signal linku zdola nahoru = BUY signál. "
-             "Když ji překříží shora dolů = SELL signál. "
-             "Kladná hodnota = krátkodobý trend je rychlejší než dlouhodobý (bullish).",
-    )
+    rsi_v  = signals["rsi"]
     bb_pos = (price_now - signals["bb_lower"]) / max(signals["bb_upper"] - signals["bb_lower"], 0.01) * 100
-    i3.metric(
-        "Bollinger Bands",
-        f"{bb_pos:.0f}%",
-        "Blízko dna pásma" if bb_pos < 20 else "Blízko vrcholu pásma" if bb_pos > 80 else "Střed pásma",
-        help="Bollinger Bands jsou tři pásma kolem průměrné ceny (±2 směrodatné odchylky). "
-             "0% = cena je na spodním pásmu (podprůměrně levná, možný odraz nahoru). "
-             "100% = cena je na horním pásmu (nadprůměrně drahá, možný pokles). "
-             "50% = cena je přesně na průměru.",
-    )
-    i4.metric(
-        "Stochastic K/D",
-        f"{signals['stoch_k']:.0f} / {signals['stoch_d']:.0f}",
-        "Oversold" if signals["stoch_k"] < 20 else "Overbought" if signals["stoch_k"] > 80 else "Neutrální",
-        help="Stochastic oscilator porovnává aktuální cenu s cenovým rozsahem za posledních 14 dní. "
-             "K = rychlá linka, D = pomalejší průměr K. "
-             "Pod 20 = přeprodaná zóna (kandidát na nákup). "
-             "Nad 80 = překoupená zóna (kandidát na prodej). "
-             "Nejsilnější signál: K překříží D v extrémní zóně.",
-    )
-    trend = ("Bullish" if signals["ema20"] > signals["ema50"] > signals["ema200"]
-             else "Bearish" if signals["ema20"] < signals["ema50"] < signals["ema200"]
-             else "Smíšený")
-    i5.metric(
-        "Trend (EMA)",
-        trend,
-        f"EMA50: {signals['ema50']:.1f}",
-        help="EMA (Exponential Moving Average) = klouzavý průměr ceny, který více váží poslední data. "
-             "EMA 20 = průměr 20 dní, EMA 50 = 50 dní, EMA 200 = 200 dní. "
-             "Bullish: EMA20 > EMA50 > EMA200 → krátkodobý trend roste rychleji než dlouhodobý. "
-             "Bearish: opačné pořadí → klesající trend. "
-             "Golden Cross: EMA20 překříží EMA50 nahoru = silný BUY signál.",
-    )
+    trend  = ("Bullish" if signals["ema20"] > signals["ema50"] > signals["ema200"]
+              else "Bearish" if signals["ema20"] < signals["ema50"] < signals["ema200"]
+              else "Smíšený")
+    rsi_delta  = "Oversold – levná" if rsi_v < 30 else ("Overbought – drahá" if rsi_v > 70 else "Neutrální")
+    bb_delta   = "Blízko dna" if bb_pos < 20 else ("Blízko vrcholu" if bb_pos > 80 else "Střed pásma")
+    stoch_delta = "Oversold" if signals["stoch_k"] < 20 else ("Overbought" if signals["stoch_k"] > 80 else "Neutrální")
+    rsi_color  = "#22c55e" if rsi_v < 30 else ("#ef4444" if rsi_v > 70 else "#94a3b8")
+    bb_color   = "#22c55e" if bb_pos < 20 else ("#ef4444" if bb_pos > 80 else "#94a3b8")
+    stoch_color = "#22c55e" if signals["stoch_k"] < 20 else ("#ef4444" if signals["stoch_k"] > 80 else "#94a3b8")
+    trend_color = "#22c55e" if trend == "Bullish" else ("#ef4444" if trend == "Bearish" else "#94a3b8")
+    macd_color  = "#22c55e" if signals["macd"] > signals["macd_signal"] else "#ef4444"
+
+    st.markdown(f"""
+<div class="indicator-grid">
+  <div class="indicator-card" title="RSI (Relative Strength Index) měří přeprodanost/překoupenost. Pod 30 = levná → BUY. Nad 70 = drahá → SELL.">
+    <div class="indicator-label">RSI (14)</div>
+    <div class="indicator-value" style="color:{rsi_color}">{rsi_v:.1f}</div>
+    <div class="indicator-delta">{rsi_delta}</div>
+  </div>
+  <div class="indicator-card" title="MACD porovnává EMA 12 a EMA 26. Křížení signal linky nahoru = BUY, dolů = SELL.">
+    <div class="indicator-label">MACD</div>
+    <div class="indicator-value" style="color:{macd_color}">{signals['macd']:.3f}</div>
+    <div class="indicator-delta">Signal: {signals['macd_signal']:.3f}</div>
+  </div>
+  <div class="indicator-card" title="Pozice ceny v Bollinger Bands. 0% = spodní pásmo (levná), 100% = horní pásmo (drahá).">
+    <div class="indicator-label">Bollinger Bands</div>
+    <div class="indicator-value" style="color:{bb_color}">{bb_pos:.0f}%</div>
+    <div class="indicator-delta">{bb_delta}</div>
+  </div>
+  <div class="indicator-card" title="Stochastic porovnává cenu s cenovým rozsahem 14 dní. Pod 20 = přeprodaná, nad 80 = překoupená.">
+    <div class="indicator-label">Stochastic K/D</div>
+    <div class="indicator-value" style="color:{stoch_color}">{signals['stoch_k']:.0f} / {signals['stoch_d']:.0f}</div>
+    <div class="indicator-delta">{stoch_delta}</div>
+  </div>
+  <div class="indicator-card" title="EMA trend: Bullish = EMA20 > EMA50 > EMA200. Bearish = opačně. Golden Cross = EMA20 překříží EMA50 nahoru.">
+    <div class="indicator-label">Trend (EMA)</div>
+    <div class="indicator-value" style="color:{trend_color}">{trend}</div>
+    <div class="indicator-delta">EMA50: {signals['ema50']:.1f}</div>
+  </div>
+</div>
+""", unsafe_allow_html=True)
 
     # Rozbalovací legenda pro méně zkušené uživatele
     with st.expander("Co znamenají tyto indikátory? (rozbal pro vysvětlení)"):
@@ -882,21 +956,22 @@ když **alespoň 3 indikátory souhlasí** — proto je konzervativní a nevydá
         )
         st.plotly_chart(pfig, use_container_width=True)
 
-        # Tabulka se změnami
+        # Tabulka se změnami – responsivní CSS grid
         peer_rows = sorted(results.items(), key=lambda x: -x[1]["chg_pct"])
-        peer_cols = st.columns(len(peer_rows))
-        for col, (t, d) in zip(peer_cols, peer_rows):
+        cards_html = '<div class="peer-grid">'
+        for t, d in peer_rows:
             chg = d["chg_pct"]
-            color = "#22c55e" if chg > 0 else "#ef4444"
-            col.markdown(
-                f'<div style="text-align:center;padding:6px;'
-                f'{"background:#1e3a5f;border-radius:6px;" if d["is_main"] else ""}">'
-                f'<div style="font-weight:bold">{t}</div>'
-                f'<div style="color:{color};font-size:1.1rem">{chg:+.1f}%</div>'
-                f'<div style="color:#666;font-size:0.8rem">{d["price"]:.2f}</div>'
-                f'</div>',
-                unsafe_allow_html=True,
+            chg_cls = "peer-chg-pos" if chg >= 0 else "peer-chg-neg"
+            main_cls = " peer-main" if d["is_main"] else ""
+            cards_html += (
+                f'<div class="peer-card{main_cls}">'
+                f'<div class="peer-ticker">{t}</div>'
+                f'<div class="{chg_cls}">{chg:+.1f}%</div>'
+                f'<div class="peer-price">{d["price"]:.2f}</div>'
+                f'</div>'
             )
+        cards_html += '</div>'
+        st.markdown(cards_html, unsafe_allow_html=True)
     else:
         st.info(_peers.get("error", "Peer data nejsou dostupná pro tento ticker."))
 
