@@ -13,11 +13,13 @@ from indicators import (
     compute_emas,
     compute_stochastic,
     generate_signals,
+    generate_signals_with_news,
 )
 from news_scraper import get_all_news, news_sentiment_summary
 from macro import fetch_fear_greed, fetch_macro_tickers, fetch_sectors, fg_label
 from earnings import get_portfolio_earnings
 from backtest import run_backtest, backtest_summary_table
+from ai_sentiment import enrich_news_with_ai, news_ai_summary, sentiment_to_signal
 
 # ── Konfigurace stránky ──────────────────────────────────────────────────────
 st.set_page_config(
@@ -533,8 +535,15 @@ elif page == "Detail akcie":
 
     st.divider()
 
-    # Signály
-    signals = generate_signals(df)
+    # Načti zprávy a AI sentiment před výpočtem signálů
+    with st.spinner("Načítám zprávy a AI sentiment analýzu..."):
+        news_raw = load_news(ticker)
+        news     = enrich_news_with_ai(news_raw) if news_raw else []
+        ai_sent  = news_ai_summary(news) if news else {"score": 0, "source": "N/A",
+                                                        "positive": 0, "negative": 0, "neutral": 0}
+
+    # Signály včetně AI news sentimentu
+    signals = generate_signals_with_news(df, ai_sent)
     action  = signals["action"]
 
     sig_col, detail_col = st.columns([1, 2])
@@ -642,6 +651,7 @@ když **alespoň 3 indikátory souhlasí** — proto je konzervativní a nevydá
 | **Bollinger Bands** | Pozice vůči průměru | Cena pod spodním pásmem | Cena nad horním pásmem |
 | **Stochastic** | Přeprodanost za 14 dní | K/D pod 20 | K/D nad 80 |
 | **EMA trend** | Směr krátkodobého vs. dlouhodobého trendu | 20 > 50 > 200 | 20 < 50 < 200 |
+| **AI Sentiment** | Tón zpráv (FinBERT model) | Převažují pozitivní zprávy | Převažují negativní zprávy |
 
 **Bullish** = rostoucí trend, **Bearish** = klesající trend, **Oversold** = přeprodaná (levná), **Overbought** = překoupená (drahá).
 
@@ -700,29 +710,58 @@ když **alespoň 3 indikátory souhlasí** — proto je konzervativní a nevydá
 
     st.divider()
 
-    # Zprávy
-    st.subheader("Zprávy & Sentiment")
-    with st.spinner("Načítám zprávy..."):
-        news = load_news(ticker)
+    # Zprávy & AI Sentiment (zprávy již načteny výše)
+    st.subheader("Zprávy & AI Sentiment")
 
     if news:
-        sent = news_sentiment_summary(news)
+        # Souhrnné metriky
+        source_label = f"FinBERT AI" if ai_sent.get("source") == "FinBERT" else "Klíčová slova"
         n1, n2, n3, n4 = st.columns(4)
-        n1.metric("Pozitivní", sent["positive"])
-        n2.metric("Negativní", sent["negative"])
-        n3.metric("Neutrální",  sent["neutral"])
-        dlabel = {"positive": "Pozitivní", "negative": "Negativní", "neutral": "Neutrální"}[sent["dominant"]]
-        n4.metric("Celkový sentiment", dlabel, f"{sent['score']:+.2f}")
+        n1.metric("Pozitivní zprávy", ai_sent["positive"])
+        n2.metric("Negativní zprávy", ai_sent["negative"])
+        n3.metric("Neutrální",        ai_sent["neutral"])
+        dom = ai_sent["dominant"]
+        dom_label = {"positive": "Pozitivní", "negative": "Negativní", "neutral": "Neutrální"}[dom]
+        dom_color = {"positive": "#22c55e", "negative": "#ef4444", "neutral": "#888"}[dom]
+        n4.metric(
+            "AI Sentiment",
+            dom_label,
+            f"Skóre: {ai_sent['score']:+.2f} ({source_label})",
+            help="Skóre -1 = velmi negativní, 0 = neutrální, +1 = velmi pozitivní. "
+                 "FinBERT model je trénovaný specificky na finančních textech."
+        )
+
+        # AI sentiment bar
+        score_val = ai_sent["score"]
+        bar_pct   = int((score_val + 1) / 2 * 100)  # převod -1..+1 na 0..100%
+        bar_color = "#22c55e" if score_val > 0.15 else "#ef4444" if score_val < -0.15 else "#888"
+        st.markdown(
+            f'<div style="background:#1a1a2e;border-radius:8px;padding:10px;margin:8px 0">'
+            f'<div style="font-size:0.8rem;color:#888;margin-bottom:4px">'
+            f'Sentiment spektrum (FinBERT) &nbsp;·&nbsp; {source_label}</div>'
+            f'<div style="background:#333;border-radius:4px;height:10px;width:100%">'
+            f'<div style="background:{bar_color};border-radius:4px;height:10px;width:{bar_pct}%"></div>'
+            f'</div>'
+            f'<div style="display:flex;justify-content:space-between;font-size:0.75rem;color:#666;margin-top:2px">'
+            f'<span>Velmi negativní</span><span>Neutrální</span><span>Velmi pozitivní</span>'
+            f'</div></div>',
+            unsafe_allow_html=True,
+        )
+
         st.markdown("---")
         for item in news[:15]:
             s   = item.get("sentiment", "neutral")
+            conf = item.get("sentiment_score", 0)
+            src  = item.get("sentiment_source", "")
             css = {"positive": "news-pos", "negative": "news-neg", "neutral": "news-neu"}[s]
             ico = {"positive": "🟢", "negative": "🔴", "neutral": "⚪"}[s]
             sd  = f"{item['source']} · {item['date']}" if item["date"] else item["source"]
             smr = f"<br><small style='color:#aaa'>{item['summary']}</small>" if item["summary"] else ""
+            conf_html = (f'<span style="color:#666;font-size:0.75rem"> '
+                         f'[{src} {conf:.0%}]</span>') if conf else ""
             st.markdown(
                 f'<div class="{css}">{ico} <a href="{item["link"]}" target="_blank" style="color:inherit">'
-                f'<strong>{item["title"]}</strong></a>'
+                f'<strong>{item["title"]}</strong></a>{conf_html}'
                 f'<br><small style="color:#888">{sd}</small>{smr}</div>',
                 unsafe_allow_html=True,
             )

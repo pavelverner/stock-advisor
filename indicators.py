@@ -177,3 +177,58 @@ def generate_signals(df: pd.DataFrame) -> dict:
         "stoch_k": stoch_k,
         "stoch_d": stoch_d,
     }
+
+
+def generate_signals_with_news(df: pd.DataFrame, news_sentiment: dict) -> dict:
+    """
+    Rozšíření generate_signals() o AI news sentiment jako 6. indikátor.
+    news_sentiment: výstup z ai_sentiment.news_ai_summary()
+    """
+    result = generate_signals(df)
+
+    news_signal = news_sentiment.get("score", 0)   # -1 až +1
+    news_source = news_sentiment.get("source", "keywords")
+    n_pos = news_sentiment.get("positive", 0)
+    n_neg = news_sentiment.get("negative", 0)
+    n_total = n_pos + n_neg + news_sentiment.get("neutral", 0)
+
+    buy_signals  = result["buy_signals"].copy()
+    sell_signals = result["sell_signals"].copy()
+
+    THRESHOLD = 0.20   # minimální net skóre pro news signál
+
+    if news_signal >= THRESHOLD:
+        conf_pct = int(abs(news_signal) * 100)
+        buy_signals.append(
+            f"AI sentiment ({news_source}): {n_pos}/{n_total} zpráv pozitivních "
+            f"(skóre {news_signal:+.2f})"
+        )
+    elif news_signal <= -THRESHOLD:
+        conf_pct = int(abs(news_signal) * 100)
+        sell_signals.append(
+            f"AI sentiment ({news_source}): {n_neg}/{n_total} zpráv negativních "
+            f"(skóre {news_signal:+.2f})"
+        )
+
+    buy_score  = len(buy_signals)
+    sell_score = len(sell_signals)
+    SIGNAL_THRESHOLD = 3
+
+    if buy_score >= SIGNAL_THRESHOLD and buy_score > sell_score:
+        action = "BUY"
+        strength = min(buy_score / 6, 1.0)   # /6 protože max je nyní 6 indikátorů
+    elif sell_score >= SIGNAL_THRESHOLD and sell_score > buy_score:
+        action = "SELL"
+        strength = min(sell_score / 6, 1.0)
+    else:
+        action = "HOLD"
+        strength = 0.0
+
+    result["action"]       = action
+    result["strength"]     = strength
+    result["buy_signals"]  = buy_signals
+    result["sell_signals"] = sell_signals
+    result["news_score"]   = news_signal
+    result["news_source"]  = news_source
+
+    return result
