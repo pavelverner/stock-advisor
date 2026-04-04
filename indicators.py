@@ -53,6 +53,32 @@ def compute_stochastic(high: pd.Series, low: pd.Series, close: pd.Series, k_peri
     return k, d
 
 
+def compute_volume_anomaly(df: pd.DataFrame, window: int = 20) -> dict:
+    """Detekuje nezvyklý objem obchodování."""
+    if "Volume" not in df.columns or len(df) < window + 1:
+        return {"is_anomaly": False}
+    vol = df["Volume"]
+    vol_now = float(vol.iloc[-1])
+    vol_avg = float(vol.iloc[-window - 1:-1].mean())
+    if vol_avg <= 0:
+        return {"is_anomaly": False}
+    ratio = vol_now / vol_avg
+    # Změna ceny v posledním dni
+    close = df["Close"]
+    price_chg = float((close.iloc[-1] - close.iloc[-2]) / close.iloc[-2] * 100) if len(close) > 1 else 0
+    return {
+        "is_anomaly":  ratio >= 2.0,
+        "is_extreme":  ratio >= 3.0,
+        "ratio":       round(ratio, 2),
+        "vol_now":     int(vol_now),
+        "vol_avg":     int(vol_avg),
+        "price_chg":   round(price_chg, 2),
+        # Interpretace: velký objem + růst ceny = bullish, velký objem + pokles = bearish
+        "direction":   "bullish" if ratio >= 2.0 and price_chg > 0 else
+                       "bearish" if ratio >= 2.0 and price_chg < 0 else "neutral",
+    }
+
+
 def generate_signals(df: pd.DataFrame) -> dict:
     """
     Conservative signal generation — vyžaduje shodu více indikátorů.
@@ -160,6 +186,26 @@ def generate_signals(df: pd.DataFrame) -> dict:
         action = "HOLD"
         strength = 0.0
 
+    # Volume anomálie – jako kontext (neovlivňuje práh, ale posiluje existující signál)
+    vol_anomaly = compute_volume_anomaly(df)
+    if vol_anomaly["is_anomaly"]:
+        direction = vol_anomaly["direction"]
+        ratio     = vol_anomaly["ratio"]
+        intensity = "extrémní" if vol_anomaly["is_extreme"] else "výrazný"
+        if direction == "bullish":
+            buy_signals.append(f"{intensity.capitalize()} objem {ratio:.1f}x průměr + cena roste → potvrzení BUY tlaku")
+        elif direction == "bearish":
+            sell_signals.append(f"{intensity.capitalize()} objem {ratio:.1f}x průměr + cena klesá → potvrzení SELL tlaku")
+        # Přepočítej po přidání volume signálu
+        buy_score  = len(buy_signals)
+        sell_score = len(sell_signals)
+        if buy_score >= THRESHOLD and buy_score > sell_score:
+            action   = "BUY"
+            strength = min(buy_score / 5, 1.0)
+        elif sell_score >= THRESHOLD and sell_score > buy_score:
+            action   = "SELL"
+            strength = min(sell_score / 5, 1.0)
+
     return {
         "action": action,
         "strength": strength,
@@ -176,6 +222,7 @@ def generate_signals(df: pd.DataFrame) -> dict:
         "ema200": ema200_val,
         "stoch_k": stoch_k,
         "stoch_d": stoch_d,
+        "volume_anomaly": vol_anomaly,
     }
 
 

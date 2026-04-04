@@ -20,6 +20,7 @@ from macro import fetch_fear_greed, fetch_macro_tickers, fetch_sectors, fg_label
 from earnings import get_portfolio_earnings
 from backtest import run_backtest, backtest_summary_table
 from ai_sentiment import enrich_news_with_ai, news_ai_summary, sentiment_to_signal
+from claude_analysis import analyze_stock_with_claude, get_peer_comparison
 
 # ── Konfigurace stránky ──────────────────────────────────────────────────────
 st.set_page_config(
@@ -272,6 +273,20 @@ def scan_stocks(stock_dict: dict, period: str) -> list[dict]:
             ),
         })
     return results
+
+
+@st.cache_data(ttl=1800)
+def cached_claude_analysis(ticker: str, signals_json: str, news_json: str, sentiment_json: str) -> dict:
+    import json
+    signals   = json.loads(signals_json)
+    news      = json.loads(news_json)
+    sentiment = json.loads(sentiment_json)
+    return analyze_stock_with_claude(ticker, signals, news, sentiment)
+
+
+@st.cache_data(ttl=3600)
+def cached_peer_comparison(ticker: str, period: str) -> dict:
+    return get_peer_comparison(ticker, period)
 
 
 if refresh:
@@ -767,6 +782,123 @@ když **alespoň 3 indikátory souhlasí** — proto je konzervativní a nevydá
             )
     else:
         st.info("Zprávy se nepodařilo načíst.")
+
+    st.divider()
+
+    # ── Claude AI analýza ────────────────────────────────────────────────────
+    st.subheader("Claude AI analýza")
+    st.caption("Shrnutí situace + detekce klíčových tržních událostí (vyžaduje ANTHROPIC_API_KEY).")
+
+    import json as _json
+    with st.spinner("Volám Claude AI..."):
+        _claude = cached_claude_analysis(
+            ticker,
+            _json.dumps({k: (float(v) if isinstance(v, (int, float)) else v)
+                         for k, v in signals.items()
+                         if not isinstance(v, (list, dict))} |
+                        {"buy_signals": signals.get("buy_signals", []),
+                         "sell_signals": signals.get("sell_signals", [])}),
+            _json.dumps([{"title": n.get("title",""), "summary": n.get("summary","")} for n in news[:10]]),
+            _json.dumps({k: (float(v) if isinstance(v, float) else v) for k, v in ai_sent.items()}),
+        )
+
+    if _claude.get("ok"):
+        # Shrnutí
+        st.markdown(
+            f'<div style="background:#1e293b;border-left:4px solid #60a5fa;'
+            f'border-radius:6px;padding:14px 18px;margin-bottom:12px">'
+            f'<div style="color:#94a3b8;font-size:0.8rem;margin-bottom:6px">SHRNUTÍ SITUACE</div>'
+            f'<div style="color:#e2e8f0">{_claude.get("summary","")}</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+
+        ca1, ca2 = st.columns(2)
+        with ca1:
+            events = _claude.get("events", [])
+            if events:
+                st.markdown("**Klíčové tržní události**")
+                for ev in events:
+                    st.info(f"📌 {ev}")
+        with ca2:
+            risks = _claude.get("risk_factors", [])
+            if risks:
+                st.markdown("**Rizikové faktory**")
+                for r in risks:
+                    st.warning(f"⚠️ {r}")
+
+        opp = _claude.get("opportunity", "")
+        if opp:
+            conf = _claude.get("confidence", "")
+            hint = _claude.get("action_hint", "")
+            hint_color = {"koupit": "#22c55e", "prodat": "#ef4444"}.get(hint, "#888")
+            st.markdown(
+                f'<div style="background:#0f172a;border:1px solid #334155;border-radius:6px;'
+                f'padding:12px 16px;margin-top:8px">'
+                f'<span style="color:{hint_color};font-weight:bold;text-transform:uppercase">'
+                f'{hint}</span>'
+                f'<span style="color:#94a3b8;font-size:0.8rem"> · jistota: {conf}</span><br>'
+                f'<span style="color:#cbd5e1">{opp}</span>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+    else:
+        err = _claude.get("error", "Neznámá chyba")
+        st.warning(f"Claude AI není dostupný: {err}")
+
+    st.divider()
+
+    # ── Srovnání s konkurencí ────────────────────────────────────────────────
+    st.subheader("Srovnání s konkurencí")
+    st.caption(f"Výkonnost {ticker} vs. podobné firmy ve stejném období.")
+
+    with st.spinner("Načítám data konkurentů..."):
+        _peers = cached_peer_comparison(ticker, period)
+
+    if _peers.get("ok"):
+        ranked = _peers["ranked"]
+        results = _peers["results"]
+        main_rank = _peers["main_rank"]
+        total = _peers["total"]
+
+        st.caption(f"Pořadí {ticker}: **{main_rank}. z {total}** za vybrané období")
+
+        # Normalizovaný výkonnostní graf
+        pfig = go.Figure()
+        for t, data in results.items():
+            is_main = data["is_main"]
+            pfig.add_trace(go.Scatter(
+                x=data["dates"],
+                y=data["normalized"],
+                name=t,
+                line=dict(width=3 if is_main else 1.5,
+                          color="#60a5fa" if is_main else None),
+            ))
+        pfig.update_layout(
+            height=320, template="plotly_dark",
+            title="Normalizovaná výkonnost (báze = 100)",
+            margin=dict(l=0, r=0, t=40, b=0),
+            legend=dict(orientation="h", yanchor="bottom", y=1.01, x=0),
+        )
+        st.plotly_chart(pfig, use_container_width=True)
+
+        # Tabulka se změnami
+        peer_rows = sorted(results.items(), key=lambda x: -x[1]["chg_pct"])
+        peer_cols = st.columns(len(peer_rows))
+        for col, (t, d) in zip(peer_cols, peer_rows):
+            chg = d["chg_pct"]
+            color = "#22c55e" if chg > 0 else "#ef4444"
+            col.markdown(
+                f'<div style="text-align:center;padding:6px;'
+                f'{"background:#1e3a5f;border-radius:6px;" if d["is_main"] else ""}">'
+                f'<div style="font-weight:bold">{t}</div>'
+                f'<div style="color:{color};font-size:1.1rem">{chg:+.1f}%</div>'
+                f'<div style="color:#666;font-size:0.8rem">{d["price"]:.2f}</div>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+    else:
+        st.info(_peers.get("error", "Peer data nejsou dostupná pro tento ticker."))
 
 
 # ═════════════════════════════════════════════════════════════════════════════
