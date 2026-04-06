@@ -122,6 +122,7 @@ def analyze_stock_with_claude(
     news: list[dict],
     ai_sentiment: dict,
     macro: dict | None = None,
+    horizon: str = "Střednědobý (3–12 měs.)",
 ) -> dict:
     """
     AI analýza akcie – shrnutí + detekce tržních událostí.
@@ -154,6 +155,7 @@ def analyze_stock_with_claude(
 
     prompt = f"""Jsi analytik finančních trhů. Analyzuj tuto situaci pro akcii {ticker}.
 DŮLEŽITÉ: Celá odpověď včetně všech polí JSON musí být výhradně v češtině. Žádná anglická slova.
+INVESTIČNÍ HORIZONT INVESTORA: {horizon} – přizpůsob doporučení tomuto horizontu.
 
 TECHNICKÁ ANALÝZA:
 - Signál: {action} (BUY signálů: {len(buy_signals)}, SELL signálů: {len(sell_signals)})

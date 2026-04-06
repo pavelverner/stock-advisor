@@ -398,6 +398,9 @@ RADAR_STOCKS = {
     "Spotify":          ("SPOT",  "USD", "Komunikace"),
 }
 
+# ── Sada tickerů v portfoliu (pro filtrování signálů v radaru) ────────────────
+PORTFOLIO_TICKERS = {t for t, _, _ in PORTFOLIO.values()}
+
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 refresh = False       # default; přepsáno tlačítkem v sidebaru
 period  = "6mo"       # default; přepsáno selectboxem v sidebaru
@@ -406,6 +409,7 @@ detail_currency = "USD"
 show_ema = True
 show_bb  = True
 selected_sectors: list = []
+investment_horizon = "Střednědobý (3–12 měs.)"
 
 _pages = ["Přehled portfolia", "Detail akcie", "Radar & Trh", "Analytika", "Deník obchodů"]
 
@@ -465,17 +469,17 @@ _mob_links = "".join(
 st.markdown(f'<div class="mob-nav">{_mob_links}</div>', unsafe_allow_html=True)
 
 # Period selector – jen na stránkách kde má smysl
-_period_opts = ["3M", "6M", "1R", "2R"]
-_period_map  = {"3M": "3mo", "6M": "6mo", "1R": "1y", "2R": "2y"}
+_period_opts = ["1T", "1M", "3M", "6M", "1R", "2R"]
+_period_map  = {"1T": "5d", "1M": "1mo", "3M": "3mo", "6M": "6mo", "1R": "1y", "2R": "2y"}
 _pages_with_period = {"Přehled portfolia", "Detail akcie", "Radar & Trh"}
 
-if page in _pages_with_period:
+if (page or "") in _pages_with_period:
     _period_label = st.segmented_control(
         "Časové období", _period_opts, default="6M", key="period_ctrl"
     )
     period = _period_map.get(_period_label or "6M", "6mo")
 else:
-    period = "6mo"
+    period = _period_map.get(st.session_state.get("period_ctrl", "6M"), "6mo")
 
     if page == "Detail akcie":
         all_stocks = dict(PORTFOLIO)
@@ -500,6 +504,14 @@ else:
             default=[],
             placeholder="Všechny sektory",
         )
+
+    st.divider()
+    investment_horizon = st.radio(
+        "Investiční horizont",
+        ["Krátkodobý (< 3 měs.)", "Střednědobý (3–12 měs.)", "Dlouhodobý (> 1 rok)"],
+        index=1,
+        key="inv_horizon",
+    )
 
     refresh = st.button("Obnovit data", use_container_width=True)
     st.divider()
@@ -566,12 +578,12 @@ def scan_stocks(stock_dict: dict, period: str) -> list[dict]:
 
 
 @st.cache_data(ttl=1800)
-def cached_claude_analysis(ticker: str, signals_json: str, news_json: str, sentiment_json: str) -> dict:
+def cached_claude_analysis(ticker: str, signals_json: str, news_json: str, sentiment_json: str, horizon: str = "Střednědobý (3–12 měs.)") -> dict:
     import json
     signals   = json.loads(signals_json)
     news      = json.loads(news_json)
     sentiment = json.loads(sentiment_json)
-    return analyze_stock_with_claude(ticker, signals, news, sentiment)
+    return analyze_stock_with_claude(ticker, signals, news, sentiment, horizon=horizon)
 
 
 @st.cache_data(ttl=3600)
@@ -920,7 +932,7 @@ if page == "Přehled portfolia":
         st.caption("Akcie mimo tvoje portfolio se silným signálem.")
         with st.spinner("Skenuji radar..."):
             _radar_results = scan_stocks(RADAR_STOCKS, period)
-        _top = [r for r in _radar_results if r["action"] != "HOLD"]
+        _top = [r for r in _radar_results if r["action"] == "BUY" or (r["action"] == "SELL" and r["ticker"] in PORTFOLIO_TICKERS)]
         _top = sorted(_top, key=lambda x: -x["strength"])[:5]
         if _top:
             for r in _top:
@@ -1011,6 +1023,7 @@ elif page == "Detail akcie":
                          "sell_signals": signals.get("sell_signals", [])}),
             _json.dumps([{"title": n.get("title",""), "summary": n.get("summary","")} for n in news[:10]]),
             _json.dumps({k: (float(v) if isinstance(v, float) else v) for k, v in ai_sent.items()}),
+            st.session_state.get("inv_horizon", "Střednědobý (3–12 měs.)"),
         )
 
     # ── Souhrnná karta ───────────────────────────────────────────────────────
@@ -1440,8 +1453,13 @@ Technické indikátory to zachytí — akcie v silném sektoru BEZ BUY signálu 
         for r in results:
             r["sector_chg"] = sector_perf.get(r["sector"], None)
 
-        strong = [r for r in results if r["action"] != "HOLD"]
-        hold   = [r for r in results if r["action"] == "HOLD"]
+        # SELL signály zobrazujeme jen pro akcie v portfoliu – pro ostatní nemají smysl
+        strong = [
+            r for r in results
+            if r["action"] == "BUY"
+            or (r["action"] == "SELL" and r["ticker"] in PORTFOLIO_TICKERS)
+        ]
+        hold   = [r for r in results if r not in strong]
 
         # ── Double confirmation – silný sektor + BUY signál ───────────────────
         double_conf = [
@@ -1461,7 +1479,7 @@ Technické indikátory to zachytí — akcie v silném sektoru BEZ BUY signálu 
         # ── Ostatní silné signály ─────────────────────────────────────────────
         other_strong = [r for r in strong if r not in double_conf]
         if other_strong:
-            st.subheader(f"Ostatní signály ({len(other_strong)})")
+            st.subheader("Ostatní signály")
             for r in sorted(other_strong, key=lambda x: -x["strength"]):
                 _render_radar_card(r, highlight=False)
         elif not double_conf:
@@ -1485,7 +1503,7 @@ Technické indikátory to zachytí — akcie v silném sektoru BEZ BUY signálu 
             sp_str = f"{sp:+.1f}%" if sp is not None else "N/A"
             sp_color = "#22c55e" if (sp or 0) >= 0 else "#ef4444"
             buy_in  = sum(1 for r in stocks_in_sector if r["action"] == "BUY")
-            sell_in = sum(1 for r in stocks_in_sector if r["action"] == "SELL")
+            sell_in = sum(1 for r in stocks_in_sector if r["action"] == "SELL" and r["ticker"] in PORTFOLIO_TICKERS)
 
             label_parts = []
             if buy_in:  label_parts.append(f"{buy_in} BUY")
@@ -1499,9 +1517,11 @@ Technické indikátory to zachytí — akcie v silném sektoru BEZ BUY signálu 
                     arrow = "▲" if r["chg_pct"] >= 0 else "▼"
                     price_color = "#22c55e" if r["chg_pct"] >= 0 else "#ef4444"
                     trend_color = {"Bullish": "#22c55e", "Bearish": "#ef4444", "Smíšený": "#888"}[r["ema_trend"]]
-                    badge_css = {"BUY": "badge-buy", "SELL": "badge-sell", "HOLD": "badge-hold"}[r["action"]]
-                    badge_lbl = {"BUY": "KOUPIT", "SELL": "PRODAT", "HOLD": "DRŽET"}[r["action"]]
-                    card_css  = {"BUY": "card-buy", "SELL": "card-sell", "HOLD": "card-hold"}[r["action"]]
+                    # SELL skrýt pro akcie mimo portfolio
+                    display_action = r["action"] if (r["action"] != "SELL" or r["ticker"] in PORTFOLIO_TICKERS) else "HOLD"
+                    badge_css = {"BUY": "badge-buy", "SELL": "badge-sell", "HOLD": "badge-hold"}[display_action]
+                    badge_lbl = {"BUY": "KOUPIT", "SELL": "PRODAT", "HOLD": "DRŽET"}[display_action]
+                    card_css  = {"BUY": "card-buy", "SELL": "card-sell", "HOLD": "card-hold"}[display_action]
                     reasons = (r["buy_reasons"] if r["action"] == "BUY" else r["sell_reasons"])[:2]
                     reasons_html = " · ".join(reasons) if reasons else ""
                     st.markdown(
@@ -1843,7 +1863,7 @@ Myslíš si, že máš 3 různé pozice, ale ve skutečnosti máš 1 velkou sáz
                 margin=dict(l=0, r=0, t=20, b=0),
                 legend=dict(orientation="h", y=-0.15),
             )
-            st.plotly_chart(fig_norm, use_container_width=True, config={"displayModeBar": False, "scrollZoom": False})
+            st.plotly_chart(fig_norm, use_container_width=True, config={"displayModeBar": False, "scrollZoom": False, "staticPlot": True})
 
 
 # ═════════════════════════════════════════════════════════════════════════════
