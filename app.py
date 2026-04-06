@@ -130,6 +130,12 @@ div:has(> [data-testid="stExpander"]) { gap: 2px !important; }
   }
 }
 
+/* ── Expander – menší rozestupy ── */
+[data-testid="stExpander"] {
+    margin-top: 4px !important;
+    margin-bottom: 4px !important;
+}
+
 /* ── Základní karty ── */
 .signal-buy  { background:#0d6e2f; color:#fff; padding:10px 20px; border-radius:8px;
                font-size:1.8rem; font-weight:700; text-align:center; }
