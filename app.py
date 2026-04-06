@@ -360,7 +360,13 @@ RADAR_STOCKS = {
 }
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
-refresh = False  # default; přepsáno tlačítkem v sidebaru
+refresh = False       # default; přepsáno tlačítkem v sidebaru
+period  = "6mo"       # default; přepsáno selectboxem v sidebaru
+detail_ticker   = list(PORTFOLIO.values())[0][0]
+detail_currency = "USD"
+show_ema = True
+show_bb  = True
+selected_sectors: list = []
 with st.sidebar:
     st.title("Stock Advisor")
     page = st.radio(
