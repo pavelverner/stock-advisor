@@ -979,74 +979,80 @@ elif page == "Detail akcie":
     _ai_prov = _claude.get("provider", "AI") if _claude.get("ok") else ""
     _hint_c  = {"koupit": "#22c55e", "prodat": "#ef4444"}.get(_ai_hint, "#94a3b8")
 
+    score, score_label = _score_label(
+        len(signals["buy_signals"]), len(signals["sell_signals"]), action
+    )
+    score_html = _score_bar_html(score)
+
+    _buy_html = "".join(f'<div style="color:#22c55e;font-size:0.82rem;padding:2px 0">+ {s}</div>' for s in signals["buy_signals"]) or '<div style="color:#555;font-size:0.82rem">Žádné</div>'
+    _sell_html = "".join(f'<div style="color:#ef4444;font-size:0.82rem;padding:2px 0">− {s}</div>' for s in signals["sell_signals"]) or '<div style="color:#555;font-size:0.82rem">Žádné</div>'
+    _ai_row = (f'<div style="color:#94a3b8;font-size:0.78rem;margin-top:4px">AI: '
+               f'<span style="color:{_hint_c};font-weight:600;text-transform:uppercase">{_ai_hint}</span>'
+               f' · jistota: {_ai_conf} · <span style="color:#60a5fa">{_ai_prov}</span></div>') if _ai_hint else ""
+
     st.markdown(f"""
-<div style="background:#1e293b;border-radius:12px;padding:18px 20px;margin-bottom:16px">
-  <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+<style>
+.summary-grid {{
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin: 10px 0;
+}}
+@media (max-width: 640px) {{
+  .summary-grid {{ grid-template-columns: repeat(2, 1fr); }}
+}}
+.summary-cell {{
+  background: #0f172a;
+  border-radius: 8px;
+  padding: 8px;
+  text-align: center;
+}}
+.summary-label {{ color: #64748b; font-size: 0.72rem; }}
+.summary-value {{ font-size: 1.1rem; font-weight: 700; }}
+.summary-sub   {{ color: #64748b; font-size: 0.7rem; }}
+</style>
+<div style="background:#1e293b;border-radius:12px;padding:14px 16px;margin-bottom:12px">
+  <!-- Signál + skóre -->
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
     <div style="background:{_sig_c}22;border:2px solid {_sig_c};border-radius:8px;
-                padding:6px 18px;font-size:1.3rem;font-weight:700;color:{_sig_c}">{_sig_lbl}</div>
-    <div style="color:#94a3b8;font-size:0.85rem">
-      {len(signals['buy_signals'])} BUY · {len(signals['sell_signals'])} SELL signálů
-    </div>
-    {"<div style='margin-left:auto;color:#94a3b8;font-size:0.8rem'>AI: <span style=\"color:" + _hint_c + ";font-weight:600;text-transform:uppercase\">" + _ai_hint + "</span> · jistota: " + _ai_conf + " · <span style=\"color:#60a5fa\">" + _ai_prov + "</span></div>" if _ai_hint else ""}
-  </div>
-  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:{'14px' if _ai_summ else '0'}">
-    <div style="background:#0f172a;border-radius:8px;padding:10px;text-align:center">
-      <div style="color:#64748b;font-size:0.75rem">RSI (14)</div>
-      <div style="color:{_rsi_c};font-size:1.2rem;font-weight:700">{_rsi:.1f}</div>
-      <div style="color:#64748b;font-size:0.75rem">{_rsi_lbl}</div>
-    </div>
-    <div style="background:#0f172a;border-radius:8px;padding:10px;text-align:center">
-      <div style="color:#64748b;font-size:0.75rem">EMA Trend</div>
-      <div style="color:{_trend_c};font-size:1.2rem;font-weight:700">{_trend}</div>
-      <div style="color:#64748b;font-size:0.75rem">EMA 20/50/200</div>
-    </div>
-    <div style="background:#0f172a;border-radius:8px;padding:10px;text-align:center">
-      <div style="color:#64748b;font-size:0.75rem">MACD</div>
-      <div style="color:{_macd_c};font-size:1.2rem;font-weight:700">{_macd_lbl}</div>
-      <div style="color:#64748b;font-size:0.75rem">{signals['macd']:.3f}</div>
-    </div>
-    <div style="background:#0f172a;border-radius:8px;padding:10px;text-align:center">
-      <div style="color:#64748b;font-size:0.75rem">Sentiment zpráv</div>
-      <div style="color:{_sent_c};font-size:1.2rem;font-weight:700">{_sent_lbl}</div>
-      <div style="color:#64748b;font-size:0.75rem">Skóre: {ai_sent['score']:+.2f}</div>
+                padding:5px 16px;font-size:1.2rem;font-weight:700;color:{_sig_c}">{_sig_lbl}</div>
+    <div style="flex:1;min-width:120px">{score_html}
+      <div style="color:#94a3b8;font-size:0.78rem;margin-top:2px">{score_label} · {len(signals['buy_signals'])} buy / {len(signals['sell_signals'])} sell</div>
+      {_ai_row}
     </div>
   </div>
-  {f'<div style="border-top:1px solid #334155;padding-top:12px;color:#cbd5e1;font-size:0.9rem"><span style="color:#60a5fa;font-size:0.75rem;font-weight:600">{_ai_prov.upper()} · </span>{_ai_summ}</div>' if _ai_summ else ""}
+  <!-- Metriky 4×2 -->
+  <div class="summary-grid">
+    <div class="summary-cell">
+      <div class="summary-label">RSI (14)</div>
+      <div class="summary-value" style="color:{_rsi_c}">{_rsi:.1f}</div>
+      <div class="summary-sub">{_rsi_lbl}</div>
+    </div>
+    <div class="summary-cell">
+      <div class="summary-label">EMA Trend</div>
+      <div class="summary-value" style="color:{_trend_c}">{_trend}</div>
+      <div class="summary-sub">20/50/200</div>
+    </div>
+    <div class="summary-cell">
+      <div class="summary-label">MACD</div>
+      <div class="summary-value" style="color:{_macd_c}">{_macd_lbl}</div>
+      <div class="summary-sub">{signals['macd']:.3f}</div>
+    </div>
+    <div class="summary-cell">
+      <div class="summary-label">Sentiment</div>
+      <div class="summary-value" style="color:{_sent_c}">{_sent_lbl}</div>
+      <div class="summary-sub">{ai_sent['score']:+.2f}</div>
+    </div>
+  </div>
+  <!-- AI shrnutí -->
+  {f'<div style="border-top:1px solid #334155;padding-top:10px;margin-top:4px;color:#cbd5e1;font-size:0.85rem"><span style="color:#60a5fa;font-size:0.72rem;font-weight:600">{_ai_prov.upper()} · </span>{_ai_summ}</div>' if _ai_summ else ""}
+  <!-- Signály detail -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;border-top:1px solid #334155;padding-top:10px">
+    <div><div style="color:#64748b;font-size:0.72rem;margin-bottom:4px">BUY signály</div>{_buy_html}</div>
+    <div><div style="color:#64748b;font-size:0.72rem;margin-bottom:4px">SELL signály</div>{_sell_html}</div>
+  </div>
 </div>
 """, unsafe_allow_html=True)
-
-    sig_col, detail_col = st.columns([1, 2])
-    with sig_col:
-        st.subheader("Doporučení")
-        label = {"BUY": "KOUPIT", "SELL": "PRODAT", "HOLD": "DRŽET"}[action]
-        st.markdown(f'<div class="signal-{action.lower()}">{label}</div>', unsafe_allow_html=True)
-
-        score, score_label = _score_label(
-            len(signals["buy_signals"]), len(signals["sell_signals"]), action
-        )
-        score_html = _score_bar_html(score)
-        st.markdown(
-            f'<div style="margin:8px 0 4px">{score_html}'
-            f' &nbsp;<span style="color:#aaa;font-size:0.85rem">{score_label}</span></div>',
-            unsafe_allow_html=True,
-        )
-        if action != "HOLD":
-            st.progress(signals["strength"], text=f"Shoda indikátorů: {signals['strength']*100:.0f}%")
-        st.caption(f"BUY signálů: {len(signals['buy_signals'])} | SELL signálů: {len(signals['sell_signals'])}")
-
-    with detail_col:
-        st.subheader("Důvody")
-        t1, t2 = st.tabs(["BUY signály", "SELL signály"])
-        with t1:
-            for s in signals["buy_signals"]:
-                st.success(f"+ {s}")
-            if not signals["buy_signals"]:
-                st.info("Žádné")
-        with t2:
-            for s in signals["sell_signals"]:
-                st.error(f"- {s}")
-            if not signals["sell_signals"]:
-                st.info("Žádné")
 
     st.divider()
 
