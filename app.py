@@ -895,12 +895,12 @@ když **alespoň 3 indikátory souhlasí** — proto je konzervativní a nevydá
 
     st.divider()
 
-    # ── Claude AI analýza ────────────────────────────────────────────────────
-    st.subheader("Claude AI analýza")
-    st.caption("Shrnutí situace + detekce klíčových tržních událostí (vyžaduje ANTHROPIC_API_KEY).")
+    # ── AI analýza ───────────────────────────────────────────────────────────
+    st.subheader("AI analýza")
+    st.caption("Shrnutí situace + detekce tržních událostí. Funguje s Claude, Gemini nebo Groq (nastav API klíč v secrets).")
 
     import json as _json
-    with st.spinner("Volám Claude AI..."):
+    with st.spinner("Volám AI analýzu..."):
         _claude = cached_claude_analysis(
             ticker,
             _json.dumps({k: (float(v) if isinstance(v, (int, float)) else v)
@@ -913,11 +913,13 @@ když **alespoň 3 indikátory souhlasí** — proto je konzervativní a nevydá
         )
 
     if _claude.get("ok"):
+        _provider = _claude.get("provider", "AI")
         # Shrnutí
         st.markdown(
             f'<div style="background:#1e293b;border-left:4px solid #60a5fa;'
             f'border-radius:6px;padding:14px 18px;margin-bottom:12px">'
-            f'<div style="color:#94a3b8;font-size:0.8rem;margin-bottom:6px">SHRNUTÍ SITUACE</div>'
+            f'<div style="color:#94a3b8;font-size:0.8rem;margin-bottom:6px">'
+            f'SHRNUTÍ SITUACE &nbsp;·&nbsp; <span style="color:#60a5fa">{_provider}</span></div>'
             f'<div style="color:#e2e8f0">{_claude.get("summary","")}</div>'
             f'</div>',
             unsafe_allow_html=True,

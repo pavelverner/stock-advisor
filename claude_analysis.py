@@ -1,14 +1,15 @@
 """
-AI analýza pomocí Claude API.
-Funkce 1: Přirozený jazyk – shrnutí situace
-Funkce 2: Detekce tržních událostí ze zpráv
-Funkce 3: Porovnání s konkurencí (peer comparison)
+AI analýza – shrnutí situace, detekce tržních událostí, peer comparison.
+
+Priorita AI providera:
+  1. Claude  (ANTHROPIC_API_KEY) – nejkvalitnější
+  2. Gemini  (GEMINI_API_KEY)    – free tier, 1 M tokenů/den
+  3. Groq    (GROQ_API_KEY)      – free tier, LLaMA3, velmi rychlý
 """
 import os
 import json
 import yfinance as yf
 import pandas as pd
-import anthropic
 
 # ── Peer skupiny pro portfolio ────────────────────────────────────────────────
 PEER_GROUPS = {
@@ -26,22 +27,94 @@ PEER_GROUPS = {
 }
 
 
-def _get_client() -> anthropic.Anthropic | None:
-    """Vrátí Anthropic klienta nebo None pokud není API klíč."""
-    # 1. Streamlit secrets
+def _get_secret(key: str) -> str:
+    """Přečte klíč z Streamlit secrets nebo env proměnné."""
     try:
         import streamlit as st
-        key = st.secrets.get("ANTHROPIC_API_KEY", "")
-        if key:
-            return anthropic.Anthropic(api_key=key)
+        val = st.secrets.get(key, "")
+        if val:
+            return val
     except Exception:
         pass
-    # 2. Env proměnná
-    key = os.environ.get("ANTHROPIC_API_KEY", "")
-    if key:
-        return anthropic.Anthropic(api_key=key)
+    return os.environ.get(key, "")
+
+
+# ── Provider detekce ──────────────────────────────────────────────────────────
+
+def _get_provider() -> str | None:
+    """Vrátí název dostupného AI providera v pořadí priorit: claude → gemini → groq."""
+    if _get_secret("ANTHROPIC_API_KEY"):
+        return "claude"
+    if _get_secret("GEMINI_API_KEY"):
+        return "gemini"
+    if _get_secret("GROQ_API_KEY"):
+        return "groq"
     return None
 
+
+# ── Volání jednotlivých providerů ─────────────────────────────────────────────
+
+def _call_claude(prompt: str) -> str:
+    import anthropic
+    client = anthropic.Anthropic(api_key=_get_secret("ANTHROPIC_API_KEY"))
+    resp = client.messages.create(
+        model="claude-haiku-4-5",
+        max_tokens=1024,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    return resp.content[0].text.strip()
+
+
+def _call_gemini(prompt: str) -> str:
+    import google.generativeai as genai
+    genai.configure(api_key=_get_secret("GEMINI_API_KEY"))
+    model = genai.GenerativeModel("gemini-2.0-flash")
+    resp = model.generate_content(prompt)
+    return resp.text.strip()
+
+
+def _call_groq(prompt: str) -> str:
+    from groq import Groq
+    client = Groq(api_key=_get_secret("GROQ_API_KEY"))
+    resp = client.chat.completions.create(
+        model="llama3-8b-8192",
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=1024,
+    )
+    return resp.choices[0].message.content.strip()
+
+
+def _call_ai(prompt: str) -> tuple[str, str]:
+    """
+    Zavolá AI providera podle dostupnosti.
+    Vrátí (text_odpovědi, název_providera).
+    Raises RuntimeError pokud žádný provider není dostupný.
+    """
+    provider = _get_provider()
+    if provider == "claude":
+        return _call_claude(prompt), "Claude"
+    if provider == "gemini":
+        return _call_gemini(prompt), "Gemini"
+    if provider == "groq":
+        return _call_groq(prompt), "Groq"
+    raise RuntimeError(
+        "Žádný AI klíč nenalezen. Nastav ANTHROPIC_API_KEY, GEMINI_API_KEY nebo GROQ_API_KEY."
+    )
+
+
+# ── Pomocná funkce – čištění JSON z odpovědi ──────────────────────────────────
+
+def _parse_json(text: str) -> dict:
+    """Vyčistí markdown backticky a parsuje JSON."""
+    if text.startswith("```"):
+        parts = text.split("```")
+        text = parts[1] if len(parts) > 1 else text
+        if text.startswith("json"):
+            text = text[4:]
+    return json.loads(text.strip())
+
+
+# ── Hlavní analýza ────────────────────────────────────────────────────────────
 
 def analyze_stock_with_claude(
     ticker: str,
@@ -51,34 +124,29 @@ def analyze_stock_with_claude(
     macro: dict | None = None,
 ) -> dict:
     """
-    Funkce 1 + 2: Claude API analýza – shrnutí + detekce událostí.
-    Vrátí: {summary, events, risk_factors, opportunity, confidence}
+    AI analýza akcie – shrnutí + detekce tržních událostí.
+    Vrátí: {summary, events, risk_factors, opportunity, confidence, action_hint, provider}
+    Funguje s Claude, Gemini nebo Groq – podle dostupného API klíče.
     """
-    client = _get_client()
-    if client is None:
-        return {"ok": False, "error": "Chybí ANTHROPIC_API_KEY"}
-
-    # Připrav kontext pro Claude
     action = signals.get("action", "HOLD")
     rsi = signals.get("rsi", 50)
-    ema_trend = ("rostoucí" if signals.get("ema20", 0) > signals.get("ema50", 0) > signals.get("ema200", 0)
-                 else "klesající" if signals.get("ema20", 0) < signals.get("ema50", 0) < signals.get("ema200", 0)
-                 else "smíšený")
+    ema_trend = (
+        "rostoucí" if signals.get("ema20", 0) > signals.get("ema50", 0) > signals.get("ema200", 0)
+        else "klesající" if signals.get("ema20", 0) < signals.get("ema50", 0) < signals.get("ema200", 0)
+        else "smíšený"
+    )
 
     buy_signals  = signals.get("buy_signals", [])
     sell_signals = signals.get("sell_signals", [])
 
-    # Top 10 titulků zpráv
     headlines = [n.get("title", "") for n in news[:10] if n.get("title")]
     headlines_str = "\n".join(f"- {h}" for h in headlines) if headlines else "Žádné zprávy."
 
-    # Sentiment
     sentiment_score = ai_sentiment.get("score", 0)
     sentiment_label = ai_sentiment.get("dominant", "neutral")
     n_pos = ai_sentiment.get("positive", 0)
     n_neg = ai_sentiment.get("negative", 0)
 
-    # Volume anomálie
     vol_info = signals.get("volume_anomaly", {})
     vol_str = ""
     if vol_info.get("is_anomaly"):
@@ -112,32 +180,24 @@ Odpověz PŘESNĚ v tomto JSON formátu (bez markdown backticks):
 }}"""
 
     try:
-        resp = client.messages.create(
-            model="claude-haiku-4-5",
-            max_tokens=1024,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        text = resp.content[0].text.strip()
-
-        # Očisti případné markdown bloky
-        if text.startswith("```"):
-            text = text.split("```")[1]
-            if text.startswith("json"):
-                text = text[4:]
-
-        data = json.loads(text)
+        text, provider = _call_ai(prompt)
+        data = _parse_json(text)
         data["ok"] = True
+        data["provider"] = provider
         return data
-
     except json.JSONDecodeError as e:
-        return {"ok": False, "error": f"JSON parse error: {e}", "raw": text}
+        return {"ok": False, "error": f"JSON parse error: {e}"}
+    except RuntimeError as e:
+        return {"ok": False, "error": str(e)}
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
 
+# ── Peer comparison ───────────────────────────────────────────────────────────
+
 def get_peer_comparison(ticker: str, period: str = "3mo") -> dict:
     """
-    Funkce 3: Porovnání s konkurencí.
+    Porovnání s konkurencí.
     Vrátí výkonnost tickeru vs. peers za dané období.
     """
     peer_info = PEER_GROUPS.get(ticker)
@@ -155,16 +215,14 @@ def get_peer_comparison(ticker: str, period: str = "3mo") -> dict:
             df.columns = [c[0] if isinstance(c, tuple) else c for c in df.columns]
             price_start = float(df["Close"].iloc[0])
             price_end   = float(df["Close"].iloc[-1])
-            price_now   = price_end
             chg = (price_end - price_start) / price_start * 100
 
-            # Normalizovaná série (báze = 100)
             normalized = (df["Close"] / price_start * 100).tolist()
             dates      = [str(d.date()) for d in df.index]
 
             results[t] = {
                 "chg_pct":    round(chg, 2),
-                "price":      round(price_now, 2),
+                "price":      round(price_end, 2),
                 "normalized": normalized,
                 "dates":      dates,
                 "is_main":    t == ticker,
@@ -175,7 +233,6 @@ def get_peer_comparison(ticker: str, period: str = "3mo") -> dict:
     if not results:
         return {"ok": False, "error": "Nepodařilo se načíst peer data"}
 
-    # Rank podle výkonnosti
     ranked = sorted(results.items(), key=lambda x: -x[1]["chg_pct"])
     main_rank = next((i + 1 for i, (t, _) in enumerate(ranked) if t == ticker), None)
 
