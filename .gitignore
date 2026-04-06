@@ -5,3 +5,4 @@ notify_config.json
 .env
 *.log
 .claude/
+trades.db

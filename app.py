@@ -21,6 +21,7 @@ from earnings import get_portfolio_earnings
 from backtest import run_backtest, backtest_summary_table
 from ai_sentiment import enrich_news_with_ai, news_ai_summary, sentiment_to_signal
 from claude_analysis import analyze_stock_with_claude, get_peer_comparison
+from trade_journal import add_trade, get_trades, get_performance, get_stats, delete_trade, import_from_csv, init_db
 
 # ── Konfigurace stránky ──────────────────────────────────────────────────────
 st.set_page_config(
@@ -320,6 +321,7 @@ with st.sidebar:
             "Detail akcie",
             "Radar & Trh",
             "Analytika",
+            "Deník obchodů",
         ],
         index=0,
     )
@@ -1773,6 +1775,212 @@ Po zveřejnění se situace vyjasní a signál bude spolehlivější.
                 )
         else:
             st.info("Vyber akcii a klikni na 'Spustit backtest'.")
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# STRANA 5 – Deník obchodů
+# ═════════════════════════════════════════════════════════════════════════════
+elif page == "Deník obchodů":
+    import json as _json
+    st.title("Deník obchodů")
+    st.caption("Zaznamenávej nákupy a prodeje na základě doporučení portálu. Sleduj, kolik ti signály vydělaly nebo vzaly.")
+
+    init_db()
+
+    # ── Upozornění na perzistenci ─────────────────────────────────────────────
+    _using_sheets = bool(_get_secret("GSHEETS_URL") if hasattr(st, "secrets") else os.environ.get("GSHEETS_URL", ""))
+    if not _using_sheets:
+        st.info(
+            "Data se ukládají lokálně (SQLite). Na Streamlit Cloud se resetují při restartu — "
+            "pravidelně exportuj zálohu pomocí tlačítka níže.",
+            icon="💾",
+        )
+
+    tab_add, tab_history, tab_stats = st.tabs(["Přidat obchod", "Historie", "Výkonnost"])
+
+    # ── Tab 1: Přidat obchod ──────────────────────────────────────────────────
+    with tab_add:
+        st.subheader("Zaznamenat obchod")
+
+        all_portfolio = {n: t for n, (t, c, s) in PORTFOLIO.items()}
+        all_radar_j   = {n: t for n, (t, c, s) in RADAR_STOCKS.items()}
+        all_stocks_j  = {**all_portfolio, **all_radar_j}
+
+        with st.form("trade_form"):
+            fc1, fc2 = st.columns(2)
+            with fc1:
+                stock_choice_j = st.selectbox(
+                    "Akcie",
+                    ["– vlastní –"] + list(all_portfolio.keys()) + ["── Radar ──"] + list(all_radar_j.keys()),
+                )
+                if stock_choice_j in all_stocks_j:
+                    prefill_ticker = all_stocks_j[stock_choice_j]
+                    prefill_name   = stock_choice_j
+                else:
+                    prefill_ticker = ""
+                    prefill_name   = ""
+                custom_ticker = st.text_input("Nebo zadej ticker ručně", value=prefill_ticker)
+                custom_name   = st.text_input("Název", value=prefill_name)
+            with fc2:
+                action_j = st.radio("Typ obchodu", ["BUY – koupil jsem", "SELL – prodal jsem"], horizontal=True)
+                action_j = "BUY" if action_j.startswith("BUY") else "SELL"
+                price_j  = st.number_input("Cena za akcii (v měně burzy)", min_value=0.01, value=100.0, step=0.01)
+                shares_j = st.number_input("Počet akcií", min_value=0.001, value=1.0, step=0.001)
+
+            note_j = st.text_input("Poznámka (volitelné)", placeholder="např. dle BUY signálu, RSI 28")
+            submitted = st.form_submit_button("Uložit obchod", type="primary", use_container_width=True)
+
+        if submitted:
+            ticker_j = (custom_ticker or prefill_ticker).upper().strip()
+            name_j   = (custom_name or prefill_name or ticker_j).strip()
+            if ticker_j:
+                add_trade(
+                    ticker=ticker_j,
+                    name=name_j,
+                    action=action_j,
+                    price=price_j,
+                    shares=shares_j,
+                    note=note_j,
+                )
+                st.success(f"Uloženo: {action_j} {shares_j} × {ticker_j} @ {price_j:.2f}")
+                st.rerun()
+            else:
+                st.error("Zadej ticker akcie.")
+
+        st.divider()
+        st.subheader("Import / Export")
+        col_imp, col_exp = st.columns(2)
+        with col_imp:
+            uploaded = st.file_uploader("Importuj zálohu (CSV)", type="csv", label_visibility="collapsed")
+            if uploaded:
+                try:
+                    n = import_from_csv(uploaded.read())
+                    st.success(f"Importováno {n} obchodů.")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Chyba importu: {e}")
+        with col_exp:
+            df_exp = get_trades()
+            if not df_exp.empty:
+                csv_bytes = df_exp.to_csv(index=False).encode("utf-8")
+                st.download_button(
+                    "Stáhnout zálohu (CSV)",
+                    data=csv_bytes,
+                    file_name=f"trades_{datetime.now().strftime('%Y%m%d')}.csv",
+                    mime="text/csv",
+                    use_container_width=True,
+                )
+
+    # ── Tab 2: Historie ───────────────────────────────────────────────────────
+    with tab_history:
+        st.subheader("Historie obchodů")
+        df_raw = get_trades()
+        if df_raw.empty:
+            st.info("Zatím žádné záznamy. Přidej první obchod v záložce 'Přidat obchod'.")
+        else:
+            with st.spinner("Načítám aktuální ceny..."):
+                df_perf = get_performance(df_raw)
+
+            for _, row in df_perf.iterrows():
+                action_r = row["Akce"]
+                pnl      = row["P&L %"]
+                card_css = "card-buy" if action_r == "BUY" else "card-sell"
+                badge_css= "badge-buy" if action_r == "BUY" else "badge-sell"
+                badge_lbl= "KOUPENO"  if action_r == "BUY" else "PRODÁNO"
+
+                pnl_html = ""
+                if pnl is not None:
+                    pnl_color = "#22c55e" if pnl >= 0 else "#ef4444"
+                    pnl_abs   = row["P&L Kč/USD"]
+                    pnl_html  = (
+                        f' &nbsp;|&nbsp; P&L: '
+                        f'<span style="color:{pnl_color};font-weight:700">'
+                        f'{pnl:+.1f}% ({pnl_abs:+.0f})</span>'
+                    )
+
+                cur_html = f" → aktuálně {row['Aktuální']:.2f}" if row["Aktuální"] else ""
+                note_html = f'<br><small style="color:#888">{row["Poznámka"]}</small>' if row["Poznámka"] else ""
+                reasons_html = f'<br><small style="color:#aaa">{row["Důvody"]}</small>' if row["Důvody"] else ""
+
+                c_left, c_del = st.columns([10, 1])
+                with c_left:
+                    st.markdown(
+                        f'<div class="{card_css}" style="margin:4px 0">'
+                        f'<span class="{badge_css}">{badge_lbl}</span> &nbsp;'
+                        f'<strong>{row["Název"]}</strong> '
+                        f'<span style="color:#888;font-size:0.82rem">{row["Ticker"]}</span>'
+                        f' &nbsp; vstup: <b>{row["Vstup"]:.2f}</b> × {row["Počet"]:.3g}'
+                        f' = <b>{row["Investováno"]:.0f}</b>'
+                        f'{cur_html}{pnl_html}'
+                        f'<br><small style="color:#666">{row["Datum"]}</small>'
+                        f'{note_html}{reasons_html}'
+                        f'</div>',
+                        unsafe_allow_html=True,
+                    )
+                with c_del:
+                    if st.button("🗑", key=f"del_{row['id']}", help="Smazat záznam"):
+                        delete_trade(int(row["id"]))
+                        st.rerun()
+
+    # ── Tab 3: Výkonnost ──────────────────────────────────────────────────────
+    with tab_stats:
+        st.subheader("Výkonnost doporučení")
+        df_raw_s = get_trades()
+        if df_raw_s.empty:
+            st.info("Zatím žádné záznamy.")
+        else:
+            with st.spinner("Počítám výkonnost..."):
+                df_perf_s = get_performance(df_raw_s)
+                stats     = get_stats(df_perf_s)
+
+            if stats:
+                s1, s2, s3, s4 = st.columns(4)
+                s1.metric("Celkem obchodů",   stats.get("total_trades", 0))
+                s2.metric("Otevřené pozice",  stats.get("open_positions", 0))
+                win_rate = stats.get("win_rate", 0)
+                s3.metric("Win rate", f"{win_rate:.0f}%",
+                          "Nad 50% = signály fungují" if win_rate >= 50 else "Pod 50% = signály zatím netáhnou")
+                total_pnl = stats.get("total_pnl_abs", 0)
+                total_pct = stats.get("total_pnl_pct", 0)
+                s4.metric("Celkový P&L",
+                          f"{total_pnl:+.0f}",
+                          f"{total_pct:+.1f}% z investovaného")
+
+                st.divider()
+                b1, b2, b3 = st.columns(3)
+                b1.metric("Nejlepší obchod", f"{stats.get('best_trade', 0):+.1f}%")
+                b2.metric("Nejhorší obchod", f"{stats.get('worst_trade', 0):+.1f}%")
+                b3.metric("Průměrný P&L",    f"{stats.get('avg_pnl', 0):+.1f}%")
+
+                # Graf P&L jednotlivých obchodů
+                open_pos = df_perf_s[df_perf_s["Status"] == "Otevřená"].dropna(subset=["P&L %"])
+                if not open_pos.empty:
+                    st.divider()
+                    st.subheader("P&L otevřených pozic")
+                    colors = ["#22c55e" if v >= 0 else "#ef4444" for v in open_pos["P&L %"]]
+                    fig_pnl = go.Figure(go.Bar(
+                        x=open_pos["Ticker"],
+                        y=open_pos["P&L %"],
+                        marker_color=colors,
+                        text=[f"{v:+.1f}%" for v in open_pos["P&L %"]],
+                        textposition="outside",
+                        customdata=open_pos[["Název", "Vstup", "Aktuální", "Investováno"]].values,
+                        hovertemplate=(
+                            "<b>%{customdata[0]}</b><br>"
+                            "Vstup: %{customdata[1]:.2f}<br>"
+                            "Aktuálně: %{customdata[2]:.2f}<br>"
+                            "Investováno: %{customdata[3]:.0f}<br>"
+                            "P&L: %{y:+.1f}%<extra></extra>"
+                        ),
+                    ))
+                    fig_pnl.add_hline(y=0, line=dict(color="#666", width=1))
+                    fig_pnl.update_layout(
+                        template="plotly_dark", height=300,
+                        margin=dict(l=0, r=0, t=20, b=0),
+                        showlegend=False,
+                        yaxis_title="P&L (%)",
+                    )
+                    st.plotly_chart(fig_pnl, use_container_width=True)
 
 
 # ── Patička ───────────────────────────────────────────────────────────────────
