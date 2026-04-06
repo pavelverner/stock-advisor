@@ -716,9 +716,9 @@ if page == "Přehled portfolia":
                 _desc = _MACRO_DESC.get(_name, "")
                 st.markdown(
                     f'<div class="card-hold" style="margin:3px 0;padding:8px 12px">'
-                    f'<div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:4px">'
-                    f'<span style="font-size:0.9rem;font-weight:700">{_name}</span>'
-                    f'<span style="color:#555;font-size:0.75rem">{_desc}</span>'
+                    f'<div style="display:flex;align-items:baseline;gap:6px;overflow:hidden">'
+                    f'<span style="font-size:0.9rem;font-weight:700;white-space:nowrap">{_name}</span>'
+                    f'<span style="color:#555;font-size:0.75rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{_desc}</span>'
                     f'</div>'
                     f'<div style="display:flex;align-items:center;gap:10px;margin-top:2px">'
                     f'<span style="font-size:1.05rem;font-weight:600">{_p:.2f}</span>'
