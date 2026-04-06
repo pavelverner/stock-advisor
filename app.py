@@ -868,6 +868,31 @@ def _score_bar_html(score: int) -> str:
     return f'{num} /10 &nbsp;{bar}'
 
 
+def _opportunity_score(r: dict) -> float:
+    """
+    Složené skóre příležitosti 0–100 pro BUY signály.
+    Kombinuje: sílu signálu, výkonnost sektoru, RSI pozici, EMA trend.
+    """
+    # Síla signálu (0–40 bodů)
+    sig = min(40, r.get("strength", 0) * 8)
+    # Výkonnost sektoru (0–25 bodů)
+    sc  = r.get("sector_chg") or 0
+    sec = max(0, min(25, sc * 2.5))
+    # RSI pozice – nejlepší entry 30–50 (0–20 bodů)
+    rsi = r.get("rsi", 50)
+    if 30 <= rsi <= 50:
+        rsi_score = 20
+    elif rsi < 30:
+        rsi_score = 15   # přeprodaný = ok, ale možná další pokles
+    elif rsi <= 65:
+        rsi_score = max(0, 20 - (rsi - 50))
+    else:
+        rsi_score = 0    # překoupený = horší entry
+    # EMA trend (0–15 bodů)
+    ema_score = {"Bullish": 15, "Smíšený": 7, "Bearish": 0}.get(r.get("ema_trend", "Smíšený"), 0)
+    return sig + sec + rsi_score + ema_score
+
+
 def _render_radar_card(r: dict, highlight: bool = False):
     action = r["action"]
     label  = {"BUY": "KOUPIT", "SELL": "PRODAT", "HOLD": "DRŽET"}[action]
@@ -1205,7 +1230,7 @@ if page == "Přehled portfolia":
         with st.spinner("Skenuji radar..."):
             _radar_results = scan_stocks(RADAR_STOCKS_FULL, period)
         _top = [r for r in _radar_results if r["action"] == "BUY" or (r["action"] == "SELL" and r["ticker"] in PORTFOLIO_TICKERS)]
-        _top = sorted(_top, key=lambda x: -x["strength"])[:5]
+        _top = sorted(_top, key=lambda x: -_opportunity_score(x))[:5]
         if _top:
             for r in _top:
                 _render_radar_card(r)
@@ -1668,13 +1693,21 @@ elif page == "Detail akcie":
                     f'padding:8px 12px;margin:4px 0;font-size:0.85rem;color:#cbd5e1">⚠️ {ri}</div>'
                     for ri in _hz_risks
                 )
-                st.markdown(
-                    f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">'
-                    f'<div><div style="color:#94a3b8;font-size:0.75rem;font-weight:600;margin-bottom:4px">KLÍČOVÉ UDÁLOSTI</div>{_ev_html}</div>'
-                    f'<div><div style="color:#94a3b8;font-size:0.75rem;font-weight:600;margin-bottom:4px">RIZIKOVÉ FAKTORY</div>{_ri_html}</div>'
-                    f'</div>',
-                    unsafe_allow_html=True,
-                )
+                st.markdown(f"""
+<style>
+.ev-grid {{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:8px; align-items:start; }}
+@media (max-width:640px) {{ .ev-grid {{ grid-template-columns:1fr; }} }}
+</style>
+<div class="ev-grid">
+  <div>
+    <div style="color:#94a3b8;font-size:0.75rem;font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">📌 Klíčové události</div>
+    {_ev_html if _ev_html else '<div style="color:#475569;font-size:0.8rem">Žádné klíčové události</div>'}
+  </div>
+  <div>
+    <div style="color:#94a3b8;font-size:0.75rem;font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">⚠️ Rizikové faktory</div>
+    {_ri_html if _ri_html else '<div style="color:#475569;font-size:0.8rem">Žádné rizikové faktory</div>'}
+  </div>
+</div>""", unsafe_allow_html=True)
             if _hz_opp:
                 hint_color = _HINT_COLOR.get(_hz_hint, "#888")
                 st.markdown(
@@ -1936,7 +1969,7 @@ Technické indikátory to zachytí — akcie v silném sektoru BEZ BUY signálu 
         ]
 
         if double_conf:
-            _dc_sorted = sorted(double_conf, key=lambda x: -(x["strength"] + (x["sector_chg"] or 0) / 20))
+            _dc_sorted = sorted(double_conf, key=lambda x: -_opportunity_score(x))
             st.subheader(f"Double confirmation ({min(5, len(_dc_sorted))}/{len(_dc_sorted)})")
             st.caption("Tyto akcie mají BUY signál A zároveň jejich sektor roste nad 1% — nejsilnější příležitosti.")
             for r in _dc_sorted[:5]:
@@ -1946,7 +1979,7 @@ Technické indikátory to zachytí — akcie v silném sektoru BEZ BUY signálu 
         # ── Ostatní silné signály ─────────────────────────────────────────────
         other_strong = [r for r in strong if r not in double_conf]
         if other_strong:
-            _os_sorted = sorted(other_strong, key=lambda x: -x["strength"])
+            _os_sorted = sorted(other_strong, key=lambda x: -_opportunity_score(x))
             st.subheader(f"Ostatní BUY ({min(5, len(_os_sorted))}/{len(_os_sorted)})")
             for r in _os_sorted[:5]:
                 _render_radar_card(r, highlight=False)
@@ -1999,9 +2032,11 @@ Technické indikátory to zachytí — akcie v silném sektoru BEZ BUY signálu 
                         f'<strong style="white-space:nowrap">{r["name"]}</strong>'
                         f'<span style="color:#888;font-size:0.8rem;white-space:nowrap">{r["ticker"]}</span>'
                         f'</div>'
-                        f'<div style="font-size:0.8rem;color:#94a3b8;margin-top:4px;display:flex;flex-wrap:wrap;gap:3px 10px">'
+                        f'<div style="font-size:0.8rem;color:#94a3b8;margin-top:4px">'
                         f'<span style="color:{price_color};white-space:nowrap">{r["price"]:.2f} {r["currency"]} {arrow}{r["chg_pct"]:+.1f}%</span>'
+                        f'<span style="color:#475569"> · </span>'
                         f'<span style="white-space:nowrap">RSI: <b style="color:#e2e8f0">{r["rsi"]:.0f}</b></span>'
+                        f'<span style="color:#475569"> · </span>'
                         f'<span style="color:{trend_color};white-space:nowrap">{r["ema_trend"]}</span>'
                         f'</div>'
                         + (f'<div style="margin-top:3px"><small style="color:#aaa">{reasons_html}</small></div>' if reasons_html else "")
