@@ -64,14 +64,14 @@ def fg_label(score: float) -> tuple[str, str]:
     if score is None:
         return "N/A", "#888"
     if score <= 25:
-        return "Extreme Fear", "#ef4444"
+        return "Extrémní strach", "#ef4444"
     if score <= 45:
-        return "Fear", "#f97316"
+        return "Strach", "#f97316"
     if score <= 55:
-        return "Neutral", "#eab308"
+        return "Neutrální", "#eab308"
     if score <= 75:
-        return "Greed", "#84cc16"
-    return "Extreme Greed", "#22c55e"
+        return "Chamtivost", "#84cc16"
+    return "Extrémní chamtivost", "#22c55e"
 
 
 # ── Makro data z yfinance ─────────────────────────────────────────────────────

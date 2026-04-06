@@ -522,21 +522,85 @@ if page == "Přehled portfolia":
     st.title("Portfolio přehled")
     st.caption(f"Aktualizováno: {datetime.now().strftime('%d.%m.%Y %H:%M')}")
 
-    # Mini tržní kontext
+    # Tržní kontext – gauge + VIX
     with st.spinner("Načítám tržní kontext..."):
         _fg = fetch_fear_greed()
         _macro_mini = fetch_macro_tickers()
 
     _fg_score = _fg.get("score") if _fg.get("ok") else None
-    _vix = _macro_mini.get("VIX", {}).get("price") if _macro_mini else None
+    _vix      = _macro_mini.get("VIX", {}).get("price") if _macro_mini else None
+    _vix_chg  = _macro_mini.get("VIX", {}).get("chg")   if _macro_mini else None
     _fg_label_str, _fg_color = fg_label(_fg_score) if _fg_score is not None else ("N/A", "#888")
-    _vix_color = "#22c55e" if _vix and _vix < 20 else "#ef4444" if _vix and _vix > 30 else "#f59e0b"
 
-    ctx_cols = st.columns(3)
-    ctx_cols[0].metric("Fear & Greed", f"{_fg_score:.0f} – {_fg_label_str}" if _fg_score else "N/A")
-    ctx_cols[1].metric("VIX", f"{_vix:.1f}" if _vix else "N/A",
-                       "Nízká volatilita" if _vix and _vix < 20 else "Zvýšená volatilita" if _vix and _vix > 25 else "Normální")
-    ctx_cols[2].metric("Období", period_label)
+    _ctx_left, _ctx_right = st.columns([1, 1])
+
+    with _ctx_left:
+        if _fg_score is not None:
+            _fig_gauge = go.Figure(go.Indicator(
+                mode="gauge+number",
+                value=_fg_score,
+                title={"text": f"Index strachu a chamtivosti — {_fg_label_str}", "font": {"size": 14}},
+                number={"font": {"size": 36}},
+                gauge={
+                    "axis": {"range": [0, 100], "tickvals": [0, 25, 45, 55, 75, 100],
+                             "ticktext": ["0", "25", "45", "55", "75", "100"]},
+                    "bar": {"color": _fg_color, "thickness": 0.25},
+                    "steps": [
+                        {"range": [0,  25], "color": "#7f1d1d"},
+                        {"range": [25, 45], "color": "#9a3412"},
+                        {"range": [45, 55], "color": "#713f12"},
+                        {"range": [55, 75], "color": "#365314"},
+                        {"range": [75,100], "color": "#14532d"},
+                    ],
+                    "threshold": {"line": {"color": "white", "width": 3},
+                                  "thickness": 0.85, "value": _fg_score},
+                },
+            ))
+            _fig_gauge.update_layout(
+                height=210, template="plotly_dark",
+                margin=dict(l=10, r=10, t=50, b=0),
+            )
+            st.plotly_chart(_fig_gauge, use_container_width=True)
+
+            # Interpretace pod grafem
+            if _fg_score <= 25:
+                st.error("Extrémní strach – trh v panice. Historicky dobrá příležitost pro long-term nákup.")
+            elif _fg_score <= 45:
+                st.warning("Strach – pesimismus převládá. Opatrný optimismus může být opodstatněný.")
+            elif _fg_score <= 55:
+                st.info("Neutrální – trh neví kam. Čekej na jasný signál.")
+            elif _fg_score <= 75:
+                st.success("Chamtivost – optimismus na trhu. Pozor na předražení.")
+            else:
+                st.error("Extrémní chamtivost – euforie! Zvažuj profit-taking, trh může být přehřátý.")
+        else:
+            st.warning("Index strachu a chamtivosti se nepodařilo načíst.")
+
+    with _ctx_right:
+        st.markdown("**Klíčové makro ukazatele**")
+        if _macro_mini:
+            for _name, _data in _macro_mini.items():
+                _p   = _data["price"]
+                _c   = _data["chg"]
+                _arr = "▲" if _c >= 0 else "▼"
+                _col = "#22c55e" if _c >= 0 else "#ef4444"
+                _note = ""
+                if _name == "VIX":
+                    _note = "nízká volatilita" if _p < 15 else "zvýšená nervozita" if _p > 25 else "normální"
+                elif _name == "10Y Treasury":
+                    _note = "tlak na akcie" if _p > 5 else "příznivé" if _p < 3 else "zvýšené výnosy"
+                st.markdown(
+                    f'<div class="card-hold" style="margin:3px 0;padding:8px 12px">'
+                    f'<strong style="font-size:0.9rem">{_name}</strong> &nbsp;'
+                    f'<span style="font-size:1rem">{_p:.2f}</span> &nbsp;'
+                    f'<span style="color:{_col}">{_arr} {_c:+.1f}%</span>'
+                    + (f' &nbsp;<span style="color:#666;font-size:0.78rem">· {_note}</span>' if _note else "")
+                    + '</div>',
+                    unsafe_allow_html=True,
+                )
+        else:
+            st.info("Makro data se nepodařilo načíst.")
+
     st.divider()
 
     with st.expander("Jak číst tento přehled?"):
@@ -1306,17 +1370,17 @@ Technické indikátory to zachytí — akcie v silném sektoru BEZ BUY signálu 
 
         # ── Makro & Sentiment (původní strana 4) ─────────────────────────────
         st.title("Makro & Sentiment")
-        st.caption("Globální tržní kontext – Fear & Greed, VIX, dluhopisy, komodity.")
+        st.caption("Globální tržní kontext – Index strachu a chamtivosti, VIX, dluhopisy, komodity.")
 
         with st.expander("Co jsou tyto indikátory a proč jsou důležité?"):
             st.markdown("""
-**Fear & Greed Index** (Strach a chamtivost, 0–100) – měří celkovou náladu na americkém trhu.
+**Index strachu a chamtivosti** (0–100) – měří celkovou náladu na americkém trhu.
 Historicky platí: *když ostatní se bojí, je čas kupovat; když jsou chamtiví, je čas prodávat.*
-- 0–25 = Extreme Fear (extrémní strach) → trh v panice, akcie levné
-- 26–45 = Fear (strach) → pesimismus, opatrný optimismus
-- 46–55 = Neutral → nejasná nálada
-- 56–75 = Greed (chamtivost) → optimismus, možné předražení
-- 76–100 = Extreme Greed → euforie, vysoké riziko korekce
+- 0–25 = Extrémní strach → trh v panice, akcie levné
+- 26–45 = Strach → pesimismus, opatrný optimismus
+- 46–55 = Neutrální → nejasná nálada
+- 56–75 = Chamtivost → optimismus, možné předražení
+- 76–100 = Extrémní chamtivost → euforie, vysoké riziko korekce
 
 **VIX** (Index volatility, „index strachu") – jak moc trh očekává výkyvy v příštích 30 dnech.
 - Pod 15 = klidný trh, nízká volatilita
@@ -1336,39 +1400,37 @@ Historicky platí: *když ostatní se bojí, je čas kupovat; když jsou chamtiv
         col_fg, col_macro = st.columns([1, 2])
 
         with col_fg:
-            st.subheader("Fear & Greed Index")
-            with st.spinner("Načítám F&G..."):
+            st.subheader("Index strachu a chamtivosti")
+            with st.spinner("Načítám data..."):
                 fg = fetch_fear_greed()
 
             if fg.get("ok") and fg.get("score") is not None:
                 score = fg["score"]
                 label, color = fg_label(score)
 
-                # Gauge chart
                 fig_gauge = go.Figure(go.Indicator(
                     mode="gauge+number",
                     value=score,
                     title={"text": label, "font": {"size": 18}},
+                    number={"font": {"size": 42}},
                     gauge={
-                        "axis": {"range": [0, 100]},
-                        "bar":  {"color": color},
+                        "axis": {"range": [0, 100], "tickvals": [0, 25, 45, 55, 75, 100],
+                                 "ticktext": ["0", "25", "45", "55", "75", "100"]},
+                        "bar":  {"color": color, "thickness": 0.25},
                         "steps": [
-                            {"range": [0, 25],  "color": "#7f1d1d"},
+                            {"range": [0,  25], "color": "#7f1d1d"},
                             {"range": [25, 45], "color": "#9a3412"},
                             {"range": [45, 55], "color": "#713f12"},
                             {"range": [55, 75], "color": "#365314"},
-                            {"range": [75, 100],"color": "#14532d"},
+                            {"range": [75,100], "color": "#14532d"},
                         ],
-                        "threshold": {
-                            "line": {"color": "white", "width": 3},
-                            "thickness": 0.85,
-                            "value": score,
-                        },
+                        "threshold": {"line": {"color": "white", "width": 3},
+                                      "thickness": 0.85, "value": score},
                     },
                 ))
                 fig_gauge.update_layout(
-                    height=240, template="plotly_dark",
-                    margin=dict(l=20, r=20, t=40, b=10),
+                    height=260, template="plotly_dark",
+                    margin=dict(l=20, r=20, t=50, b=10),
                 )
                 st.plotly_chart(fig_gauge, use_container_width=True)
 
@@ -1380,19 +1442,18 @@ Historicky platí: *když ostatní se bojí, je čas kupovat; když jsou chamtiv
                     diff_m = score - fg["prev_month"]
                     m2.metric("Před měsícem", f"{fg['prev_month']:.0f}", f"{diff_m:+.1f}")
 
-                # Interpretace
                 if score <= 25:
-                    st.error("Extreme Fear – trh je v panice. Historicky dobrá příležitost k nákupu pro long-term investory.")
+                    st.error("Extrémní strach – trh v panice. Historicky dobrá příležitost pro long-term investory.")
                 elif score <= 45:
-                    st.warning("Fear – pesimismus převládá. Opatrný optimismus může být opodstatněný.")
+                    st.warning("Strach – pesimismus převládá. Opatrný optimismus může být opodstatněný.")
                 elif score <= 55:
-                    st.info("Neutral – trh neví kam. Čekej na jasný signál.")
+                    st.info("Neutrální – trh neví kam. Čekej na jasný signál.")
                 elif score <= 75:
-                    st.success("Greed – optimismus na trhu. Pozor na overvaluation.")
+                    st.success("Chamtivost – optimismus na trhu. Pozor na předražení.")
                 else:
-                    st.error("Extreme Greed – euforie! Zvažuj profit-taking, trh může být přehřátý.")
+                    st.error("Extrémní chamtivost – euforie! Zvažuj výběr zisku.")
             else:
-                st.warning("Fear & Greed Index se nepodařilo načíst.")
+                st.warning("Index strachu a chamtivosti se nepodařilo načíst.")
 
         with col_macro:
             st.subheader("Makro indikátory")
