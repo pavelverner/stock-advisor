@@ -636,13 +636,26 @@ if page == "Přehled portfolia":
     sell_count = sum(1 for r in results if r["action"] == "SELL")
     hold_count = sum(1 for r in results if r["action"] == "HOLD")
 
-    # 2+2 na mobilu, 4 na desktopu
-    row1 = st.columns(2)
-    row2 = st.columns(2)
-    row1[0].metric("Sledované akcie", len(results))
-    row1[1].metric("KOUPIT", buy_count)
-    row2[0].metric("PRODAT", sell_count)
-    row2[1].metric("DRŽET",  hold_count)
+    st.markdown(f"""
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 16px">
+  <div style="flex:1;min-width:120px;background:#1e293b;border-radius:10px;padding:14px 18px;text-align:center">
+    <div style="color:#94a3b8;font-size:0.75rem;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Sledované akcie</div>
+    <div style="font-size:2rem;font-weight:800;color:#f1f5f9">{len(results)}</div>
+  </div>
+  <div style="flex:1;min-width:120px;background:#052e16;border:2px solid #22c55e;border-radius:10px;padding:14px 18px;text-align:center">
+    <div style="color:#86efac;font-size:0.75rem;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Koupit</div>
+    <div style="font-size:2rem;font-weight:800;color:#22c55e">{buy_count}</div>
+  </div>
+  <div style="flex:1;min-width:120px;background:#2d0a0a;border:2px solid #ef4444;border-radius:10px;padding:14px 18px;text-align:center">
+    <div style="color:#fca5a5;font-size:0.75rem;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Prodat</div>
+    <div style="font-size:2rem;font-weight:800;color:#ef4444">{sell_count}</div>
+  </div>
+  <div style="flex:1;min-width:120px;background:#1a1a2e;border:1px solid #444;border-radius:10px;padding:14px 18px;text-align:center">
+    <div style="color:#94a3b8;font-size:0.75rem;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Držet</div>
+    <div style="font-size:2rem;font-weight:800;color:#94a3b8">{hold_count}</div>
+  </div>
+</div>
+""", unsafe_allow_html=True)
     st.divider()
 
     # ── Karty akcií – nejprve akce, pak hold ─────────────────────────────────
