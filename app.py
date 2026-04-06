@@ -71,24 +71,28 @@ st.markdown("""
 st.markdown("""
 <style>
 /* ── Skryj Streamlit branding a systémové prvky ── */
-#MainMenu            { display: none !important; }
-footer               { display: none !important; }
-[data-testid="stToolbar"]        { display: none !important; }
-[data-testid="stDecoration"]     { display: none !important; }
-[data-testid="stStatusWidget"]   { display: none !important; }
-.stDeployButton                  { display: none !important; }
-/* Ikony GitHub a Streamlit vpravo dole */
-[data-testid="baseButton-headerNoPadding"] { display: none !important; }
-.viewerBadge_container__1QSob  { display: none !important; }
-#stDecoration                  { display: none !important; }
-a[href*="streamlit.io"]        { display: none !important; }
-a[href*="github.com"][target]  { display: none !important; }
-/* Plotly toolbar (uložit, zoom) – skryj na mobilu */
-@media (max-width: 768px) {
-  .modebar { display: none !important; }
-  /* Zamez zachycení scrollu grafem na mobilu */
-  .js-plotly-plot .plotly { touch-action: pan-y !important; }
-}
+#MainMenu, footer, header                            { display: none !important; }
+[data-testid="stToolbar"]                            { display: none !important; }
+[data-testid="stDecoration"]                         { display: none !important; }
+[data-testid="stStatusWidget"]                       { display: none !important; }
+[data-testid="stHeader"]                             { display: none !important; }
+[data-testid="stAppViewBlockContainer"] > div:first-child > div:first-child { padding-top: 0 !important; }
+.stDeployButton                                      { display: none !important; }
+[data-testid="baseButton-headerNoPadding"]           { display: none !important; }
+.viewerBadge_container__1QSob                        { display: none !important; }
+#stDecoration                                        { display: none !important; }
+/* Footer odkazy na Streamlit */
+[data-testid="stFooter"]                             { display: none !important; }
+.st-emotion-cache-164nlkn                            { display: none !important; }
+a[href*="streamlit.io"]                              { display: none !important; }
+a[href*="share.streamlit.io"]                        { display: none !important; }
+a[href*="github.com"][target]                        { display: none !important; }
+/* Odstraň horní padding způsobený skrytým headerem */
+.stMainBlockContainer, [data-testid="stMain"] > div { padding-top: 1rem !important; }
+/* Plotly toolbar skryj všude */
+.modebar                                             { display: none !important; }
+/* Zamez zachycení scrollu grafem na mobilu */
+.js-plotly-plot .plotly                              { touch-action: pan-y !important; }
 
 /* ── Základní karty ── */
 .signal-buy  { background:#0d6e2f; color:#fff; padding:10px 20px; border-radius:8px;
