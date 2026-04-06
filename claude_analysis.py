@@ -152,7 +152,8 @@ def analyze_stock_with_claude(
     if vol_info.get("is_anomaly"):
         vol_str = f"POZOR: Nezvyklý objem obchodování – {vol_info.get('ratio', 1):.1f}x průměr!"
 
-    prompt = f"""Jsi analytik finančních trhů. Analyzuj tuto situaci pro akcii {ticker} a odpověz v češtině.
+    prompt = f"""Jsi analytik finančních trhů. Analyzuj tuto situaci pro akcii {ticker}.
+DŮLEŽITÉ: Celá odpověď včetně všech polí JSON musí být výhradně v češtině. Žádná anglická slova.
 
 TECHNICKÁ ANALÝZA:
 - Signál: {action} (BUY signálů: {len(buy_signals)}, SELL signálů: {len(sell_signals)})

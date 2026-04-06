@@ -91,6 +91,11 @@ a[href*="github.com"][target]                        { display: none !important;
 [data-testid="stAppViewBlockContainer"]              { padding-top: 0 !important; }
 section[data-testid="stSidebar"] ~ div               { padding-top: 0 !important; }
 .main .block-container                               { padding-top: 0 !important; }
+/* Zmenši globální mezery mezi sekcemi */
+h3 { margin-top: 0.3rem !important; margin-bottom: 0.1rem !important; }
+hr { margin: 4px 0 !important; }
+[data-testid="stVerticalBlock"] > div { gap: 0.35rem !important; }
+
 /* Zmenši mezery mezi expandery */
 [data-testid="stExpander"] { margin-bottom: 0 !important; margin-top: 0 !important; }
 [data-testid="stExpander"] + [data-testid="stExpander"] { border-top: none !important; }
@@ -976,7 +981,7 @@ elif page == "Detail akcie":
 </div>
 """, unsafe_allow_html=True)
 
-    st.divider()
+    st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
 
     # Načti zprávy, AI sentiment a signály
     with st.spinner("Načítám analýzu..."):
@@ -1098,7 +1103,7 @@ elif page == "Detail akcie":
 </div>
 """, unsafe_allow_html=True)
 
-    st.divider()
+    st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
 
     # Indikátory
     st.subheader("Technické indikátory")
@@ -1167,7 +1172,7 @@ když **alespoň 3 indikátory souhlasí** — proto je konzervativní a nevydá
 > Žádný indikátor není 100% spolehlivý. Vždy kombinuj s vlastním úsudkem a zprávami.
         """)
 
-    st.divider()
+    st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
 
     # Graf (skrytý by default)
     with st.expander("Graf & technická analýza", expanded=False):
@@ -1218,7 +1223,7 @@ když **alespoň 3 indikátory souhlasí** — proto je konzervativní a nevydá
         fig.update_yaxes(range=[0, 100], row=2, col=1)
         st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "scrollZoom": False})
 
-    st.divider()
+    st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
 
     # Zprávy & AI Sentiment (skryté by default)
     with st.expander("Zprávy & AI Sentiment", expanded=False):
@@ -1268,7 +1273,7 @@ když **alespoň 3 indikátory souhlasí** — proto je konzervativní a nevydá
         else:
             st.info("Zprávy se nepodařilo načíst.")
 
-    st.divider()
+    st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
 
     # ── AI analýza – detailní (summary je již v kartě nahoře) ────────────────
     if _claude.get("ok"):
@@ -1302,7 +1307,7 @@ když **alespoň 3 indikátory souhlasí** — proto je konzervativní a nevydá
     elif not _claude.get("ok") and _claude.get("error"):
         st.warning(f"AI analýza nedostupná: {_claude.get('error')}")
 
-    st.divider()
+    st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
 
     # ── Srovnání s konkurencí ────────────────────────────────────────────────
     st.subheader("Srovnání s konkurencí")
