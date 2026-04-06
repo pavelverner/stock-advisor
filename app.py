@@ -91,6 +91,11 @@ a[href*="github.com"][target]                        { display: none !important;
 [data-testid="stAppViewBlockContainer"]              { padding-top: 0 !important; }
 section[data-testid="stSidebar"] ~ div               { padding-top: 0 !important; }
 .main .block-container                               { padding-top: 0 !important; }
+/* Zmenši mezery mezi expandery */
+[data-testid="stExpander"] { margin-bottom: 0 !important; margin-top: 0 !important; }
+[data-testid="stExpander"] + [data-testid="stExpander"] { border-top: none !important; }
+div:has(> [data-testid="stExpander"]) { gap: 2px !important; }
+
 /* Plynulý přechod při překliknutí stránek */
 [data-testid="stMainBlockContainer"] {
   animation: fadeIn 0.25s ease-in-out;
