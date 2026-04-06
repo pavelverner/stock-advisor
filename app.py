@@ -232,7 +232,7 @@ div:has(> [data-testid="stExpander"]) { gap: 2px !important; }
 .pf-card-hold { background:#1a1a2e; border:1px solid #444; }
 
 /* levý sloupec – badge + skóre */
-.pf-left { grid-column:1; grid-row:1/3; display:flex; flex-direction:column; gap:6px; align-items:flex-start; min-width:80px; }
+.pf-left { grid-column:1; grid-row:1/3; display:flex; flex-direction:column; gap:6px; align-items:flex-start; min-width:72px; max-width:90px; }
 
 /* střed – název + ticker */
 .pf-name  { grid-column:2; grid-row:1; font-size:1.0rem; font-weight:700; color:#f1f5f9; text-align:left; }
@@ -718,12 +718,12 @@ def _score_bar_html(score: int) -> str:
     # Barva
     if clamped > 0:
         color = "#22c55e"
-        width = int(clamped / 10 * 100)
+        width = int(clamped / 10 * 56)
         bar = f'<div style="display:inline-block;background:{color};width:{width}px;height:8px;border-radius:4px;vertical-align:middle"></div>'
         num = f'<span style="color:{color};font-weight:700;font-size:1rem">+{clamped}</span>'
     elif clamped < 0:
         color = "#ef4444"
-        width = int(abs(clamped) / 10 * 100)
+        width = int(abs(clamped) / 10 * 56)
         bar = f'<div style="display:inline-block;background:{color};width:{width}px;height:8px;border-radius:4px;vertical-align:middle"></div>'
         num = f'<span style="color:{color};font-weight:700;font-size:1rem">{clamped}</span>'
     else:
@@ -926,6 +926,7 @@ if page == "Přehled portfolia":
         ["Krátkodobý", "Střednědobý", "Dlouhodobý"],
         default="Krátkodobý",
         key="pf_horizon",
+        use_container_width=True,
     )
     _pf_period_map = {"Krátkodobý": "3mo", "Střednědobý": "1y", "Dlouhodobý": "2y"}
     _pf_period = _pf_period_map.get(_pf_hz_label or "Krátkodobý", "3mo")
@@ -1225,6 +1226,7 @@ elif page == "Detail akcie":
             ["Krátkodobý", "Střednědobý", "Dlouhodobý"],
             default="Krátkodobý",
             key=f"hz_detail_{ticker}",
+            use_container_width=True,
         )
         _hz_key = {"Krátkodobý": "short", "Střednědobý": "medium", "Dlouhodobý": "long"}.get(_sel_hz or "Krátkodobý", "short")
         _hz_sig = _mh.get(_hz_key) or signals  # fallback na 6mo signály
