@@ -931,11 +931,37 @@ elif page == "Detail akcie":
     vol_now    = float(df["Volume"].iloc[-1])
     vol_ratio  = vol_now / vol_avg if vol_avg > 0 else 1
 
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Cena",         f"{price_now:.2f} {currency}", f"{chg:+.2f} ({chg_pct:+.1f}%)")
-    c2.metric("52W Maximum",  f"{high_52w:.2f}")
-    c3.metric("52W Minimum",  f"{low_52w:.2f}")
-    c4.metric("Objem/průměr", f"{vol_ratio:.1f}x")
+    _chg_c = "#22c55e" if chg >= 0 else "#ef4444"
+    _chg_arr = "▲" if chg >= 0 else "▼"
+    _vol_c = "#f59e0b" if vol_ratio > 2 else "#94a3b8"
+    st.markdown(f"""
+<style>
+.price-grid {{ display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px }}
+@media (max-width:640px) {{ .price-grid {{ grid-template-columns:repeat(2,1fr) }} }}
+</style>
+<div class="price-grid">
+  <div style="background:#1e293b;border-radius:10px;padding:10px 12px">
+    <div style="color:#64748b;font-size:0.72rem">Cena</div>
+    <div style="font-size:1.15rem;font-weight:700">{price_now:.2f} <span style="font-size:0.8rem;color:#94a3b8">{currency}</span></div>
+    <div style="color:{_chg_c};font-size:0.8rem">{_chg_arr} {chg:+.2f} ({chg_pct:+.1f}%)</div>
+  </div>
+  <div style="background:#1e293b;border-radius:10px;padding:10px 12px">
+    <div style="color:#64748b;font-size:0.72rem">52W Max</div>
+    <div style="font-size:1.15rem;font-weight:700">{high_52w:.2f}</div>
+    <div style="color:#64748b;font-size:0.8rem">{((price_now/high_52w-1)*100):+.1f}% od maxima</div>
+  </div>
+  <div style="background:#1e293b;border-radius:10px;padding:10px 12px">
+    <div style="color:#64748b;font-size:0.72rem">52W Min</div>
+    <div style="font-size:1.15rem;font-weight:700">{low_52w:.2f}</div>
+    <div style="color:#64748b;font-size:0.8rem">{((price_now/low_52w-1)*100):+.1f}% od minima</div>
+  </div>
+  <div style="background:#1e293b;border-radius:10px;padding:10px 12px">
+    <div style="color:#64748b;font-size:0.72rem">Objem</div>
+    <div style="font-size:1.15rem;font-weight:700;color:{_vol_c}">{vol_ratio:.1f}×</div>
+    <div style="color:#64748b;font-size:0.8rem">průměr 20 dní</div>
+  </div>
+</div>
+""", unsafe_allow_html=True)
 
     st.divider()
 
