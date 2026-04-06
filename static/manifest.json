@@ -1,0 +1,18 @@
+{
+  "name": "Stock Advisor",
+  "short_name": "Stocks",
+  "description": "Technická analýza a signály pro tvoje portfolio",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f0f17",
+  "theme_color": "#0f172a",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/app/static/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

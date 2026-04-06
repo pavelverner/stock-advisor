@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Pozadí s zakulacenými rohy -->
+  <rect width="512" height="512" rx="96" fill="#0f172a"/>
+
+  <!-- Mřížka (jemná) -->
+  <line x1="60" y1="180" x2="452" y2="180" stroke="#1e293b" stroke-width="2"/>
+  <line x1="60" y1="280" x2="452" y2="280" stroke="#1e293b" stroke-width="2"/>
+  <line x1="60" y1="380" x2="452" y2="380" stroke="#1e293b" stroke-width="2"/>
+
+  <!-- Plocha pod čárou (gradient) -->
+  <defs>
+    <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#22c55e" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#22c55e" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <polygon
+    points="60,390 60,340 140,295 220,315 310,195 400,140 452,115 452,390"
+    fill="url(#areaGrad)"/>
+
+  <!-- Hlavní čára grafu -->
+  <polyline
+    points="60,340 140,295 220,315 310,195 400,140 452,115"
+    fill="none"
+    stroke="#22c55e"
+    stroke-width="22"
+    stroke-linecap="round"
+    stroke-linejoin="round"/>
+
+  <!-- Koncový bod (živý pulz) -->
+  <circle cx="452" cy="115" r="20" fill="#22c55e" opacity="0.3"/>
+  <circle cx="452" cy="115" r="12" fill="#22c55e"/>
+</svg>

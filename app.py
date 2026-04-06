@@ -30,6 +30,17 @@ st.set_page_config(
     layout="wide",
 )
 
+# ── PWA meta tagy (ikona při přidání na plochu telefonu) ─────────────────────
+st.markdown("""
+<link rel="manifest" href="/app/static/manifest.json">
+<link rel="apple-touch-icon" href="/app/static/icon.svg">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Stock Advisor">
+<meta name="theme-color" content="#0f172a">
+""", unsafe_allow_html=True)
+
 # ── Styly ────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
