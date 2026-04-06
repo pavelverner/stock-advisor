@@ -2,8 +2,8 @@ name: Stock Advisor – monitoring signálů
 
 on:
   schedule:
-    # Každou hodinu v 8–21 UTC (= 10–23 CEST, 9–22 CET) v pracovní dny
-    - cron: "0 8-21 * * 1-5"
+    # Jednou denně ve 13:00 CEST (= 11:00 UTC) v pracovní dny
+    - cron: "0 11 * * 1-5"
   workflow_dispatch:   # ruční spuštění tlačítkem na GitHubu
 
 jobs:
