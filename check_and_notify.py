@@ -209,13 +209,13 @@ def main():
     total_signals = len(buy_signals) + len(sell_signals)
     print(f"  BUY: {len(buy_signals)}, SELL: {len(sell_signals)}, HOLD blízko: {len(hold_notable)}")
 
+    if total_signals == 0:
+        print("Žádné signály – email se neposílá.")
+        return
+
     # Seřaď podle síly
     buy_signals.sort(key=lambda x: -x["strength"])
     sell_signals.sort(key=lambda x: -x["strength"])
-
-    if total_signals == 0 and not os.environ.get("FORCE_SEND"):
-        print("Žádné signály – email se neposílá.")
-        return
 
     subject = (
         f"[Stock Advisor] {len(buy_signals)}x KOUPIT · {len(sell_signals)}x PRODAT"

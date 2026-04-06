@@ -29,5 +29,4 @@ jobs:
           EMAIL_FROM:     ${{ secrets.EMAIL_FROM }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
           EMAIL_TO:       ${{ vars.EMAIL_TO || secrets.EMAIL_TO }}
-          FORCE_SEND:     ${{ github.event_name == 'workflow_dispatch' && 'true' || '' }}
         run: python check_and_notify.py
