@@ -89,6 +89,14 @@ a[href*="share.streamlit.io"]                        { display: none !important;
 a[href*="github.com"][target]                        { display: none !important; }
 /* Odstraň horní padding způsobený skrytým headerem */
 .stMainBlockContainer, [data-testid="stMain"] > div { padding-top: 1rem !important; }
+/* Plynulý přechod při překliknutí stránek */
+[data-testid="stMainBlockContainer"] {
+  animation: fadeIn 0.25s ease-in-out;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 /* Plotly toolbar skryj všude */
 .modebar                                             { display: none !important; }
 /* Zamez zachycení scrollu grafem na mobilu */
@@ -371,18 +379,26 @@ detail_currency = "USD"
 show_ema = True
 show_bb  = True
 selected_sectors: list = []
+
+_pages = ["Přehled portfolia", "Detail akcie", "Radar & Trh", "Analytika", "Deník obchodů"]
+
+# Mobilní navigace – query param přepíše session state před renderem radia
+_qp = st.query_params.get("page", None)
+if _qp is not None:
+    try:
+        _qi = int(_qp)
+        if 0 <= _qi < len(_pages):
+            st.session_state["nav_page"] = _pages[_qi]
+    except ValueError:
+        pass
+    st.query_params.clear()
+
 with st.sidebar:
     st.title("Stock Advisor")
     page = st.radio(
         "Zobrazení",
-        [
-            "Přehled portfolia",
-            "Detail akcie",
-            "Radar & Trh",
-            "Analytika",
-            "Deník obchodů",
-        ],
-        index=0,
+        _pages,
+        key="nav_page",
     )
     st.divider()
     # Přihlášený uživatel
@@ -420,16 +436,6 @@ _mob_links = "".join(
     for i in range(len(_pages))
 )
 st.markdown(f'<div class="mob-nav">{_mob_links}</div>', unsafe_allow_html=True)
-
-# Mobilní navigace přes query params
-_qp = st.query_params.get("page", None)
-if _qp is not None:
-    try:
-        _qi = int(_qp)
-        if 0 <= _qi < len(_pages):
-            page = _pages[_qi]
-    except ValueError:
-        pass
 
     period_map = {
         "3 měsíce": "3mo",
