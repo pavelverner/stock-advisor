@@ -759,18 +759,19 @@ def _render_radar_card(r: dict, highlight: bool = False):
     _long_c   = "#22c55e" if _long_bull else "#ef4444"
     _long_lbl = "↑ Nad EMA200" if _long_bull else "↓ Pod EMA200"
 
-    def _hz_badge(lbl, clr):
+    def _hz_badge(lbl, clr, title, subtitle):
         return (f'<div style="background:{clr}18;border:1px solid {clr};border-radius:6px;'
                 f'padding:4px 6px;text-align:center">'
-                f'<div style="color:#64748b;font-size:0.6rem">{{label}}</div>'
+                f'<div style="color:#64748b;font-size:0.6rem;line-height:1.3">{title}'
+                f'<div style="color:#475569;font-size:0.55rem">{subtitle}</div></div>'
                 f'<div style="color:{clr};font-size:0.72rem;font-weight:700">{lbl}</div>'
                 f'</div>')
 
     hz_row = (
         f'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:6px">'
-        f'{_hz_badge(_s_lbl, _s_c).format(label="Krátkodobý")}'
-        f'{_hz_badge(_med_lbl, _med_c).format(label="Střednědobý")}'
-        f'{_hz_badge(_long_lbl, _long_c).format(label="Dlouhodobý")}'
+        f'{_hz_badge(_s_lbl,    _s_c,   "Krátkodobý", "< 3 měs.")}'
+        f'{_hz_badge(_med_lbl,  _med_c, "Střednědobý", "6m – 2r")}'
+        f'{_hz_badge(_long_lbl, _long_c,"Dlouhodobý",  "3+ roky")}'
         f'</div>'
     )
 
