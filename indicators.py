@@ -45,10 +45,17 @@ def compute_atr(high: pd.Series, low: pd.Series, close: pd.Series, period: int =
     return tr.ewm(com=period - 1, min_periods=period).mean()
 
 
-def compute_stochastic(high: pd.Series, low: pd.Series, close: pd.Series, k_period: int = 14, d_period: int = 3):
-    high  = high.squeeze()
-    low   = low.squeeze()
-    close = close.squeeze()
+def _to_series(x) -> pd.Series:
+    """Zajistí že vstup je vždy 1D pd.Series."""
+    if isinstance(x, pd.DataFrame):
+        x = x.iloc[:, 0]
+    return pd.Series(x.values.flatten(), index=x.index if hasattr(x, "index") else None)
+
+
+def compute_stochastic(high, low, close, k_period: int = 14, d_period: int = 3):
+    high  = _to_series(high)
+    low   = _to_series(low)
+    close = _to_series(close)
     lowest_low   = low.rolling(k_period).min()
     highest_high = high.rolling(k_period).max()
     k = 100 * (close - lowest_low) / (highest_high - lowest_low).replace(0, np.nan)
@@ -87,9 +94,9 @@ def generate_signals(df: pd.DataFrame) -> dict:
     Conservative signal generation — vyžaduje shodu více indikátorů.
     Vrací: signal ('BUY' | 'SELL' | 'HOLD'), score, důvody
     """
-    close = df["Close"].squeeze()
-    high  = df["High"].squeeze()
-    low   = df["Low"].squeeze()
+    close = _to_series(df["Close"])
+    high  = _to_series(df["High"])
+    low   = _to_series(df["Low"])
 
     rsi = compute_rsi(close).iloc[-1]
     macd_line, signal_line, histogram = compute_macd(close)

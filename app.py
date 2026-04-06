@@ -497,9 +497,15 @@ def scan_stocks(stock_dict: dict, period: str) -> list[dict]:
         df = load_data(ticker, period)
         if df is None or len(df) < 30:
             continue
-        sig = generate_signals(df)
-        price = float(df["Close"].iloc[-1])
-        prev  = float(df["Close"].iloc[-2])
+        try:
+            sig = generate_signals(df)
+        except Exception:
+            continue
+        try:
+            price = float(df["Close"].squeeze().iloc[-1])
+            prev  = float(df["Close"].squeeze().iloc[-2])
+        except Exception:
+            continue
         chg_pct = (price - prev) / prev * 100
 
         # Skóre zpráv – pouze z cache pokud existuje, jinak 0
