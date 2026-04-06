@@ -196,6 +196,12 @@ div:has(> [data-testid="stExpander"]) { gap: 2px !important; }
     h3 { font-size: 1rem !important; }
 
     /* Segmented control – celá šířka na mobilu */
+    [data-testid="element-container"]:has([data-testid="stSegmentedControl"]),
+    [data-testid="stElementContainer"]:has([data-testid="stSegmentedControl"]),
+    [data-testid="stVerticalBlock"]:has([data-testid="stSegmentedControl"]) {
+        width: 100% !important;
+        display: block !important;
+    }
     [data-testid="stSegmentedControl"],
     [data-testid="stSegmentedControl"] > div,
     div[class*="stSegmentedControl"],
@@ -207,19 +213,17 @@ div:has(> [data-testid="stExpander"]) { gap: 2px !important; }
         display: block !important;
     }
     [data-testid="stSegmentedControl"] div[role="group"],
+    [data-testid="stSegmentedControl"] div[role="radiogroup"],
     div[class*="stSegmentedControl"] div[role="group"] {
         width: 100% !important;
         display: flex !important;
         box-sizing: border-box !important;
     }
-    [data-testid="stElementContainer"]:has([data-testid="stSegmentedControl"]),
-    [data-testid="stVerticalBlock"]:has([data-testid="stSegmentedControl"]) {
-        width: 100% !important;
-    }
-    [data-testid="stSegmentedControl"] label,
     [data-testid="stSegmentedControl"] div[role="group"] > *,
-    div[class*="stSegmentedControl"] label {
-        flex: 1 !important;
+    [data-testid="stSegmentedControl"] div[role="radiogroup"] > *,
+    [data-testid="stSegmentedControl"] label {
+        flex: 1 1 0 !important;
+        min-width: 0 !important;
         text-align: center !important;
         justify-content: center !important;
     }
@@ -1336,10 +1340,26 @@ elif page == "Detail akcie":
         # Přepínač detailu horizontu
         st.markdown("""
 <style>
-[data-testid="stSegmentedControl"]{width:100%!important;display:block!important}
-[data-testid="stSegmentedControl"]>div{width:100%!important;display:block!important}
-[data-testid="stSegmentedControl"] div[role="group"]{width:100%!important;display:flex!important}
-[data-testid="stSegmentedControl"] div[role="group"]>*{flex:1!important;justify-content:center!important}
+/* Zacíl parent element-container */
+[data-testid="element-container"]:has([data-testid="stSegmentedControl"]),
+[data-testid="stElementContainer"]:has([data-testid="stSegmentedControl"]) {
+    width: 100% !important; display: block !important;
+}
+/* Samotný widget a jeho přímý div child */
+[data-testid="stSegmentedControl"],
+[data-testid="stSegmentedControl"] > div {
+    width: 100% !important; display: block !important; box-sizing: border-box !important;
+}
+/* Skupina tlačítek – flex pro rovnoměrné roztažení */
+[data-testid="stSegmentedControl"] div[role="group"],
+div[role="radiogroup"] {
+    width: 100% !important; display: flex !important; box-sizing: border-box !important;
+}
+/* Každé tlačítko stejně velké */
+[data-testid="stSegmentedControl"] div[role="group"] > *,
+div[role="radiogroup"] > * {
+    flex: 1 1 0 !important; min-width: 0 !important; justify-content: center !important;
+}
 </style>""", unsafe_allow_html=True)
         _sel_hz = st.segmented_control(
             "Detail horizontu",
