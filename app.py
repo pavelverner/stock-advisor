@@ -1342,31 +1342,22 @@ Technické indikátory to zachytí — akcie v silném sektoru BEZ BUY signálu 
             if not selected_sectors or val[2] in selected_sectors
         }
 
-        # ── Sektorový přehled – lišta nahoře ─────────────────────────────────
+        # ── Sektorový přehled – kompaktní flex grid ───────────────────────────
         st.subheader("Výkon sektorů (kontext pro signály)")
-        sector_cols = st.columns(min(len(sector_perf_raw), 5))
-        for i, s in enumerate(sector_perf_raw[:5]):
-            cp = s["chg_period"]
-            color = "#22c55e" if cp >= 0 else "#ef4444"
-            sector_cols[i].markdown(
-                f'<div style="text-align:center;background:#1a1a2e;border-radius:8px;padding:8px 4px">'
-                f'<div style="font-size:0.75rem;color:#888">{s["name"]}</div>'
-                f'<div style="font-size:1.1rem;color:{color};font-weight:700">{cp:+.1f}%</div>'
-                f'</div>',
-                unsafe_allow_html=True,
-            )
-        if len(sector_perf_raw) > 5:
-            sector_cols2 = st.columns(len(sector_perf_raw) - 5)
-            for i, s in enumerate(sector_perf_raw[5:]):
-                cp = s["chg_period"]
-                color = "#22c55e" if cp >= 0 else "#ef4444"
-                sector_cols2[i].markdown(
-                    f'<div style="text-align:center;background:#1a1a2e;border-radius:8px;padding:8px 4px">'
-                    f'<div style="font-size:0.75rem;color:#888">{s["name"]}</div>'
-                    f'<div style="font-size:1.1rem;color:{color};font-weight:700">{cp:+.1f}%</div>'
-                    f'</div>',
-                    unsafe_allow_html=True,
-                )
+        sector_items = "".join(
+            f'<div style="background:#1a1a2e;border-radius:8px;padding:6px 10px;'
+            f'display:flex;justify-content:space-between;align-items:center;gap:8px;min-width:0">'
+            f'<span style="font-size:0.78rem;color:#94a3b8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{s["name"]}</span>'
+            f'<span style="font-size:0.9rem;font-weight:700;white-space:nowrap;color:{"#22c55e" if s["chg_period"] >= 0 else "#ef4444"}">'
+            f'{s["chg_period"]:+.1f}%</span>'
+            f'</div>'
+            for s in sector_perf_raw
+        )
+        st.markdown(
+            f'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px;margin-bottom:8px">'
+            f'{sector_items}</div>',
+            unsafe_allow_html=True,
+        )
 
         st.divider()
 

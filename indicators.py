@@ -46,7 +46,10 @@ def compute_atr(high: pd.Series, low: pd.Series, close: pd.Series, period: int =
 
 
 def compute_stochastic(high: pd.Series, low: pd.Series, close: pd.Series, k_period: int = 14, d_period: int = 3):
-    lowest_low = low.rolling(k_period).min()
+    high  = high.squeeze()
+    low   = low.squeeze()
+    close = close.squeeze()
+    lowest_low   = low.rolling(k_period).min()
     highest_high = high.rolling(k_period).max()
     k = 100 * (close - lowest_low) / (highest_high - lowest_low).replace(0, np.nan)
     d = k.rolling(d_period).mean()
@@ -84,9 +87,9 @@ def generate_signals(df: pd.DataFrame) -> dict:
     Conservative signal generation — vyžaduje shodu více indikátorů.
     Vrací: signal ('BUY' | 'SELL' | 'HOLD'), score, důvody
     """
-    close = df["Close"]
-    high = df["High"]
-    low = df["Low"]
+    close = df["Close"].squeeze()
+    high  = df["High"].squeeze()
+    low   = df["Low"].squeeze()
 
     rsi = compute_rsi(close).iloc[-1]
     macd_line, signal_line, histogram = compute_macd(close)
