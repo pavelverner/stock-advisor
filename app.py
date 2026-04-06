@@ -16,7 +16,10 @@ from indicators import (
     generate_signals_with_news,
 )
 from news_scraper import get_all_news, news_sentiment_summary
-from macro import fetch_fear_greed, fetch_macro_tickers, fetch_sectors, fg_label
+try:
+    from macro import fetch_fear_greed, fetch_macro_tickers, fetch_sectors, fg_label
+except Exception as _macro_err:
+    raise ImportError(f"Nelze importovat macro.py: {type(_macro_err).__name__}: {_macro_err}") from _macro_err
 from earnings import get_portfolio_earnings, get_earnings
 from backtest import run_backtest, backtest_summary_table
 from ai_sentiment import enrich_news_with_ai, news_ai_summary, sentiment_to_signal
