@@ -567,6 +567,7 @@ def scan_stocks(stock_dict: dict, period: str) -> list[dict]:
             "buy_reasons":  sig["buy_signals"],
             "sell_reasons": sig["sell_signals"],
             "rsi":        sig["rsi"],
+            "ema200":     sig["ema200"],
             "ema_trend":  (
                 "Bullish" if sig["ema20"] > sig["ema50"] > sig["ema200"]
                 else "Bearish" if sig["ema20"] < sig["ema50"] < sig["ema200"]
@@ -682,32 +683,58 @@ def _render_radar_card(r: dict, highlight: bool = False):
         f'<span style="color:#{"86efac" if action == "BUY" else "fca5a5"}">{s}</span>'
         for s in reasons
     )
-    trend_color = {"Bullish": "#22c55e", "Bearish": "#ef4444", "Smíšený": "#888"}[r["ema_trend"]]
     score, score_label = _score_label(r["buy_n"], r["sell_n"], action)
     score_html = _score_bar_html(score)
     sp = r.get("sector_chg")
     sp_str = (f'<span style="color:{"#22c55e" if (sp or 0) >= 0 else "#ef4444"}">'
               f'Sektor: {sp:+.1f}%</span>' if sp is not None else "")
-    # Střednědobý hint z EMA uspořádání (bez extra downloadu)
+
+    # 3 horizonty z existujících dat (bez extra downloadu)
+    # Krátkodobý: existing action
+    _s_c = {"BUY": "#22c55e", "SELL": "#ef4444", "HOLD": "#94a3b8"}[action]
+    _s_lbl = {"BUY": "KOUPIT", "SELL": "PRODAT", "HOLD": "ČEKAT"}[action]
+    # Střednědobý: EMA alignment
     _med_trend = r["ema_trend"]
     _med_c = {"Bullish": "#22c55e", "Bearish": "#ef4444", "Smíšený": "#f59e0b"}[_med_trend]
-    _med_icon = {"Bullish": "↑", "Bearish": "↓", "Smíšený": "→"}[_med_trend]
-    med_badge = (f'<span style="background:{_med_c}22;border:1px solid {_med_c};border-radius:4px;'
-                 f'padding:1px 6px;font-size:0.72rem;color:{_med_c}">Střední {_med_icon} {_med_trend}</span>')
+    _med_lbl = {"Bullish": "↑ Bullish", "Bearish": "↓ Bearish", "Smíšený": "→ Smíšený"}[_med_trend]
+    # Dlouhodobý: cena vs EMA200
+    _ema200 = r.get("ema200", 0)
+    _price  = r.get("price", 0)
+    _long_bull = _price > _ema200 > 0
+    _long_c   = "#22c55e" if _long_bull else "#ef4444"
+    _long_lbl = "↑ Nad EMA200" if _long_bull else "↓ Pod EMA200"
+
+    def _hz_badge(lbl, clr):
+        return (f'<div style="background:{clr}18;border:1px solid {clr};border-radius:6px;'
+                f'padding:4px 6px;text-align:center">'
+                f'<div style="color:#64748b;font-size:0.6rem">{{label}}</div>'
+                f'<div style="color:{clr};font-size:0.72rem;font-weight:700">{lbl}</div>'
+                f'</div>')
+
+    hz_row = (
+        f'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:6px">'
+        f'{_hz_badge(_s_lbl, _s_c).format(label="Krátkodobý")}'
+        f'{_hz_badge(_med_lbl, _med_c).format(label="Střednědobý")}'
+        f'{_hz_badge(_long_lbl, _long_c).format(label="Dlouhodobý")}'
+        f'</div>'
+    )
+
     st.markdown(
-        f'<div class="{css}" onclick="window.location.href=\'?page=1&ticker={r["ticker"]}\'"'
-        f' style="cursor:pointer">'
-        f'<span class="{badge}">{label}</span> &nbsp;'
+        f'<a href="?page=1&ticker={r["ticker"]}" target="_self" style="text-decoration:none;color:inherit;display:block">'
+        f'<div class="{css}" style="cursor:pointer">'
+        f'{hz_row}'
+        f'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
         f'{score_html} &nbsp; <span style="color:#aaa;font-size:0.8rem">{score_label}</span>'
-        f' &nbsp; {med_badge}'
-        f'<br><strong style="font-size:1.05rem">{r["name"]}</strong>'
+        f'</div>'
+        f'<div style="margin-top:4px"><strong style="font-size:1.05rem">{r["name"]}</strong>'
         f' <span style="color:#888;font-size:0.82rem">{r["ticker"]} · {r["sector"]}</span>'
         f' &nbsp;{r["price"]:.2f} {r["currency"]}'
         f' <span style="color:{color}">{arrow}{r["chg_pct"]:+.1f}%</span>'
         f' &nbsp;|&nbsp; RSI: <b>{r["rsi"]:.0f}</b>'
         + (f' &nbsp;|&nbsp; {sp_str}' if sp_str else "")
-        + (f'<br><small>{reasons_html}</small>' if reasons_html else "")
-        + '</div>',
+        + f'</div>'
+        + (f'<div style="margin-top:3px;font-size:0.82rem">{reasons_html}</div>' if reasons_html else "")
+        + f'</div></a>',
         unsafe_allow_html=True,
     )
 
@@ -888,8 +915,8 @@ if page == "Přehled portfolia":
             )
 
         st.markdown(f"""
-<div class="{card_css}" onclick="window.location.href='?page=1&ticker={r['ticker']}'"
-     style="cursor:pointer" title="Otevřít detail {r['name']}">
+<a href="?page=1&ticker={r['ticker']}" target="_self" style="text-decoration:none;color:inherit;display:block">
+<div class="{card_css}" style="cursor:pointer">
   <div class="pf-left">
     <span class="{badge}">{label}</span>
     <div style="margin-top:2px">{score_html}</div>
@@ -909,6 +936,7 @@ if page == "Přehled portfolia":
   </div>
   {reasons_html}
 </div>
+</a>
 """, unsafe_allow_html=True)
 
     st.divider()
@@ -1393,17 +1421,23 @@ když **alespoň 3 indikátory souhlasí** — proto je konzervativní a nevydá
     # ── AI analýza – události a rizika pro vybraný horizont ──────────────────
     if _claude.get("ok"):
         if _hz_events or _hz_risks:
-            ca1, ca2 = st.columns(2)
-            with ca1:
-                if _hz_events:
-                    st.markdown("**Klíčové tržní události**")
-                    for ev in _hz_events:
-                        st.info(f"📌 {ev}")
-            with ca2:
-                if _hz_risks:
-                    st.markdown("**Rizikové faktory**")
-                    for r in _hz_risks:
-                        st.warning(f"⚠️ {r}")
+            _ev_html = "".join(
+                f'<div style="background:#0c2a4a;border-left:3px solid #60a5fa;border-radius:4px;'
+                f'padding:8px 12px;margin:4px 0;font-size:0.85rem;color:#cbd5e1">📌 {ev}</div>'
+                for ev in _hz_events
+            )
+            _ri_html = "".join(
+                f'<div style="background:#2a1a0a;border-left:3px solid #f59e0b;border-radius:4px;'
+                f'padding:8px 12px;margin:4px 0;font-size:0.85rem;color:#cbd5e1">⚠️ {ri}</div>'
+                for ri in _hz_risks
+            )
+            st.markdown(
+                f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">'
+                f'<div><div style="color:#94a3b8;font-size:0.75rem;font-weight:600;margin-bottom:4px">KLÍČOVÉ UDÁLOSTI</div>{_ev_html}</div>'
+                f'<div><div style="color:#94a3b8;font-size:0.75rem;font-weight:600;margin-bottom:4px">RIZIKOVÉ FAKTORY</div>{_ri_html}</div>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
         if _hz_opp:
             hint_color = _HINT_COLOR.get(_hz_hint, "#888")
             st.markdown(
