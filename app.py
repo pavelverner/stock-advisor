@@ -77,6 +77,18 @@ footer               { display: none !important; }
 [data-testid="stDecoration"]     { display: none !important; }
 [data-testid="stStatusWidget"]   { display: none !important; }
 .stDeployButton                  { display: none !important; }
+/* Ikony GitHub a Streamlit vpravo dole */
+[data-testid="baseButton-headerNoPadding"] { display: none !important; }
+.viewerBadge_container__1QSob  { display: none !important; }
+#stDecoration                  { display: none !important; }
+a[href*="streamlit.io"]        { display: none !important; }
+a[href*="github.com"][target]  { display: none !important; }
+/* Plotly toolbar (uložit, zoom) – skryj na mobilu */
+@media (max-width: 768px) {
+  .modebar { display: none !important; }
+  /* Zamez zachycení scrollu grafem na mobilu */
+  .js-plotly-plot .plotly { touch-action: pan-y !important; }
+}
 
 /* ── Základní karty ── */
 .signal-buy  { background:#0d6e2f; color:#fff; padding:10px 20px; border-radius:8px;
@@ -369,6 +381,45 @@ with st.sidebar:
         if st.button("Odhlásit se", use_container_width=True):
             st.logout()
 
+# ── Mobilní navigace (zobrazí se jen na malých obrazovkách) ──────────────────
+_pages = ["Přehled portfolia", "Detail akcie", "Radar & Trh", "Analytika", "Deník obchodů"]
+_page_icons = ["📊", "🔍", "📡", "📈", "📓"]
+st.markdown("""
+<style>
+.mob-nav { display:none }
+@media (max-width: 768px) {
+  .mob-nav {
+    display: flex; position: sticky; top: 0; z-index: 999;
+    background: #0f172a; border-bottom: 1px solid #1e293b;
+    overflow-x: auto; gap: 0; padding: 0; margin: -1rem -1rem 1rem -1rem;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .mob-nav::-webkit-scrollbar { display: none; }
+  .mob-nav a {
+    flex: 0 0 auto; padding: 10px 14px; font-size: 0.8rem;
+    color: #94a3b8; text-decoration: none; white-space: nowrap;
+    border-bottom: 2px solid transparent;
+  }
+  .mob-nav a.active { color: #22c55e; border-bottom-color: #22c55e; }
+}
+</style>
+""", unsafe_allow_html=True)
+_mob_links = "".join(
+    f'<a href="?page={i}" class="{"active" if _pages[i] == page else ""}">{_page_icons[i]} {_pages[i]}</a>'
+    for i in range(len(_pages))
+)
+st.markdown(f'<div class="mob-nav">{_mob_links}</div>', unsafe_allow_html=True)
+
+# Mobilní navigace přes query params
+_qp = st.query_params.get("page", None)
+if _qp is not None:
+    try:
+        _qi = int(_qp)
+        if 0 <= _qi < len(_pages):
+            page = _pages[_qi]
+    except ValueError:
+        pass
+
     period_map = {
         "3 měsíce": "3mo",
         "6 měsíců": "6mo",
@@ -613,7 +664,7 @@ if page == "Přehled portfolia":
                 height=210, template="plotly_dark",
                 margin=dict(l=10, r=10, t=50, b=0),
             )
-            st.plotly_chart(_fig_gauge, use_container_width=True)
+            st.plotly_chart(_fig_gauge, use_container_width=True, config={"displayModeBar": False, "scrollZoom": False})
 
             # Interpretace pod grafem
             if _fg_score <= 25:
@@ -652,14 +703,17 @@ if page == "Přehled portfolia":
                 elif _name == "10Y Treasury":
                     _note = "tlak na akcie" if _p > 5 else "příznivé" if _p < 3 else "zvýšené výnosy"
                 _desc = _MACRO_DESC.get(_name, "")
-                _desc_html = f' <span style="color:#555;font-size:0.72rem">({_desc})</span>' if _desc else ""
                 st.markdown(
                     f'<div class="card-hold" style="margin:3px 0;padding:8px 12px">'
-                    f'<strong style="font-size:0.9rem">{_name}</strong>{_desc_html} &nbsp;'
-                    f'<span style="font-size:1rem">{_p:.2f}</span> &nbsp;'
-                    f'<span style="color:{_col}">{_arr} {_c:+.1f}%</span>'
-                    + (f' &nbsp;<span style="color:#666;font-size:0.78rem">· {_note}</span>' if _note else "")
-                    + '</div>',
+                    f'<div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:4px">'
+                    f'<span style="font-size:0.9rem;font-weight:700">{_name}</span>'
+                    f'<span style="color:#555;font-size:0.75rem">{_desc}</span>'
+                    f'</div>'
+                    f'<div style="display:flex;align-items:center;gap:10px;margin-top:2px">'
+                    f'<span style="font-size:1.05rem;font-weight:600">{_p:.2f}</span>'
+                    f'<span style="color:{_col};font-weight:600">{_arr} {_c:+.1f}%</span>'
+                    + (f'<span style="color:#666;font-size:0.78rem">· {_note}</span>' if _note else "")
+                    + '</div></div>',
                     unsafe_allow_html=True,
                 )
         else:
@@ -786,7 +840,7 @@ if page == "Přehled portfolia":
         yaxis=dict(range=[0, 100]),
         showlegend=False,
     )
-    st.plotly_chart(fig_rsi, use_container_width=True)
+    st.plotly_chart(fig_rsi, use_container_width=True, config={"displayModeBar": False, "scrollZoom": False})
 
     # ── Výkonnost portfolia (změna %) ─────────────────────────────────────────
     st.subheader("Dnešní změna (%)")
@@ -805,7 +859,7 @@ if page == "Přehled portfolia":
         margin=dict(l=0, r=0, t=10, b=0),
         showlegend=False,
     )
-    st.plotly_chart(fig_chg, use_container_width=True)
+    st.plotly_chart(fig_chg, use_container_width=True, config={"displayModeBar": False, "scrollZoom": False})
 
     st.divider()
     with st.expander("Top příležitosti z Radaru (rozbal)"):
@@ -1087,7 +1141,7 @@ když **alespoň 3 indikátory souhlasí** — proto je konzervativní a nevydá
             margin=dict(l=0, r=0, t=40, b=0),
         )
         fig.update_yaxes(range=[0, 100], row=2, col=1)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "scrollZoom": False})
 
     st.divider()
 
@@ -1207,7 +1261,7 @@ když **alespoň 3 indikátory souhlasí** — proto je konzervativní a nevydá
             margin=dict(l=0, r=0, t=40, b=60),
             legend=dict(orientation="h", yanchor="top", y=-0.15, x=0),
         )
-        st.plotly_chart(pfig, use_container_width=True)
+        st.plotly_chart(pfig, use_container_width=True, config={"displayModeBar": False, "scrollZoom": False})
 
         # Tabulka se změnami – responsivní CSS grid
         peer_rows = sorted(results.items(), key=lambda x: -x[1]["chg_pct"])
@@ -1430,7 +1484,7 @@ Technické indikátory to zachytí — akcie v silném sektoru BEZ BUY signálu 
                 legend=dict(orientation="h", y=1.1),
                 yaxis_title="Výkonnost (%)",
             )
-            st.plotly_chart(fig_sec, use_container_width=True)
+            st.plotly_chart(fig_sec, use_container_width=True, config={"displayModeBar": False, "scrollZoom": False})
 
             # Tabulka + komentáře
             st.subheader("Detail sektorů")
@@ -1539,7 +1593,7 @@ Historicky platí: *když ostatní se bojí, je čas kupovat; když jsou chamtiv
                     height=260, template="plotly_dark",
                     margin=dict(l=20, r=20, t=50, b=10),
                 )
-                st.plotly_chart(fig_gauge, use_container_width=True)
+                st.plotly_chart(fig_gauge, use_container_width=True, config={"displayModeBar": False, "scrollZoom": False})
 
                 m1, m2 = st.columns(2)
                 if fg.get("prev_week"):
@@ -1676,7 +1730,7 @@ Myslíš si, že máš 3 různé pozice, ale ve skutečnosti máš 1 velkou sáz
                 height=500,
                 margin=dict(l=0, r=0, t=20, b=0),
             )
-            st.plotly_chart(fig_corr, use_container_width=True)
+            st.plotly_chart(fig_corr, use_container_width=True, config={"displayModeBar": False, "scrollZoom": False})
 
             # Varování na vysoké korelace
             st.subheader("Rizikové páry (korelace > 0.80)")
@@ -1712,7 +1766,7 @@ Myslíš si, že máš 3 různé pozice, ale ve skutečnosti máš 1 velkou sáz
                 margin=dict(l=0, r=0, t=20, b=0),
                 legend=dict(orientation="h", y=-0.15),
             )
-            st.plotly_chart(fig_norm, use_container_width=True)
+            st.plotly_chart(fig_norm, use_container_width=True, config={"displayModeBar": False, "scrollZoom": False})
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -1862,7 +1916,7 @@ Po zveřejnění se situace vyjasní a signál bude spolehlivější.
                             margin=dict(l=0, r=0, t=40, b=10),
                             showlegend=False,
                         )
-                        st.plotly_chart(fig_hist, use_container_width=True)
+                        st.plotly_chart(fig_hist, use_container_width=True, config={"displayModeBar": False, "scrollZoom": False})
 
                 st.info(
                     "Interpretace: Win rate > 55% a průměrný výnos > 0 naznačuje, "
@@ -2154,7 +2208,7 @@ elif page == "Deník obchodů":
                         showlegend=False,
                         yaxis_title="P&L (%)",
                     )
-                    st.plotly_chart(fig_pnl, use_container_width=True)
+                    st.plotly_chart(fig_pnl, use_container_width=True, config={"displayModeBar": False, "scrollZoom": False})
 
 
 # ── Patička ───────────────────────────────────────────────────────────────────
