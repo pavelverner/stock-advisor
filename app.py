@@ -129,8 +129,10 @@ a[href*="github.com"][target]                        { display: none !important;
 
 /* ── Mobil – skryj padding hlavního kontejneru ── */
 @media (max-width: 768px) {
-    /* Zmenší padding okrajů */
-    .block-container { padding: 0.5rem 0.6rem 2rem !important; }
+    /* Minimální horní padding – nav lišta je sticky, obsah hned pod ní */
+    .block-container { padding: 0 0.6rem 2rem !important; }
+    .stMainBlockContainer, [data-testid="stMain"] > div { padding-top: 0 !important; }
+    [data-testid="stAppViewBlockContainer"] { padding-top: 0 !important; }
 
     /* Sidebar button větší pro dotyk */
     [data-testid="stSidebarNavLink"] { font-size: 1.05rem !important; padding: 10px 0 !important; }
