@@ -587,6 +587,15 @@ if page == "Přehled portfolia":
         else:
             st.warning("Index strachu a chamtivosti se nepodařilo načíst.")
 
+    _MACRO_DESC = {
+        "VIX":          "index volatility – čím vyšší, tím větší nervozita trhu",
+        "10Y Treasury": "výnos 10letých US dluhopisů – nad 5% tlačí akcie dolů",
+        "Gold":         "zlato – roste, když jsou investoři v panice",
+        "Oil (WTI)":    "cena ropy – ovlivňuje inflaci i energetické firmy",
+        "USD Index":    "síla dolaru – silný dolar zhoršuje zisky US firem ze zahraničí",
+        "S&P 500":      "hlavní US akciový index – celkový tep amerického trhu",
+    }
+
     with _ctx_right:
         st.markdown("**Klíčové makro ukazatele**")
         if _macro_mini:
@@ -600,9 +609,11 @@ if page == "Přehled portfolia":
                     _note = "nízká volatilita" if _p < 15 else "zvýšená nervozita" if _p > 25 else "normální"
                 elif _name == "10Y Treasury":
                     _note = "tlak na akcie" if _p > 5 else "příznivé" if _p < 3 else "zvýšené výnosy"
+                _desc = _MACRO_DESC.get(_name, "")
+                _desc_html = f' <span style="color:#555;font-size:0.72rem">({_desc})</span>' if _desc else ""
                 st.markdown(
                     f'<div class="card-hold" style="margin:3px 0;padding:8px 12px">'
-                    f'<strong style="font-size:0.9rem">{_name}</strong> &nbsp;'
+                    f'<strong style="font-size:0.9rem">{_name}</strong>{_desc_html} &nbsp;'
                     f'<span style="font-size:1rem">{_p:.2f}</span> &nbsp;'
                     f'<span style="color:{_col}">{_arr} {_c:+.1f}%</span>'
                     + (f' &nbsp;<span style="color:#666;font-size:0.78rem">· {_note}</span>' if _note else "")
