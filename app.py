@@ -1822,7 +1822,10 @@ elif page == "Deník obchodů":
     init_db()
 
     # ── Upozornění na perzistenci ─────────────────────────────────────────────
-    _using_sheets = bool(_get_secret("GSHEETS_URL") if hasattr(st, "secrets") else os.environ.get("GSHEETS_URL", ""))
+    try:
+        _using_sheets = bool(st.secrets.get("GSHEETS_URL", ""))
+    except Exception:
+        _using_sheets = bool(os.environ.get("GSHEETS_URL", ""))
     if not _using_sheets:
         st.info(
             "Data se ukládají lokálně (SQLite). Na Streamlit Cloud se resetují při restartu — "
