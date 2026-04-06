@@ -30,6 +30,33 @@ st.set_page_config(
     layout="wide",
 )
 
+# ── Google login ─────────────────────────────────────────────────────────────
+_ALLOWED_EMAIL = "seusdt@gmail.com"
+
+st.write("DEBUG user:", dict(st.user))  # TODO: smazat
+
+if not st.user.is_logged_in:
+    st.markdown("""
+    <style>
+    .login-wrap { display:flex; flex-direction:column; align-items:center;
+                  justify-content:center; min-height:70vh; gap:24px; }
+    .login-title { font-size:2rem; font-weight:700; color:#f1f5f9; }
+    .login-sub   { color:#94a3b8; font-size:1rem; }
+    </style>
+    <div class="login-wrap">
+      <div style="font-size:3rem">📈</div>
+      <div class="login-title">Stock Advisor</div>
+      <div class="login-sub">Přihlas se pro přístup k portfoliu a analýzám</div>
+    </div>
+    """, unsafe_allow_html=True)
+    st.login("google")
+    st.stop()
+
+if st.user.email != _ALLOWED_EMAIL:
+    st.logout()
+    st.error("Přístup zamítnut.")
+    st.stop()
+
 # ── PWA meta tagy (ikona při přidání na plochu telefonu) ─────────────────────
 st.markdown("""
 <link rel="manifest" href="/app/static/manifest.json">
@@ -336,6 +363,11 @@ with st.sidebar:
         index=0,
     )
     st.divider()
+    # Přihlášený uživatel
+    _user = st.user
+    if _user.is_logged_in:
+        st.caption(f"👤 {_user.name or _user.email}")
+        st.logout()
 
     period_map = {
         "3 měsíce": "3mo",
@@ -1826,11 +1858,19 @@ elif page == "Deník obchodů":
         _using_sheets = bool(st.secrets.get("GSHEETS_URL", ""))
     except Exception:
         _using_sheets = bool(os.environ.get("GSHEETS_URL", ""))
-    if not _using_sheets:
-        st.info(
-            "Data se ukládají lokálně (SQLite). Na Streamlit Cloud se resetují při restartu — "
-            "pravidelně exportuj zálohu pomocí tlačítka níže.",
-            icon="💾",
+    try:
+        _using_pg = bool(st.secrets.get("DATABASE_URL", ""))
+    except Exception:
+        _using_pg = bool(os.environ.get("DATABASE_URL", ""))
+    if _using_pg:
+        st.success("Úložiště: **PostgreSQL** (data přežijí restarty)", icon="🗄️")
+    elif _using_sheets:
+        st.success("Úložiště: **Google Sheets** (data přežijí restarty)", icon="📊")
+    else:
+        st.warning(
+            "Úložiště: **lokální SQLite** — data se smažou při restartu Streamlit Cloud. "
+            "Pro trvalé uložení nastav `DATABASE_URL` v Secrets (Supabase / Neon zdarma).",
+            icon="⚠️",
         )
 
     tab_add, tab_history, tab_stats = st.tabs(["Přidat obchod", "Historie", "Výkonnost"])
@@ -1839,50 +1879,117 @@ elif page == "Deník obchodů":
     with tab_add:
         st.subheader("Zaznamenat obchod")
 
-        all_portfolio = {n: t for n, (t, c, s) in PORTFOLIO.items()}
-        all_radar_j   = {n: t for n, (t, c, s) in RADAR_STOCKS.items()}
+        all_portfolio = {n: (t, c) for n, (t, c, s) in PORTFOLIO.items()}
+        all_radar_j   = {n: (t, c) for n, (t, c, s) in RADAR_STOCKS.items()}
         all_stocks_j  = {**all_portfolio, **all_radar_j}
 
-        with st.form("trade_form"):
-            fc1, fc2 = st.columns(2)
-            with fc1:
-                stock_choice_j = st.selectbox(
-                    "Akcie",
-                    ["– vlastní –"] + list(all_portfolio.keys()) + ["── Radar ──"] + list(all_radar_j.keys()),
-                )
-                if stock_choice_j in all_stocks_j:
-                    prefill_ticker = all_stocks_j[stock_choice_j]
-                    prefill_name   = stock_choice_j
-                else:
-                    prefill_ticker = ""
-                    prefill_name   = ""
-                custom_ticker = st.text_input("Nebo zadej ticker ručně", value=prefill_ticker)
-                custom_name   = st.text_input("Název", value=prefill_name)
-            with fc2:
-                action_j = st.radio("Typ obchodu", ["BUY – koupil jsem", "SELL – prodal jsem"], horizontal=True)
-                action_j = "BUY" if action_j.startswith("BUY") else "SELL"
-                price_j  = st.number_input("Cena za akcii (v měně burzy)", min_value=0.01, value=100.0, step=0.01)
-                shares_j = st.number_input("Počet akcií", min_value=0.001, value=1.0, step=0.001)
+        # Výběr akcie mimo formulář – abychom mohli načíst live cenu
+        stock_options = list(all_portfolio.keys()) + ["─── Radar ───"] + list(all_radar_j.keys())
+        stock_choice_j = st.selectbox("Vyber akcii", stock_options,
+                                      help="Portfolio + radar akcie. Cena se načte automaticky.")
 
-            note_j = st.text_input("Poznámka (volitelné)", placeholder="např. dle BUY signálu, RSI 28")
-            submitted = st.form_submit_button("Uložit obchod", type="primary", use_container_width=True)
+        # Ignoruj oddělovač
+        if stock_choice_j.startswith("───"):
+            st.stop()
+
+        j_ticker, j_currency = all_stocks_j[stock_choice_j]
+
+        # Datum obchodu – mimo formulář, aby změna triggernula reload ceny
+        from datetime import date as _date, timedelta as _td
+        trade_date_j = st.date_input(
+            "Datum obchodu",
+            value=_date.today(),
+            max_value=_date.today(),
+            help="Dnes = aktuální cena. Historické datum = závěrečná cena z burzy pro daný den.",
+        )
+
+        # Načti cenu pro zvolené datum
+        _today = _date.today()
+        _is_today = (trade_date_j == _today)
+
+        with st.spinner(f"Načítám cenu {j_ticker}..."):
+            try:
+                if _is_today:
+                    _df_j = yf.download(j_ticker, period="5d", auto_adjust=True, progress=False)
+                    _df_j.columns = [c[0] if isinstance(c, tuple) else c for c in _df_j.columns]
+                    _fetched_price = float(_df_j["Close"].iloc[-1]) if not _df_j.empty else 0.0
+                    _price_label = "aktuální tržní cena"
+                else:
+                    _start = trade_date_j.strftime("%Y-%m-%d")
+                    _end   = (trade_date_j + _td(days=5)).strftime("%Y-%m-%d")
+                    _df_j  = yf.download(j_ticker, start=_start, end=_end, auto_adjust=True, progress=False)
+                    _df_j.columns = [c[0] if isinstance(c, tuple) else c for c in _df_j.columns]
+                    if not _df_j.empty:
+                        # Nejbližší obchodní den od zvoleného data
+                        _fetched_price = float(_df_j["Close"].iloc[0])
+                        _actual_day    = _df_j.index[0]
+                        _price_label   = f"závěrečná cena {_actual_day.strftime('%d.%m.%Y')}"
+                    else:
+                        _fetched_price = 0.0
+                        _price_label   = "cena nenalezena"
+            except Exception:
+                _fetched_price = 0.0
+                _price_label   = "chyba načítání"
+
+        if _fetched_price:
+            st.caption(f"Načteno: **{_fetched_price:.2f} {j_currency}** ({_price_label})")
+
+        with st.form("trade_form"):
+            action_j = st.radio(
+                "Typ obchodu",
+                ["🟢  Koupil jsem", "🔴  Prodal jsem"],
+                horizontal=True,
+                label_visibility="collapsed",
+            )
+            action_j = "BUY" if action_j.startswith("🟢") else "SELL"
+
+            jc1, jc2 = st.columns(2)
+            with jc1:
+                price_j = st.number_input(
+                    f"Cena za akcii ({j_currency})",
+                    min_value=0.01,
+                    value=round(_fetched_price, 2) if _fetched_price else 1.0,
+                    step=0.01,
+                    help="Předvyplněno automaticky — uprav pokud byla tvá reálná cena jiná.",
+                )
+            with jc2:
+                shares_j = st.number_input(
+                    "Počet akcií",
+                    min_value=0.001,
+                    value=1.0,
+                    step=0.001,
+                )
+
+            # Živý náhled celkové hodnoty
+            total_preview = price_j * shares_j
+            st.markdown(
+                f'<div style="background:#1e293b;border-radius:6px;padding:10px 14px;'
+                f'margin:4px 0 8px;display:flex;justify-content:space-between;align-items:center">'
+                f'<span style="color:#94a3b8;font-size:0.85rem">{stock_choice_j} · {j_ticker}</span>'
+                f'<span style="font-size:1.1rem;font-weight:700;color:#f1f5f9">'
+                f'{total_preview:,.2f} {j_currency}</span>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+
+            submitted = st.form_submit_button(
+                "✅  Uložit obchod",
+                type="primary",
+                use_container_width=True,
+            )
 
         if submitted:
-            ticker_j = (custom_ticker or prefill_ticker).upper().strip()
-            name_j   = (custom_name or prefill_name or ticker_j).strip()
-            if ticker_j:
-                add_trade(
-                    ticker=ticker_j,
-                    name=name_j,
-                    action=action_j,
-                    price=price_j,
-                    shares=shares_j,
-                    note=note_j,
-                )
-                st.success(f"Uloženo: {action_j} {shares_j} × {ticker_j} @ {price_j:.2f}")
-                st.rerun()
-            else:
-                st.error("Zadej ticker akcie.")
+            add_trade(
+                ticker=j_ticker,
+                name=stock_choice_j,
+                action=action_j,
+                price=price_j,
+                shares=shares_j,
+                date=trade_date_j.strftime("%Y-%m-%d %H:%M"),
+            )
+            lbl = "Koupeno" if action_j == "BUY" else "Prodáno"
+            st.success(f"{lbl}: {shares_j:g} × {j_ticker} @ {price_j:.2f} {j_currency} = {total_preview:,.2f} {j_currency} ({trade_date_j.strftime('%d.%m.%Y')})")
+            st.rerun()
 
         st.divider()
         st.subheader("Import / Export")

@@ -1,15 +1,18 @@
 """
 Deník obchodů – ukládá záznamy nákupů/prodejů a počítá P&L.
 
-Úložiště (automaticky vybráno):
-  1. Google Sheets  – pokud je nastaven GSHEETS_URL v Streamlit secrets / env
-                      Data přežijí restart, viditelná přímo v Google Tabulkách.
-  2. SQLite (lokálně) – fallback, funguje offline a při vývoji.
+Úložiště (automaticky vybráno v pořadí priority):
+  1. PostgreSQL – pokud je nastaven DATABASE_URL v Streamlit secrets / env
+                  Funguje s Supabase, Neon, Railway, atd. (všechny mají free tier)
+                  Data přežijí restarty Streamlit Cloud.
+  2. Google Sheets – pokud je nastaven GSHEETS_URL + GSHEETS_CREDS (service account JSON)
+  3. SQLite (lokálně) – fallback pro lokální vývoj.
 
-Nastavení Google Sheets:
-  - Vytvoř Google Sheet, nastav sdílení „kdokoli se odkazem může editovat"
-  - Zkopíruj URL tabulky a ulož jako GSHEETS_URL do Streamlit secrets
-  - Nepovinně: pro soukromou tabulku použij service account (GSHEETS_CREDS jako JSON)
+Nastavení persistentního úložiště (doporučeno: Supabase):
+  1. Registruj se na supabase.com (zdarma, 500 MB)
+  2. Vytvoř nový projekt → Settings → Database → Connection string (URI)
+  3. Zkopíruj URI a ulož jako DATABASE_URL do Streamlit secrets:
+       DATABASE_URL = "postgresql://postgres:[heslo]@[host]:5432/postgres"
 """
 import os
 import json
@@ -24,6 +27,21 @@ DB_PATH = Path(__file__).parent / "trades.db"
 COLS = ["id", "date", "ticker", "name", "action", "price", "shares",
         "total", "signal_str", "reasons", "note"]
 
+CREATE_SQL = """
+CREATE TABLE IF NOT EXISTS trades (
+    id         SERIAL PRIMARY KEY,
+    date       TEXT    NOT NULL,
+    ticker     TEXT    NOT NULL,
+    name       TEXT    NOT NULL,
+    action     TEXT    NOT NULL,
+    price      REAL    NOT NULL,
+    shares     REAL    NOT NULL,
+    total      REAL    NOT NULL,
+    signal_str REAL,
+    reasons    TEXT,
+    note       TEXT
+)
+"""
 
 # ── Detekce backendu ──────────────────────────────────────────────────────────
 
@@ -38,32 +56,104 @@ def _get_secret(key: str) -> str:
     return os.environ.get(key, "")
 
 
+def _use_pg() -> bool:
+    return bool(_get_secret("DATABASE_URL"))
+
+
 def _use_sheets() -> bool:
-    return bool(_get_secret("GSHEETS_URL"))
+    return bool(_get_secret("GSHEETS_URL")) and bool(_get_secret("GSHEETS_CREDS"))
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# BACKEND A – Google Sheets
+# BACKEND A – PostgreSQL (Supabase / Neon / Railway…)
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _pg_conn():
+    import psycopg2
+    import psycopg2.extras
+    url = _get_secret("DATABASE_URL")
+    con = psycopg2.connect(url, sslmode="require")
+    return con
+
+
+def _pg_init():
+    with _pg_conn() as con:
+        with con.cursor() as cur:
+            # SERIAL PRIMARY KEY pro PostgreSQL
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS trades (
+                    id         SERIAL PRIMARY KEY,
+                    date       TEXT    NOT NULL,
+                    ticker     TEXT    NOT NULL,
+                    name       TEXT    NOT NULL,
+                    action     TEXT    NOT NULL,
+                    price      REAL    NOT NULL,
+                    shares     REAL    NOT NULL,
+                    total      REAL    NOT NULL,
+                    signal_str REAL,
+                    reasons    TEXT,
+                    note       TEXT
+                )
+            """)
+        con.commit()
+
+
+def _pg_get_all() -> pd.DataFrame:
+    try:
+        _pg_init()
+        with _pg_conn() as con:
+            df = pd.read_sql("SELECT * FROM trades ORDER BY date DESC", con)
+        return df
+    except Exception as e:
+        _log(f"PG read error: {e}")
+        return pd.DataFrame(columns=COLS)
+
+
+def _pg_append(row: dict) -> int:
+    try:
+        _pg_init()
+        with _pg_conn() as con:
+            with con.cursor() as cur:
+                cur.execute(
+                    """INSERT INTO trades (date, ticker, name, action, price, shares, total,
+                       signal_str, reasons, note) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                       RETURNING id""",
+                    (row["date"], row["ticker"], row["name"], row["action"],
+                     row["price"], row["shares"], row["total"],
+                     row.get("signal_str", 0), row.get("reasons", "[]"), row.get("note", "")),
+                )
+                new_id = cur.fetchone()[0]
+            con.commit()
+        return new_id
+    except Exception as e:
+        _log(f"PG append error: {e}")
+        return -1
+
+
+def _pg_delete(trade_id: int):
+    try:
+        with _pg_conn() as con:
+            with con.cursor() as cur:
+                cur.execute("DELETE FROM trades WHERE id = %s", (trade_id,))
+            con.commit()
+    except Exception as e:
+        _log(f"PG delete error: {e}")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# BACKEND B – Google Sheets (service account, soukromá tabulka)
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _sheets_client():
-    """Vrátí (gc, spreadsheet). Funguje s public URL nebo service account."""
     import gspread
+    import json as _json
+    from google.oauth2.service_account import Credentials
     creds_json = _get_secret("GSHEETS_CREDS")
-    if creds_json:
-        # Service account – soukromá tabulka
-        import json as _json
-        from google.oauth2.service_account import Credentials
-        creds_dict = _json.loads(creds_json)
-        scopes = ["https://spreadsheets.google.com/feeds",
-                  "https://www.googleapis.com/auth/drive"]
-        creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
-        gc = gspread.authorize(creds)
-    else:
-        # Veřejná tabulka (sdílená „kdokoli může editovat")
-        gc = gspread.Client(auth=None)
-        gc.session = gspread.utils.NoAuthSession()  # type: ignore
-
+    creds_dict = _json.loads(creds_json)
+    scopes = ["https://spreadsheets.google.com/feeds",
+              "https://www.googleapis.com/auth/drive"]
+    creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+    gc = gspread.authorize(creds)
     url = _get_secret("GSHEETS_URL")
     sh  = gc.open_by_url(url)
     try:
@@ -89,7 +179,6 @@ def _sheets_get_all() -> pd.DataFrame:
 def _sheets_append(row: dict):
     try:
         ws = _sheets_client()
-        # ID = max existující + 1
         df = _sheets_get_all()
         new_id = int(df["id"].max()) + 1 if not df.empty and "id" in df.columns and len(df) else 1
         row["id"] = new_id
@@ -106,16 +195,15 @@ def _sheets_delete(trade_id: int):
         df = _sheets_get_all()
         if df.empty:
             return
-        # Najdi řádek (header = řádek 1, data od řádku 2)
         idx = df.index[df["id"].astype(str) == str(trade_id)].tolist()
         if idx:
-            ws.delete_rows(idx[0] + 2)  # +2 = header offset
+            ws.delete_rows(idx[0] + 2)
     except Exception as e:
         _log(f"Sheets delete error: {e}")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# BACKEND B – SQLite
+# BACKEND C – SQLite (lokální fallback)
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _conn():
@@ -199,19 +287,25 @@ def add_trade(
         "reasons":    json.dumps(reasons or [], ensure_ascii=False),
         "note":       note,
     }
+    if _use_pg():
+        return _pg_append(row)
     if _use_sheets():
         return _sheets_append(row)
     return _sqlite_append(row)
 
 
 def get_trades() -> pd.DataFrame:
+    if _use_pg():
+        return _pg_get_all()
     if _use_sheets():
         return _sheets_get_all()
     return _sqlite_get_all()
 
 
 def delete_trade(trade_id: int):
-    if _use_sheets():
+    if _use_pg():
+        _pg_delete(trade_id)
+    elif _use_sheets():
         _sheets_delete(trade_id)
     else:
         _sqlite_delete(trade_id)

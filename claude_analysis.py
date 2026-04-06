@@ -68,7 +68,7 @@ def _call_claude(prompt: str) -> str:
 def _call_gemini(prompt: str) -> str:
     import google.generativeai as genai
     genai.configure(api_key=_get_secret("GEMINI_API_KEY"))
-    model = genai.GenerativeModel("gemini-2.0-flash")
+    model = genai.GenerativeModel("gemini-1.5-flash")
     resp = model.generate_content(prompt)
     return resp.text.strip()
 
