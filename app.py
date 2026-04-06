@@ -198,16 +198,22 @@ div:has(> [data-testid="stExpander"]) { gap: 2px !important; }
     /* Segmented control – celá šířka na mobilu */
     [data-testid="stSegmentedControl"],
     [data-testid="stSegmentedControl"] > div,
-    [data-testid="stSegmentedControl"] div[role="group"],
     div[class*="stSegmentedControl"],
     div[class*="stSegmentedControl"] > div {
         width: 100% !important;
         min-width: 0 !important;
         max-width: 100% !important;
         box-sizing: border-box !important;
-        display: flex !important;
+        display: block !important;
     }
-    [data-testid="stElementContainer"]:has([data-testid="stSegmentedControl"]) {
+    [data-testid="stSegmentedControl"] div[role="group"],
+    div[class*="stSegmentedControl"] div[role="group"] {
+        width: 100% !important;
+        display: flex !important;
+        box-sizing: border-box !important;
+    }
+    [data-testid="stElementContainer"]:has([data-testid="stSegmentedControl"]),
+    [data-testid="stVerticalBlock"]:has([data-testid="stSegmentedControl"]) {
         width: 100% !important;
     }
     [data-testid="stSegmentedControl"] label,
@@ -1328,11 +1334,19 @@ elif page == "Detail akcie":
     """, unsafe_allow_html=True)
 
         # Přepínač detailu horizontu
+        st.markdown("""
+<style>
+[data-testid="stSegmentedControl"]{width:100%!important;display:block!important}
+[data-testid="stSegmentedControl"]>div{width:100%!important;display:block!important}
+[data-testid="stSegmentedControl"] div[role="group"]{width:100%!important;display:flex!important}
+[data-testid="stSegmentedControl"] div[role="group"]>*{flex:1!important;justify-content:center!important}
+</style>""", unsafe_allow_html=True)
         _sel_hz = st.segmented_control(
             "Detail horizontu",
             ["Krátkodobý", "Střednědobý", "Dlouhodobý"],
             default="Krátkodobý",
             key=f"hz_detail_{ticker}",
+            label_visibility="collapsed",
         )
         _hz_key = {"Krátkodobý": "short", "Střednědobý": "medium", "Dlouhodobý": "long"}.get(_sel_hz or "Krátkodobý", "short")
         _hz_sig = _mh.get(_hz_key) or signals  # fallback na 6mo signály
