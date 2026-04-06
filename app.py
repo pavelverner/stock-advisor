@@ -198,12 +198,21 @@ div:has(> [data-testid="stExpander"]) { gap: 2px !important; }
     /* Segmented control – celá šířka na mobilu */
     [data-testid="stSegmentedControl"],
     [data-testid="stSegmentedControl"] > div,
-    [data-testid="stSegmentedControl"] div[role="group"] {
+    [data-testid="stSegmentedControl"] div[role="group"],
+    div[class*="stSegmentedControl"],
+    div[class*="stSegmentedControl"] > div {
         width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
         display: flex !important;
     }
+    [data-testid="stElementContainer"]:has([data-testid="stSegmentedControl"]) {
+        width: 100% !important;
+    }
     [data-testid="stSegmentedControl"] label,
-    [data-testid="stSegmentedControl"] div[role="group"] > * {
+    [data-testid="stSegmentedControl"] div[role="group"] > *,
+    div[class*="stSegmentedControl"] label {
         flex: 1 !important;
         text-align: center !important;
         justify-content: center !important;
@@ -250,12 +259,12 @@ div:has(> [data-testid="stExpander"]) { gap: 2px !important; }
 .pf-pill { background:#ffffff14; border-radius:4px; padding:1px 6px; font-size:0.75rem; white-space:nowrap; }
 
 @media (max-width: 768px) {
-    .pf-card { grid-template-columns: 1fr auto; grid-template-rows: auto auto auto; gap:4px 8px; padding:10px 10px; }
+    .pf-card { grid-template-columns: 1fr auto; grid-template-rows: auto auto auto auto; gap:4px 8px; padding:10px 10px; }
     .pf-left  { grid-column:1; grid-row:1; flex-direction:row; flex-wrap:wrap; min-width:unset; }
     .pf-name  { grid-column:1; grid-row:2; font-size:0.95rem; }
     .pf-meta  { grid-column:1/3; grid-row:3; }
     .pf-price-block { grid-column:2; grid-row:1/3; }
-    .pf-reasons { grid-column:1/3; }
+    .pf-reasons { grid-column:1/3; grid-row:4; }
     .pf-price { font-size:0.95rem; }
 }
 
@@ -694,7 +703,7 @@ def load_news(ticker: str):
     return get_all_news(ticker)
 
 
-@st.cache_data(ttl=900)
+@st.cache_data(ttl=3600)
 def scan_stocks(stock_dict: dict, period: str) -> list[dict]:
     """Načte data a signály pro všechny akcie ve slovníku."""
     results = []
@@ -1832,11 +1841,6 @@ Technické indikátory to zachytí — akcie v silném sektoru BEZ BUY signálu 
             sector_perf_raw = fetch_sectors(period)
         sector_perf = {s["name"]: s["chg_period"] for s in sector_perf_raw}
 
-        filtered_radar = {
-            name: val for name, val in RADAR_STOCKS.items()
-            if not selected_sectors or val[2] in selected_sectors
-        }
-
         # ── Sektorový přehled – kompaktní flex grid ───────────────────────────
         st.subheader("Výkon sektorů (kontext pro signály)")
         sector_items = "".join(
@@ -1856,13 +1860,18 @@ Technické indikátory to zachytí — akcie v silném sektoru BEZ BUY signálu 
 
         st.divider()
 
-        # ── Scan akcií ────────────────────────────────────────────────────────
-        with st.spinner(f"Skenuji {len(filtered_radar)} akcií..."):
-            results = scan_stocks(filtered_radar, period)
+        # ── Scan akcií – vždy celý RADAR_STOCKS, filtr až na výsledky ────────
+        with st.spinner(f"Skenuji {len(RADAR_STOCKS)} akcií... (výsledky se cachují na 1h)"):
+            all_radar_results = scan_stocks(RADAR_STOCKS, period)
 
-        # Přidej sektorový kontext ke každému výsledku
-        for r in results:
+        # Přidej sektorový kontext a aplikuj sektorový filtr
+        for r in all_radar_results:
             r["sector_chg"] = sector_perf.get(r["sector"], None)
+
+        results = [
+            r for r in all_radar_results
+            if not selected_sectors or r["sector"] in selected_sectors
+        ]
 
         # SELL signály zobrazujeme jen pro akcie v portfoliu – pro ostatní nemají smysl
         strong = [
@@ -1881,17 +1890,19 @@ Technické indikátory to zachytí — akcie v silném sektoru BEZ BUY signálu 
         ]
 
         if double_conf:
-            st.subheader(f"Double confirmation – silný sektor + BUY signál")
+            _dc_sorted = sorted(double_conf, key=lambda x: -(x["strength"] + (x["sector_chg"] or 0) / 20))
+            st.subheader(f"Double confirmation – silný sektor + BUY signál ({min(5, len(_dc_sorted))} z {len(_dc_sorted)})")
             st.caption("Tyto akcie mají BUY signál A zároveň jejich sektor roste nad 1% — nejsilnější příležitosti.")
-            for r in sorted(double_conf, key=lambda x: -(x["strength"] + (x["sector_chg"] or 0) / 20)):
+            for r in _dc_sorted[:5]:
                 _render_radar_card(r, highlight=True)
             st.divider()
 
         # ── Ostatní silné signály ─────────────────────────────────────────────
         other_strong = [r for r in strong if r not in double_conf]
         if other_strong:
-            st.subheader("Ostatní signály")
-            for r in sorted(other_strong, key=lambda x: -x["strength"]):
+            _os_sorted = sorted(other_strong, key=lambda x: -x["strength"])
+            st.subheader(f"Ostatní signály ({min(5, len(_os_sorted))} z {len(_os_sorted)})")
+            for r in _os_sorted[:5]:
                 _render_radar_card(r, highlight=False)
         elif not double_conf:
             st.info("Žádné silné signály. Trh je momentálně v klidném pásmu — čekej na příležitost.")
@@ -1937,13 +1948,17 @@ Technické indikátory to zachytí — akcie v silném sektoru BEZ BUY signálu 
                     reasons_html = " · ".join(reasons) if reasons else ""
                     st.markdown(
                         f'<div class="{card_css}" style="margin:3px 0;padding:10px">'
-                        f'<span class="{badge_css}">{badge_lbl}</span> &nbsp;'
-                        f'<strong>{r["name"]}</strong> <span style="color:#888;font-size:0.8rem">{r["ticker"]}</span>'
-                        f' &nbsp;{r["price"]:.2f} {r["currency"]}'
-                        f' <span style="color:{price_color}">{arrow}{r["chg_pct"]:+.1f}%</span>'
-                        f' &nbsp;|&nbsp; RSI: <b>{r["rsi"]:.0f}</b>'
-                        f' &nbsp;|&nbsp; Trend: <span style="color:{trend_color}">{r["ema_trend"]}</span>'
-                        + (f'<br><small style="color:#aaa">{reasons_html}</small>' if reasons_html else "")
+                        f'<div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px">'
+                        f'<span class="{badge_css}" style="white-space:nowrap">{badge_lbl}</span>'
+                        f'<strong style="white-space:nowrap">{r["name"]}</strong>'
+                        f'<span style="color:#888;font-size:0.8rem;white-space:nowrap">{r["ticker"]}</span>'
+                        f'</div>'
+                        f'<div style="font-size:0.8rem;color:#94a3b8;margin-top:4px;display:flex;flex-wrap:wrap;gap:3px 10px">'
+                        f'<span style="color:{price_color};white-space:nowrap">{r["price"]:.2f} {r["currency"]} {arrow}{r["chg_pct"]:+.1f}%</span>'
+                        f'<span style="white-space:nowrap">RSI: <b style="color:#e2e8f0">{r["rsi"]:.0f}</b></span>'
+                        f'<span style="color:{trend_color};white-space:nowrap">{r["ema_trend"]}</span>'
+                        f'</div>'
+                        + (f'<div style="margin-top:3px"><small style="color:#aaa">{reasons_html}</small></div>' if reasons_html else "")
                         + '</div>',
                         unsafe_allow_html=True,
                     )
