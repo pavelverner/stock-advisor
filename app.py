@@ -98,6 +98,49 @@ st.markdown("""
     .card-buy, .card-sell, .card-hold, .card-radar { font-size: 0.92rem !important; }
 }
 
+/* ── Portfolio karta – nový layout ── */
+.pf-card {
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin: 6px 0;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-rows: auto auto;
+    gap: 2px 12px;
+    align-items: center;
+}
+.pf-card-buy  { background:#0a2e18; border:2px solid #22c55e; }
+.pf-card-sell { background:#2e0a0a; border:2px solid #ef4444; }
+.pf-card-hold { background:#1a1a2e; border:1px solid #444; }
+
+/* levý sloupec – badge + skóre */
+.pf-left { grid-column:1; grid-row:1/3; display:flex; flex-direction:column; gap:6px; align-items:flex-start; min-width:80px; }
+
+/* střed – název + ticker */
+.pf-name  { grid-column:2; grid-row:1; font-size:1.0rem; font-weight:700; color:#f1f5f9; }
+.pf-meta  { grid-column:2; grid-row:2; font-size:0.78rem; color:#94a3b8; display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+
+/* pravý sloupec – cena + změna */
+.pf-price-block { grid-column:3; grid-row:1/3; text-align:right; }
+.pf-price   { font-size:1.05rem; font-weight:700; color:#f1f5f9; white-space:nowrap; }
+.pf-change  { font-size:0.88rem; font-weight:600; white-space:nowrap; }
+
+/* signálové důvody */
+.pf-reasons { grid-column:1/4; grid-row:3; font-size:0.77rem; margin-top:4px; line-height:1.6; }
+
+/* stat pill */
+.pf-pill { background:#ffffff14; border-radius:4px; padding:1px 6px; font-size:0.75rem; white-space:nowrap; }
+
+@media (max-width: 768px) {
+    .pf-card { grid-template-columns: 1fr auto; grid-template-rows: auto auto auto; gap:4px 8px; padding:10px 10px; }
+    .pf-left  { grid-column:1; grid-row:1; flex-direction:row; flex-wrap:wrap; min-width:unset; }
+    .pf-name  { grid-column:1; grid-row:2; font-size:0.95rem; }
+    .pf-meta  { grid-column:1/3; grid-row:3; }
+    .pf-price-block { grid-column:2; grid-row:1/3; }
+    .pf-reasons { grid-column:1/3; }
+    .pf-price { font-size:0.95rem; }
+}
+
 /* ── Responsivní grid pro peer comparison ── */
 .peer-grid {
     display: grid;
@@ -535,46 +578,47 @@ if page == "Přehled portfolia":
 
     for r in sorted_results:
         action = r["action"]
-        css    = {"BUY": "card-buy", "SELL": "card-sell", "HOLD": "card-hold"}[action]
-        badge  = {"BUY": "badge-buy", "SELL": "badge-sell", "HOLD": "badge-hold"}[action]
-        label  = {"BUY": "KOUPIT", "SELL": "PRODAT", "HOLD": "DRŽET"}[action]
-        arrow  = "▲" if r["chg_pct"] >= 0 else "▼"
-        color  = "#22c55e" if r["chg_pct"] >= 0 else "#ef4444"
-
-        reasons_html = ""
-        if action == "BUY" and r["buy_reasons"]:
-            reasons_html = "<br>" + " &nbsp;·&nbsp; ".join(
-                f'<span style="color:#86efac">{s}</span>' for s in r["buy_reasons"]
-            )
-        elif action == "SELL" and r["sell_reasons"]:
-            reasons_html = "<br>" + " &nbsp;·&nbsp; ".join(
-                f'<span style="color:#fca5a5">{s}</span>' for s in r["sell_reasons"]
-            )
+        card_css = {"BUY": "pf-card pf-card-buy", "SELL": "pf-card pf-card-sell", "HOLD": "pf-card pf-card-hold"}[action]
+        badge    = {"BUY": "badge-buy", "SELL": "badge-sell", "HOLD": "badge-hold"}[action]
+        label    = {"BUY": "KOUPIT", "SELL": "PRODAT", "HOLD": "DRŽET"}[action]
+        arrow    = "▲" if r["chg_pct"] >= 0 else "▼"
+        chg_color = "#22c55e" if r["chg_pct"] >= 0 else "#ef4444"
+        trend_color = {"Bullish": "#22c55e", "Bearish": "#ef4444", "Smíšený": "#888"}[r["ema_trend"]]
+        rsi_color = "#22c55e" if r["rsi"] < 35 else "#ef4444" if r["rsi"] > 65 else "#94a3b8"
 
         score, score_label = _score_label(r["buy_n"], r["sell_n"], action)
         score_html = _score_bar_html(score)
-        trend_color = {"Bullish": "#22c55e", "Bearish": "#ef4444", "Smíšený": "#888"}[r["ema_trend"]]
+
+        reasons = (r["buy_reasons"] if action == "BUY" else r["sell_reasons"] if action == "SELL" else [])[:3]
+        reason_color = "#86efac" if action == "BUY" else "#fca5a5"
+        reasons_html = ""
+        if reasons:
+            reasons_html = (
+                f'<div class="pf-reasons">'
+                + " &nbsp;·&nbsp; ".join(f'<span style="color:{reason_color}">{s}</span>' for s in reasons)
+                + '</div>'
+            )
 
         st.markdown(f"""
-        <div class="{css}">
-          <span class="{badge}">{label}</span>
-          &nbsp; {score_html} &nbsp;
-          <span style="color:#aaa;font-size:0.8rem">{score_label}</span>
-          &nbsp;&nbsp;
-          <strong style="font-size:1.05rem">{r['name']}</strong>
-          <span style="color:#888;font-size:0.83rem"> {r['ticker']}</span>
-          &nbsp;&nbsp;
-          <span style="font-size:1.05rem">{r['price']:.2f} {r['currency']}</span>
-          &nbsp;
-          <span style="color:{color}">{arrow} {r['chg_pct']:+.1f}%</span>
-          &nbsp;&nbsp;
-          <span style="color:#aaa;font-size:0.82rem">
-            RSI: <b>{r['rsi']:.0f}</b> &nbsp;|&nbsp;
-            Trend: <span style="color:{trend_color}">{r['ema_trend']}</span>
-          </span>
-          {reasons_html}
-        </div>
-        """, unsafe_allow_html=True)
+<div class="{card_css}">
+  <div class="pf-left">
+    <span class="{badge}">{label}</span>
+    <div style="margin-top:2px">{score_html}</div>
+    <div style="color:#94a3b8;font-size:0.7rem;white-space:nowrap">{score_label}</div>
+  </div>
+  <div class="pf-name">{r['name']} <span style="color:#555;font-size:0.78rem;font-weight:400">{r['ticker']}</span></div>
+  <div class="pf-meta">
+    <span class="pf-pill" style="color:{rsi_color}">RSI {r['rsi']:.0f}</span>
+    <span class="pf-pill" style="color:{trend_color}">{r['ema_trend']}</span>
+    <span class="pf-pill" style="color:#94a3b8">{r['sector']}</span>
+  </div>
+  <div class="pf-price-block">
+    <div class="pf-price">{r['price']:.2f} <span style="font-size:0.75rem;color:#666">{r['currency']}</span></div>
+    <div class="pf-change" style="color:{chg_color}">{arrow} {r['chg_pct']:+.1f}%</div>
+  </div>
+  {reasons_html}
+</div>
+""", unsafe_allow_html=True)
 
     st.divider()
 
