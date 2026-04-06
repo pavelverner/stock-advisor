@@ -1905,7 +1905,7 @@ Technické indikátory to zachytí — akcie v silném sektoru BEZ BUY signálu 
 
         if double_conf:
             _dc_sorted = sorted(double_conf, key=lambda x: -(x["strength"] + (x["sector_chg"] or 0) / 20))
-            st.subheader(f"Double confirmation – silný sektor + BUY signál ({min(5, len(_dc_sorted))} z {len(_dc_sorted)})")
+            st.subheader(f"Double confirmation ({min(5, len(_dc_sorted))}/{len(_dc_sorted)})")
             st.caption("Tyto akcie mají BUY signál A zároveň jejich sektor roste nad 1% — nejsilnější příležitosti.")
             for r in _dc_sorted[:5]:
                 _render_radar_card(r, highlight=True)
@@ -1915,7 +1915,7 @@ Technické indikátory to zachytí — akcie v silném sektoru BEZ BUY signálu 
         other_strong = [r for r in strong if r not in double_conf]
         if other_strong:
             _os_sorted = sorted(other_strong, key=lambda x: -x["strength"])
-            st.subheader(f"Ostatní signály ({min(5, len(_os_sorted))} z {len(_os_sorted)})")
+            st.subheader(f"Ostatní BUY ({min(5, len(_os_sorted))}/{len(_os_sorted)})")
             for r in _os_sorted[:5]:
                 _render_radar_card(r, highlight=False)
         elif not double_conf:
@@ -1947,7 +1947,7 @@ Technické indikátory to zachytí — akcie v silném sektoru BEZ BUY signálu 
             signal_summary = " · ".join(label_parts) if label_parts else "vše HOLD"
 
             with st.expander(
-                f"{sector_name}  —  ETF: {sp_str}  |  {signal_summary}  ({len(stocks_in_sector)} akcií)"
+                f"{sector_name}  {sp_str}  ·  {signal_summary}  ({len(stocks_in_sector)})"
             ):
                 for r in sorted(stocks_in_sector, key=lambda x: {"BUY": 0, "SELL": 1, "HOLD": 2}[x["action"]]):
                     arrow = "▲" if r["chg_pct"] >= 0 else "▼"
