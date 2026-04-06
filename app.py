@@ -1158,7 +1158,7 @@ elif page == "Detail akcie":
 """, unsafe_allow_html=True)
 
     # Rozbalovací legenda pro méně zkušené uživatele
-    with st.expander("Co znamenají tyto indikátory? (rozbal pro vysvětlení)"):
+    with st.expander("Co znamenají tyto indikátory?"):
         st.markdown("""
 **Jak systém funguje:** Sleduje 5 indikátorů najednou. Signál KOUPIT nebo PRODAT se zobrazí teprve
 když **alespoň 3 indikátory souhlasí** — proto je konzervativní a nevydává falešné alarmy při každém malém pohybu.
