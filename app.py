@@ -40,7 +40,6 @@ footer               { display: none !important; }
 [data-testid="stDecoration"]     { display: none !important; }
 [data-testid="stStatusWidget"]   { display: none !important; }
 .stDeployButton                  { display: none !important; }
-[data-testid="collapsedControl"] { display: none !important; }
 
 /* ── Základní karty ── */
 .signal-buy  { background:#0d6e2f; color:#fff; padding:10px 20px; border-radius:8px;
