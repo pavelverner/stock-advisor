@@ -252,8 +252,8 @@ details { margin: 0 !important; padding-bottom: 0 !important; }
 .pf-card-sell { background:#2e0a0a; border:2px solid #ef4444; }
 .pf-card-hold { background:#1a1a2e; border:1px solid #444; }
 
-/* levý sloupec – badge + skóre */
-.pf-left { grid-column:1; grid-row:1/3; display:flex; flex-direction:column; gap:6px; align-items:flex-start; min-width:72px; max-width:90px; }
+/* levý sloupec – badge + skóre inline */
+.pf-left { grid-column:1; grid-row:1/3; display:flex; flex-direction:row; gap:5px; align-items:center; white-space:nowrap; }
 
 /* střed – název + ticker */
 .pf-name  { grid-column:2; grid-row:1; font-size:1.0rem; font-weight:700; color:#f1f5f9; text-align:left; }
@@ -272,12 +272,15 @@ details { margin: 0 !important; padding-bottom: 0 !important; }
 
 @media (max-width: 768px) {
     .pf-card { grid-template-columns: 1fr auto; grid-template-rows: auto auto auto auto; gap:4px 8px; padding:10px 10px; }
-    .pf-left  { grid-column:1; grid-row:1; flex-direction:row; flex-wrap:wrap; min-width:unset; }
+    .pf-left  { grid-column:1; grid-row:1; }
     .pf-name  { grid-column:1; grid-row:2; font-size:0.95rem; }
     .pf-meta  { grid-column:1/3; grid-row:3; }
     .pf-price-block { grid-column:2; grid-row:1/3; }
     .pf-reasons { grid-column:1/3; grid-row:4; }
     .pf-price { font-size:0.95rem; }
+    /* Columns zůstanou vodorovně i na mobilu */
+    [data-testid="stHorizontalBlock"] { flex-wrap: nowrap !important; gap: 4px !important; }
+    [data-testid="stHorizontalBlock"] > [data-testid="column"] { min-width: 0 !important; flex: 1 !important; }
 }
 
 /* ── Responsivní grid pro peer comparison ── */
@@ -1080,16 +1083,26 @@ if page == "Přehled portfolia":
 - **Síla signálu** = kolik % z maximálního počtu indikátorů souhlasí (60%+ = silný signál)
         """)
 
-    # Výběr horizontu pro portfolio overview
-    _pf_hz_label = st.segmented_control(
-        "Investiční horizont signálů",
-        ["Krátkodobý", "Střednědobý", "Dlouhodobý"],
-        default="Krátkodobý",
-        key="pf_horizon",
-        label_visibility="collapsed",
-    )
+    # Výběr horizontu – 3 tlačítka vždy vedle sebe
+    if "pf_horizon" not in st.session_state:
+        st.session_state["pf_horizon"] = "Krátkodobý"
+    _pf_hz_label = st.session_state["pf_horizon"]
+    _pfc1, _pfc2, _pfc3 = st.columns(3)
+    with _pfc1:
+        if st.button("Krátkodobý", use_container_width=True, key="pf_hz_k",
+                     type="primary" if _pf_hz_label == "Krátkodobý" else "secondary"):
+            st.session_state["pf_horizon"] = "Krátkodobý"; st.rerun()
+    with _pfc2:
+        if st.button("Střednědobý", use_container_width=True, key="pf_hz_s",
+                     type="primary" if _pf_hz_label == "Střednědobý" else "secondary"):
+            st.session_state["pf_horizon"] = "Střednědobý"; st.rerun()
+    with _pfc3:
+        if st.button("Dlouhodobý", use_container_width=True, key="pf_hz_d",
+                     type="primary" if _pf_hz_label == "Dlouhodobý" else "secondary"):
+            st.session_state["pf_horizon"] = "Dlouhodobý"; st.rerun()
+    _pf_hz_label = st.session_state["pf_horizon"]
     _pf_period_map = {"Krátkodobý": "3mo", "Střednědobý": "1y", "Dlouhodobý": "2y"}
-    _pf_period = _pf_period_map.get(_pf_hz_label or "Krátkodobý", "3mo")
+    _pf_period = _pf_period_map.get(_pf_hz_label, "3mo")
 
     with st.spinner("Načítám data pro celé portfolio..."):
         results = scan_stocks(PORTFOLIO, _pf_period)
@@ -1098,38 +1111,42 @@ if page == "Přehled portfolia":
         st.error("Nepodařilo se načíst data. Zkontroluj připojení.")
         st.stop()
 
-    # ── Souhrnná lišta ────────────────────────────────────────────────────────
+    # ── Souhrnná lišta + filtr ────────────────────────────────────────────────
     buy_count  = sum(1 for r in results if r["action"] == "BUY")
     sell_count = sum(1 for r in results if r["action"] == "SELL")
     hold_count = sum(1 for r in results if r["action"] == "HOLD")
 
-    st.markdown(f"""
-<div style="display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 16px">
-  <div style="flex:1;min-width:120px;background:#1e293b;border-radius:10px;padding:14px 18px;text-align:center">
-    <div style="color:#94a3b8;font-size:0.75rem;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Sledované akcie</div>
-    <div style="font-size:2rem;font-weight:800;color:#f1f5f9">{len(results)}</div>
-  </div>
-  <div style="flex:1;min-width:120px;background:#052e16;border:2px solid #22c55e;border-radius:10px;padding:14px 18px;text-align:center">
-    <div style="color:#86efac;font-size:0.75rem;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Koupit</div>
-    <div style="font-size:2rem;font-weight:800;color:#22c55e">{buy_count}</div>
-  </div>
-  <div style="flex:1;min-width:120px;background:#2d0a0a;border:2px solid #ef4444;border-radius:10px;padding:14px 18px;text-align:center">
-    <div style="color:#fca5a5;font-size:0.75rem;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Prodat</div>
-    <div style="font-size:2rem;font-weight:800;color:#ef4444">{sell_count}</div>
-  </div>
-  <div style="flex:1;min-width:120px;background:#1a1a2e;border:1px solid #444;border-radius:10px;padding:14px 18px;text-align:center">
-    <div style="color:#94a3b8;font-size:0.75rem;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Držet</div>
-    <div style="font-size:2rem;font-weight:800;color:#94a3b8">{hold_count}</div>
-  </div>
-</div>
-""", unsafe_allow_html=True)
+    if "pf_filter" not in st.session_state:
+        st.session_state["pf_filter"] = "ALL"
+    _pf_filter = st.session_state["pf_filter"]
+
+    _fa, _fb, _fs, _fh = st.columns(4)
+    with _fa:
+        if st.button(f"Vše  {len(results)}", use_container_width=True,
+                     type="primary" if _pf_filter == "ALL" else "secondary", key="pff_all"):
+            st.session_state["pf_filter"] = "ALL"; st.rerun()
+    with _fb:
+        if st.button(f"KOUPIT  {buy_count}", use_container_width=True,
+                     type="primary" if _pf_filter == "BUY" else "secondary", key="pff_buy"):
+            st.session_state["pf_filter"] = "BUY"; st.rerun()
+    with _fs:
+        if st.button(f"PRODAT  {sell_count}", use_container_width=True,
+                     type="primary" if _pf_filter == "SELL" else "secondary", key="pff_sell"):
+            st.session_state["pf_filter"] = "SELL"; st.rerun()
+    with _fh:
+        if st.button(f"DRŽET  {hold_count}", use_container_width=True,
+                     type="primary" if _pf_filter == "HOLD" else "secondary", key="pff_hold"):
+            st.session_state["pf_filter"] = "HOLD"; st.rerun()
+
     st.divider()
 
-    # ── Karty akcií – nejprve akce, pak hold ─────────────────────────────────
+    # ── Karty akcií ───────────────────────────────────────────────────────────
     def action_order(r):
         return {"BUY": 0, "SELL": 1, "HOLD": 2}[r["action"]]
 
     sorted_results = sorted(results, key=action_order)
+    if _pf_filter != "ALL":
+        sorted_results = [r for r in sorted_results if r["action"] == _pf_filter]
 
     for r in sorted_results:
         action = r["action"]
@@ -1142,7 +1159,7 @@ if page == "Přehled portfolia":
         rsi_color = "#22c55e" if r["rsi"] < 35 else "#ef4444" if r["rsi"] > 65 else "#94a3b8"
 
         score, score_label = _score_label(r["buy_n"], r["sell_n"], action)
-        score_html = _score_bar_html(score)
+        score_color = "#22c55e" if score > 0 else "#ef4444" if score < 0 else "#888"
 
         reasons = (r["buy_reasons"] if action == "BUY" else r["sell_reasons"] if action == "SELL" else [])[:3]
         reason_color = "#86efac" if action == "BUY" else "#fca5a5"
@@ -1159,7 +1176,7 @@ if page == "Přehled portfolia":
 <div class="{card_css}" style="cursor:pointer">
   <div class="pf-left">
     <span class="{badge}">{label}</span>
-    <div style="margin-top:2px">{score_html}</div>
+    <span style="color:{score_color};font-weight:700;font-size:0.8rem;white-space:nowrap">{score}/10</span>
   </div>
   <div class="pf-name">
     {r['name']} <span style="color:#555;font-size:0.78rem;font-weight:400">{r['ticker']}</span>
