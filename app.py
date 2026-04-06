@@ -131,15 +131,13 @@ div:has(> [data-testid="stExpander"]) { gap: 2px !important; }
 }
 
 /* ── Expander – menší rozestupy ── */
-/* Streamlit používá gap na parent flex containeru; překoná ho negativní margin */
-[data-testid="element-container"]:has(details) {
-    margin-top: -10px !important;
-    margin-bottom: -10px !important;
+/* Streamlit flex gap je ~1rem; negativní margin na obou stranách ho redukuje */
+div[data-testid="element-container"]:has(details),
+div[data-testid="stElementContainer"]:has(details) {
+    margin-top: -6px !important;
+    margin-bottom: -6px !important;
 }
-/* První expander v sérii nepotřebuje záporný top margin */
-[data-testid="stVerticalBlock"] > [data-testid="element-container"]:first-child:has(details) {
-    margin-top: 0 !important;
-}
+details { margin: 0 !important; padding-bottom: 0 !important; }
 
 /* ── Základní karty ── */
 .signal-buy  { background:#0d6e2f; color:#fff; padding:10px 20px; border-radius:8px;
@@ -207,36 +205,28 @@ div:has(> [data-testid="stExpander"]) { gap: 2px !important; }
     h3 { font-size: 1rem !important; }
 
     /* Segmented control – celá šířka na mobilu */
-    [data-testid="element-container"]:has([data-testid="stSegmentedControl"]),
-    [data-testid="stElementContainer"]:has([data-testid="stSegmentedControl"]),
-    [data-testid="stVerticalBlock"]:has([data-testid="stSegmentedControl"]) {
+    [data-testid="stSegmentedControl"] {
+        width: -webkit-fill-available !important;
+        width: stretch !important;
         width: 100% !important;
         display: block !important;
-    }
-    [data-testid="stSegmentedControl"],
-    [data-testid="stSegmentedControl"] > div,
-    div[class*="stSegmentedControl"],
-    div[class*="stSegmentedControl"] > div {
-        width: 100% !important;
-        min-width: 0 !important;
-        max-width: 100% !important;
         box-sizing: border-box !important;
-        display: block !important;
     }
-    [data-testid="stSegmentedControl"] div[role="group"],
-    [data-testid="stSegmentedControl"] div[role="radiogroup"],
-    div[class*="stSegmentedControl"] div[role="group"] {
+    [data-testid="stSegmentedControl"] > div {
+        width: 100% !important;
+        display: block !important;
+        box-sizing: border-box !important;
+    }
+    [data-testid="stSegmentedControl"] div[role="group"] {
         width: 100% !important;
         display: flex !important;
         box-sizing: border-box !important;
     }
-    [data-testid="stSegmentedControl"] div[role="group"] > *,
-    [data-testid="stSegmentedControl"] div[role="radiogroup"] > *,
-    [data-testid="stSegmentedControl"] label {
-        flex: 1 1 0 !important;
-        min-width: 0 !important;
+    [data-testid="stSegmentedControl"] div[role="group"] > * {
+        flex: 1 !important;
         text-align: center !important;
         justify-content: center !important;
+        min-width: 0 !important;
     }
 }
 
@@ -1049,26 +1039,16 @@ if page == "Přehled portfolia":
 - **Síla signálu** = kolik % z maximálního počtu indikátorů souhlasí (60%+ = silný signál)
         """)
 
-    # Výběr horizontu pro portfolio overview – 3 sloupce vedle sebe
-    if "pf_horizon" not in st.session_state:
-        st.session_state["pf_horizon"] = "Krátkodobý"
-    _pf_hz_label = st.session_state["pf_horizon"]
-    _pfc1, _pfc2, _pfc3 = st.columns(3)
-    with _pfc1:
-        if st.button("Krátkodobý", use_container_width=True, key="pf_hz_k",
-                     type="primary" if _pf_hz_label == "Krátkodobý" else "secondary"):
-            st.session_state["pf_horizon"] = "Krátkodobý"; st.rerun()
-    with _pfc2:
-        if st.button("Střednědobý", use_container_width=True, key="pf_hz_s",
-                     type="primary" if _pf_hz_label == "Střednědobý" else "secondary"):
-            st.session_state["pf_horizon"] = "Střednědobý"; st.rerun()
-    with _pfc3:
-        if st.button("Dlouhodobý", use_container_width=True, key="pf_hz_d",
-                     type="primary" if _pf_hz_label == "Dlouhodobý" else "secondary"):
-            st.session_state["pf_horizon"] = "Dlouhodobý"; st.rerun()
-    _pf_hz_label = st.session_state["pf_horizon"]
+    # Výběr horizontu pro portfolio overview
+    _pf_hz_label = st.segmented_control(
+        "Investiční horizont signálů",
+        ["Krátkodobý", "Střednědobý", "Dlouhodobý"],
+        default="Krátkodobý",
+        key="pf_horizon",
+        label_visibility="collapsed",
+    )
     _pf_period_map = {"Krátkodobý": "3mo", "Střednědobý": "1y", "Dlouhodobý": "2y"}
-    _pf_period = _pf_period_map.get(_pf_hz_label, "3mo")
+    _pf_period = _pf_period_map.get(_pf_hz_label or "Krátkodobý", "3mo")
 
     with st.spinner("Načítám data pro celé portfolio..."):
         results = scan_stocks(PORTFOLIO, _pf_period)
@@ -1359,25 +1339,14 @@ elif page == "Detail akcie":
     </div>
     """, unsafe_allow_html=True)
 
-        # Přepínač detailu horizontu – 3 sloupce vedle sebe
-        _hz_state_key = f"hz_sel_{ticker}"
-        if _hz_state_key not in st.session_state:
-            st.session_state[_hz_state_key] = "Krátkodobý"
-        _sel_hz = st.session_state[_hz_state_key]
-        _hc1, _hc2, _hc3 = st.columns(3)
-        with _hc1:
-            if st.button("Krátkodobý", use_container_width=True, key=f"hz_btn_{ticker}_k",
-                         type="primary" if _sel_hz == "Krátkodobý" else "secondary"):
-                st.session_state[_hz_state_key] = "Krátkodobý"; st.rerun()
-        with _hc2:
-            if st.button("Střednědobý", use_container_width=True, key=f"hz_btn_{ticker}_s",
-                         type="primary" if _sel_hz == "Střednědobý" else "secondary"):
-                st.session_state[_hz_state_key] = "Střednědobý"; st.rerun()
-        with _hc3:
-            if st.button("Dlouhodobý", use_container_width=True, key=f"hz_btn_{ticker}_d",
-                         type="primary" if _sel_hz == "Dlouhodobý" else "secondary"):
-                st.session_state[_hz_state_key] = "Dlouhodobý"; st.rerun()
-        _sel_hz = st.session_state[_hz_state_key]
+        # Přepínač detailu horizontu
+        _sel_hz = st.segmented_control(
+            "Detail horizontu",
+            ["Krátkodobý", "Střednědobý", "Dlouhodobý"],
+            default="Krátkodobý",
+            key=f"hz_detail_{ticker}",
+            label_visibility="collapsed",
+        )
         _hz_key = {"Krátkodobý": "short", "Střednědobý": "medium", "Dlouhodobý": "long"}.get(_sel_hz or "Krátkodobý", "short")
         _hz_sig = _mh.get(_hz_key) or signals  # fallback na 6mo signály
 
