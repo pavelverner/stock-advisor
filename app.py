@@ -134,8 +134,8 @@ div:has(> [data-testid="stExpander"]) { gap: 2px !important; }
 /* Streamlit flex gap je ~1rem; negativní margin na obou stranách ho redukuje */
 div[data-testid="element-container"]:has(details),
 div[data-testid="stElementContainer"]:has(details) {
-    margin-top: -6px !important;
-    margin-bottom: -6px !important;
+    margin-top: -10px !important;
+    margin-bottom: -10px !important;
 }
 details { margin: 0 !important; padding-bottom: 0 !important; }
 
@@ -205,10 +205,10 @@ details { margin: 0 !important; padding-bottom: 0 !important; }
     h3 { font-size: 1rem !important; }
 
     /* Segmented control – celá šířka na mobilu */
+    /* calc(100vw - 1.2rem) = viewport minus padding block-containeru */
     [data-testid="stSegmentedControl"] {
-        width: -webkit-fill-available !important;
-        width: stretch !important;
-        width: 100% !important;
+        width: calc(100vw - 1.2rem) !important;
+        max-width: 100% !important;
         display: block !important;
         box-sizing: border-box !important;
     }
@@ -227,6 +227,7 @@ details { margin: 0 !important; padding-bottom: 0 !important; }
         text-align: center !important;
         justify-content: center !important;
         min-width: 0 !important;
+        overflow: hidden !important;
     }
 }
 
@@ -644,18 +645,22 @@ st.markdown("""
 .mob-nav { display:none }
 @media (max-width: 768px) {
   .mob-nav {
-    display: flex; position: sticky; top: 0; z-index: 999;
+    display: flex; position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
     background: #0f172a; border-bottom: 1px solid #1e293b;
-    overflow-x: auto; gap: 0; padding: 0; margin: -1rem -1rem 1rem -1rem;
+    overflow-x: auto; gap: 0; padding: 0;
     -webkit-overflow-scrolling: touch; scrollbar-width: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
   }
   .mob-nav::-webkit-scrollbar { display: none; }
   .mob-nav a {
-    flex: 0 0 auto; padding: 10px 14px; font-size: 0.8rem;
+    flex: 1 1 0; padding: 10px 6px; font-size: 0.78rem;
     color: #94a3b8; text-decoration: none; white-space: nowrap;
-    border-bottom: 2px solid transparent;
+    border-bottom: 2px solid transparent; text-align: center;
   }
   .mob-nav a.active { color: #22c55e; border-bottom-color: #22c55e; }
+  /* Obsah posuň dolů, aby nebyl skrytý za fixním menu (~44px výška) */
+  .block-container { padding-top: 52px !important; }
+  [data-testid="stAppViewBlockContainer"] { padding-top: 0 !important; }
 }
 </style>
 """, unsafe_allow_html=True)
@@ -1576,17 +1581,34 @@ elif page == "Detail akcie":
         with st.expander("Zprávy & AI Sentiment", expanded=False):
             if news:
                 source_label = "FinBERT AI" if ai_sent.get("source") == "FinBERT" else "Klíčová slova"
-                n1, n2, n3, n4 = st.columns(4)
-                n1.metric("Pozitivní zprávy", ai_sent["positive"])
-                n2.metric("Negativní zprávy", ai_sent["negative"])
-                n3.metric("Neutrální",        ai_sent["neutral"])
                 dom = ai_sent["dominant"]
                 dom_label = {"positive": "Pozitivní", "negative": "Negativní", "neutral": "Neutrální"}[dom]
-                n4.metric(
-                    "AI Sentiment", dom_label,
-                    f"Skóre: {ai_sent['score']:+.2f} ({source_label})",
-                    help="Skóre -1 = velmi negativní, 0 = neutrální, +1 = velmi pozitivní."
-                )
+                dom_color = "#22c55e" if dom == "positive" else "#ef4444" if dom == "negative" else "#94a3b8"
+                score_str = f"{ai_sent['score']:+.2f}"
+                st.markdown(f"""
+<style>
+.sent-grid {{ display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px }}
+@media (max-width:640px) {{ .sent-grid {{ grid-template-columns:repeat(2,1fr) }} }}
+</style>
+<div class="sent-grid">
+  <div style="background:#1e293b;border-radius:10px;padding:10px 12px">
+    <div style="color:#64748b;font-size:0.72rem">Pozitivní zprávy</div>
+    <div style="font-size:1.15rem;font-weight:700;color:#22c55e">{ai_sent["positive"]}</div>
+  </div>
+  <div style="background:#1e293b;border-radius:10px;padding:10px 12px">
+    <div style="color:#64748b;font-size:0.72rem">Negativní zprávy</div>
+    <div style="font-size:1.15rem;font-weight:700;color:#ef4444">{ai_sent["negative"]}</div>
+  </div>
+  <div style="background:#1e293b;border-radius:10px;padding:10px 12px">
+    <div style="color:#64748b;font-size:0.72rem">Neutrální</div>
+    <div style="font-size:1.15rem;font-weight:700;color:#94a3b8">{ai_sent["neutral"]}</div>
+  </div>
+  <div style="background:#1e293b;border-radius:10px;padding:10px 12px">
+    <div style="color:#64748b;font-size:0.72rem">AI Sentiment · {source_label}</div>
+    <div style="font-size:1.15rem;font-weight:700;color:{dom_color}">{dom_label}</div>
+    <div style="font-size:0.78rem;color:#64748b;margin-top:2px">Skóre: {score_str}</div>
+  </div>
+</div>""", unsafe_allow_html=True)
                 score_val = ai_sent["score"]
                 bar_pct   = int((score_val + 1) / 2 * 100)
                 bar_color = "#22c55e" if score_val > 0.15 else "#ef4444" if score_val < -0.15 else "#888"
