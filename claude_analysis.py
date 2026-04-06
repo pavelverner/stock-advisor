@@ -169,12 +169,12 @@ SENTIMENT ZPRÁV (FinBERT AI):
 AKTUÁLNÍ ZPRÁVY:
 {headlines_str}
 
-Odpověz PŘESNĚ v tomto JSON formátu (bez markdown backticks):
+Odpověz PŘESNĚ v tomto JSON formátu (bez markdown backticks). VEŠKERÝ TEXT MUSÍ BÝT V ČEŠTINĚ:
 {{
   "summary": "2-3 věty shrnující celkovou situaci pro investora – co se děje a proč",
-  "events": ["konkrétní tržní událost 1", "konkrétní tržní událost 2"],
-  "risk_factors": ["riziko 1", "riziko 2"],
-  "opportunity": "Jedna věta o příležitosti nebo varování pro investora",
+  "events": ["konkrétní tržní událost česky 1", "konkrétní tržní událost česky 2"],
+  "risk_factors": ["riziko česky 1", "riziko česky 2"],
+  "opportunity": "Jedna věta o příležitosti nebo varování pro investora česky",
   "confidence": "nízká|střední|vysoká",
   "action_hint": "koupit|prodat|čekat|sledovat"
 }}"""

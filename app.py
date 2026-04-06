@@ -95,6 +95,14 @@ section[data-testid="stSidebar"] ~ div               { padding-top: 0 !important
 [data-testid="stExpander"] { margin-bottom: 0 !important; margin-top: 0 !important; }
 [data-testid="stExpander"] + [data-testid="stExpander"] { border-top: none !important; }
 div:has(> [data-testid="stExpander"]) { gap: 2px !important; }
+/* Wrappery kolem expanderů */
+[data-testid="stVerticalBlock"] > div:has([data-testid="stExpander"]) {
+  margin-top: 0 !important; margin-bottom: 0 !important; padding: 0 !important;
+}
+.st-emotion-cache-1wrcr25, .st-emotion-cache-keje5e,
+.st-emotion-cache-1gulkj5, .element-container:has([data-testid="stExpander"]) {
+  margin: 0 !important; padding-top: 0 !important; padding-bottom: 0 !important;
+}
 
 /* Plynulý přechod při překliknutí stránek */
 [data-testid="stMainBlockContainer"] {
