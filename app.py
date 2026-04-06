@@ -424,10 +424,16 @@ if _qp is not None:
     except ValueError:
         pass
 if _qp_ticker:
-    st.session_state["_nav_ticker"] = _qp_ticker
+    # Najdi název akcie z tickeru a nastav rovnou do session_state selectboxu
+    _all_combined = {**PORTFOLIO, **RADAR_STOCKS}
+    for _n, (_t, _c, _s) in _all_combined.items():
+        if _t == _qp_ticker:
+            st.session_state["stock_select"] = _n
+            break
     st.session_state["nav_page"] = "Detail akcie"
 if _qp is not None or _qp_ticker:
     st.query_params.clear()
+    st.rerun()
 
 with st.sidebar:
     st.title("Stock Advisor")
@@ -483,15 +489,7 @@ with st.sidebar:
         all_stocks.update(RADAR_STOCKS)
         all_stocks["Vlastní ticker..."] = ("CUSTOM", "", "")
         _stock_names = list(all_stocks.keys())
-        # Pokud přišel ticker přes query param (?ticker=NVDA), předvyber ho
-        _nav_t = st.session_state.pop("_nav_ticker", None)
-        _default_idx = 0
-        if _nav_t:
-            for _i, _n in enumerate(_stock_names):
-                if all_stocks[_n][0] == _nav_t:
-                    _default_idx = _i
-                    break
-        stock_choice = st.selectbox("Akcie", _stock_names, index=_default_idx, key="stock_select")
+        stock_choice = st.selectbox("Akcie", _stock_names, key="stock_select")
         if stock_choice == "Vlastní ticker...":
             custom = st.text_input("Ticker (např. AAPL)").upper().strip()
             detail_ticker = custom or "AAPL"
@@ -694,12 +692,12 @@ def _render_radar_card(r: dict, highlight: bool = False):
     med_badge = (f'<span style="background:{_med_c}22;border:1px solid {_med_c};border-radius:4px;'
                  f'padding:1px 6px;font-size:0.72rem;color:{_med_c}">Střední {_med_icon} {_med_trend}</span>')
     st.markdown(
-        f'<div class="{css}">'
+        f'<div class="{css}" onclick="window.location.href=\'?page=1&ticker={r["ticker"]}\'"'
+        f' style="cursor:pointer">'
         f'<span class="{badge}">{label}</span> &nbsp;'
         f'{score_html} &nbsp; <span style="color:#aaa;font-size:0.8rem">{score_label}</span>'
         f' &nbsp; {med_badge}'
-        f'<br><a href="javascript:void(0)" onclick="window.location.href=\'?page=1&ticker={r["ticker"]}\'" '
-        f'style="color:inherit;text-decoration:none;font-size:1.05rem;font-weight:700">{r["name"]}</a>'
+        f'<br><strong style="font-size:1.05rem">{r["name"]}</strong>'
         f' <span style="color:#888;font-size:0.82rem">{r["ticker"]} · {r["sector"]}</span>'
         f' &nbsp;{r["price"]:.2f} {r["currency"]}'
         f' <span style="color:{color}">{arrow}{r["chg_pct"]:+.1f}%</span>'
@@ -887,17 +885,15 @@ if page == "Přehled portfolia":
             )
 
         st.markdown(f"""
-<div class="{card_css}">
+<div class="{card_css}" onclick="window.location.href='?page=1&ticker={r['ticker']}'"
+     style="cursor:pointer" title="Otevřít detail {r['name']}">
   <div class="pf-left">
     <span class="{badge}">{label}</span>
     <div style="margin-top:2px">{score_html}</div>
     <div style="color:#94a3b8;font-size:0.7rem;white-space:nowrap">{score_label}</div>
   </div>
   <div class="pf-name">
-    <a href="javascript:void(0)" onclick="window.location.href='?page=1&ticker={r['ticker']}'"
-       style="color:inherit;text-decoration:none;cursor:pointer"
-       title="Otevřít detail {r['name']}">{r['name']}</a>
-    <span style="color:#555;font-size:0.78rem;font-weight:400">{r['ticker']}</span>
+    {r['name']} <span style="color:#555;font-size:0.78rem;font-weight:400">{r['ticker']}</span>
   </div>
   <div class="pf-meta">
     <span class="pf-pill" style="color:{rsi_color}">RSI {r['rsi']:.0f}</span>
