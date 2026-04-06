@@ -812,11 +812,12 @@ if page == "Přehled portfolia":
     _ctx_left, _ctx_right = st.columns([1, 1])
 
     with _ctx_left:
+        st.markdown("**Index strachu a chamtivosti**")
         if _fg_score is not None:
             _fig_gauge = go.Figure(go.Indicator(
                 mode="gauge+number",
                 value=_fg_score,
-                title={"text": f"Index strachu a chamtivosti — {_fg_label_str}", "font": {"size": 14}},
+                title={"text": _fg_label_str, "font": {"size": 14}},
                 number={"font": {"size": 36}},
                 gauge={
                     "axis": {"range": [0, 100], "tickvals": [0, 25, 45, 55, 75, 100],
@@ -834,8 +835,8 @@ if page == "Přehled portfolia":
                 },
             ))
             _fig_gauge.update_layout(
-                height=300, template="plotly_dark",
-                margin=dict(l=10, r=10, t=60, b=10),
+                height=340, template="plotly_dark",
+                margin=dict(l=10, r=10, t=40, b=10),
             )
             st.plotly_chart(_fig_gauge, use_container_width=True, config={"displayModeBar": False, "scrollZoom": False})
 
@@ -1765,7 +1766,7 @@ Technické indikátory to zachytí — akcie v silném sektoru BEZ BUY signálu 
         ]
 
         if double_conf:
-            st.subheader(f"Double confirmation – silný sektor + BUY signál ({len(double_conf)})")
+            st.subheader(f"Double confirmation – silný sektor + BUY signál")
             st.caption("Tyto akcie mají BUY signál A zároveň jejich sektor roste nad 1% — nejsilnější příležitosti.")
             for r in sorted(double_conf, key=lambda x: -(x["strength"] + (x["sector_chg"] or 0) / 20)):
                 _render_radar_card(r, highlight=True)
