@@ -464,12 +464,17 @@ _mob_links = "".join(
 )
 st.markdown(f'<div class="mob-nav">{_mob_links}</div>', unsafe_allow_html=True)
 
+# Period selector – vždy viditelný nahoře (sidebar na mobilu schovaný)
+_period_opts = ["3M", "6M", "1R", "2R"]
+_period_map  = {"3M": "3mo", "6M": "6mo", "1R": "1y", "2R": "2y"}
+_period_label = st.segmented_control(
+    "Časové období", _period_opts, default="6M", key="period_ctrl"
+)
+period = _period_map.get(_period_label or "6M", "6mo")
+
 with st.sidebar:
-    period_map = {"3M": "3mo", "6M": "6mo", "1R": "1y", "2R": "2y"}
-    period_label = st.segmented_control(
-        "Období", list(period_map.keys()), default="6M", label_visibility="collapsed"
-    )
-    period = period_map.get(period_label, "6mo")
+    period_map = _period_map
+    st.caption(f"Období: **{_period_label or '6M'}**")
 
     if page == "Detail akcie":
         all_stocks = dict(PORTFOLIO)
