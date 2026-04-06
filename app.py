@@ -138,13 +138,17 @@ div:has(> [data-testid="stExpander"]) { gap: 2px !important; }
 .signal-hold { background:#2a2a3a; color:#ccc; padding:10px 20px; border-radius:8px;
                font-size:1.8rem; font-weight:700; text-align:center; }
 .card-buy    { background:#0a2e18; border:2px solid #22c55e; border-radius:10px;
-               padding:14px; margin:6px 0; line-height:1.6; }
+               padding:14px; margin:6px 0; line-height:1.6;
+               overflow-x:hidden; overflow-wrap:anywhere; word-break:break-word; }
 .card-sell   { background:#2e0a0a; border:2px solid #ef4444; border-radius:10px;
-               padding:14px; margin:6px 0; line-height:1.6; }
+               padding:14px; margin:6px 0; line-height:1.6;
+               overflow-x:hidden; overflow-wrap:anywhere; word-break:break-word; }
 .card-hold   { background:#1a1a2e; border:1px solid #444; border-radius:10px;
-               padding:14px; margin:6px 0; line-height:1.6; }
+               padding:14px; margin:6px 0; line-height:1.6;
+               overflow-x:hidden; overflow-wrap:anywhere; word-break:break-word; }
 .card-radar  { background:#1a1a0a; border:2px solid #f59e0b; border-radius:10px;
-               padding:14px; margin:6px 0; line-height:1.6; }
+               padding:14px; margin:6px 0; line-height:1.6;
+               overflow-x:hidden; overflow-wrap:anywhere; word-break:break-word; }
 .news-pos    { border-left:4px solid #22c55e; padding:8px 10px; margin:5px 0; }
 .news-neg    { border-left:4px solid #ef4444; padding:8px 10px; margin:5px 0; }
 .news-neu    { border-left:4px solid #888;    padding:8px 10px; margin:5px 0; }
@@ -340,15 +344,18 @@ PORTFOLIO = {
     "SAAB":                     ("SAAB-B.ST","SEK","defense"),
     "Taiwan Semiconductor":     ("TSM",     "USD", "tech"),
     "Rheinmetall":              ("RHM.DE",  "EUR", "defense"),
+    "Intel":                    ("INTC",    "USD", "tech"),
+    "Oracle":                   ("ORCL",    "USD", "tech"),
+    "Baidu":                    ("BIDU",    "USD", "tech"),
+    "Virgin Galactic":          ("SPCE",    "USD", "tech"),
 }
 
 # ── Radar – akcie rozdělené podle sektoru (mapování na sektorové ETF z macro.py)
 # Sektor musí odpovídat klíčům v SECTOR_ETFS v macro.py
 RADAR_STOCKS = {
-    # Technologie (XLK)
+    # ── Technologie – USA (XLK) ───────────────────────────────────────────────
     "Meta":             ("META",  "USD", "Technologie"),
     "Tesla":            ("TSLA",  "USD", "Technologie"),
-    "ASML":             ("ASML",  "USD", "Technologie"),
     "CrowdStrike":      ("CRWD",  "USD", "Technologie"),
     "Palantir":         ("PLTR",  "USD", "Technologie"),
     "Broadcom":         ("AVGO",  "USD", "Technologie"),
@@ -356,20 +363,38 @@ RADAR_STOCKS = {
     "Apple":            ("AAPL",  "USD", "Technologie"),
     "Oracle":           ("ORCL",  "USD", "Technologie"),
     "Salesforce":       ("CRM",   "USD", "Technologie"),
-    # Obrana & Průmysl (ITA)
+    "Snowflake":        ("SNOW",  "USD", "Technologie"),
+    "Cloudflare":       ("NET",   "USD", "Technologie"),
+    "Datadog":          ("DDOG",  "USD", "Technologie"),
+    "MongoDB":          ("MDB",   "USD", "Technologie"),
+    "Shopify":          ("SHOP",  "USD", "Technologie"),
+    "Intuit":           ("INTU",  "USD", "Technologie"),
+    # ── Technologie – Evropa ─────────────────────────────────────────────────
+    "ASML":             ("ASML",  "USD", "Technologie"),
+    "SAP":              ("SAP",   "USD", "Technologie"),
+    "Infineon":         ("IFNNY", "USD", "Technologie"),
+    # ── Obrana & Průmysl (ITA) ───────────────────────────────────────────────
     "BAE Systems":      ("BA.L",  "GBP", "Obrana & Průmysl"),
     "Airbus":           ("AIR.PA","EUR", "Obrana & Průmysl"),
     "Lockheed Martin":  ("LMT",   "USD", "Obrana & Průmysl"),
     "RTX":              ("RTX",   "USD", "Obrana & Průmysl"),
     "Northrop Grumman": ("NOC",   "USD", "Obrana & Průmysl"),
     "Leonardo":         ("LDO.MI","EUR", "Obrana & Průmysl"),
-    # Zdravotnictví (XLV)
+    "Caterpillar":      ("CAT",   "USD", "Obrana & Průmysl"),
+    "Siemens":          ("SIEGY", "USD", "Obrana & Průmysl"),
+    "Rolls-Royce":      ("RR.L",  "GBP", "Obrana & Průmysl"),
+    # ── Zdravotnictví (XLV) ──────────────────────────────────────────────────
     "Eli Lilly":        ("LLY",   "USD", "Zdravotnictví"),
     "Novo Nordisk":     ("NVO",   "USD", "Zdravotnictví"),
     "Johnson & Johnson":("JNJ",   "USD", "Zdravotnictví"),
     "AbbVie":           ("ABBV",  "USD", "Zdravotnictví"),
     "UnitedHealth":     ("UNH",   "USD", "Zdravotnictví"),
-    # Energie (XLE)
+    "AstraZeneca":      ("AZN",   "USD", "Zdravotnictví"),
+    "Roche":            ("RHHBY", "USD", "Zdravotnictví"),
+    "Pfizer":           ("PFE",   "USD", "Zdravotnictví"),
+    "Merck":            ("MRK",   "USD", "Zdravotnictví"),
+    "Intuitive Surgical":("ISRG", "USD", "Zdravotnictví"),
+    # ── Energie (XLE) ────────────────────────────────────────────────────────
     "ExxonMobil":       ("XOM",   "USD", "Energie"),
     "Chevron":          ("CVX",   "USD", "Energie"),
     "Shell":            ("SHEL",  "USD", "Energie"),
@@ -377,28 +402,53 @@ RADAR_STOCKS = {
     "Equinor":          ("EQNR",  "USD", "Energie"),
     "Schlumberger":     ("SLB",   "USD", "Energie"),
     "Occidental":       ("OXY",   "USD", "Energie"),
-    # Finance (XLF)
+    "TotalEnergies":    ("TTE",   "USD", "Energie"),
+    "Enbridge":         ("ENB",   "USD", "Energie"),
+    # ── Finance (XLF) ────────────────────────────────────────────────────────
     "JPMorgan Chase":   ("JPM",   "USD", "Finance"),
     "Goldman Sachs":    ("GS",    "USD", "Finance"),
     "Visa":             ("V",     "USD", "Finance"),
     "Mastercard":       ("MA",    "USD", "Finance"),
     "Berkshire Hath.":  ("BRK-B", "USD", "Finance"),
-    # Spotřeba (XLY)
+    "BlackRock":        ("BLK",   "USD", "Finance"),
+    "HSBC":             ("HSBC",  "USD", "Finance"),
+    "UBS":              ("UBS",   "USD", "Finance"),
+    "PayPal":           ("PYPL",  "USD", "Finance"),
+    "Deutsche Bank":    ("DB",    "USD", "Finance"),
+    # ── Spotřeba & Luxus (XLY) ───────────────────────────────────────────────
     "Costco":           ("COST",  "USD", "Spotřeba"),
     "McDonald's":       ("MCD",   "USD", "Spotřeba"),
     "Nike":             ("NKE",   "USD", "Spotřeba"),
     "LVMH":             ("MC.PA", "EUR", "Spotřeba"),
-    # Utility (XLU)
+    "L'Oréal":          ("OR.PA", "EUR", "Spotřeba"),
+    "Hermès":           ("RMS.PA","EUR", "Spotřeba"),
+    "Inditex":          ("ITX.MC","EUR", "Spotřeba"),
+    "Nestlé":           ("NESN.SW","CHF","Spotřeba"),
+    "Alibaba":          ("BABA",  "USD", "Spotřeba"),
+    "Toyota":           ("TM",    "USD", "Spotřeba"),
+    # ── Utility (XLU) ────────────────────────────────────────────────────────
     "NextEra Energy":   ("NEE",   "USD", "Utility"),
     "Duke Energy":      ("DUK",   "USD", "Utility"),
-    # Materiály (XLB)
+    "Iberdrola":        ("IBDRY", "USD", "Utility"),
+    "Enel":             ("ENLAY", "USD", "Utility"),
+    # ── Materiály & Těžba (XLB) ──────────────────────────────────────────────
     "Freeport-McMoRan": ("FCX",   "USD", "Materiály"),
     "Newmont":          ("NEM",   "USD", "Materiály"),
     "BHP":              ("BHP",   "USD", "Materiály"),
-    # Komunikace (XLC)
+    "Rio Tinto":        ("RIO",   "USD", "Materiály"),
+    "Vale":             ("VALE",  "USD", "Materiály"),
+    "Glencore":         ("GLEN.L","GBP", "Materiály"),
+    "Anglo American":   ("AAL.L", "GBP", "Materiály"),
+    # ── Komunikace & Média (XLC) ─────────────────────────────────────────────
     "Netflix":          ("NFLX",  "USD", "Komunikace"),
     "Walt Disney":      ("DIS",   "USD", "Komunikace"),
     "Spotify":          ("SPOT",  "USD", "Komunikace"),
+    "T-Mobile":         ("TMUS",  "USD", "Komunikace"),
+    "Comcast":          ("CMCSA", "USD", "Komunikace"),
+    # ── Reality (XLRE) ───────────────────────────────────────────────────────
+    "Prologis":         ("PLD",   "USD", "Reality"),
+    "American Tower":   ("AMT",   "USD", "Reality"),
+    "Equinix":          ("EQIX",  "USD", "Reality"),
 }
 
 # ── Sada tickerů v portfoliu (pro filtrování signálů v radaru) ────────────────
@@ -414,7 +464,7 @@ show_bb  = True
 selected_sectors: list = []
 investment_horizon = "Střednědobý (3–12 měs.)"
 
-_pages = ["Přehled portfolia", "Detail akcie", "Radar & Trh", "Analytika", "Deník obchodů"]
+_pages = ["Přehled portfolia", "Detail akcie", "Příležitosti", "Deník obchodů"]
 
 # Mobilní navigace – query param přepíše session state před renderem radia
 _qp        = st.query_params.get("page",   None)
@@ -454,8 +504,8 @@ with st.sidebar:
             st.logout()
 
 # ── Mobilní navigace (zobrazí se jen na malých obrazovkách) ──────────────────
-_pages = ["Přehled portfolia", "Detail akcie", "Radar & Trh", "Analytika", "Deník obchodů"]
-_page_icons = ["📊", "🔍", "📡", "📈", "📓"]
+_pages = ["Přehled portfolia", "Detail akcie", "Příležitosti", "Deník obchodů"]
+_page_icons = ["📊", "🔍", "🎯", "📓"]
 st.markdown("""
 <style>
 .mob-nav { display:none }
@@ -503,7 +553,7 @@ with st.sidebar:
         show_ema = st.checkbox("EMA (20/50/200)", value=True)
         show_bb  = st.checkbox("Bollinger Bands", value=True)
 
-    if page == "Radar & Trh":
+    if page == "Příležitosti":
         all_sectors = sorted(set(v[2] for v in RADAR_STOCKS.values()))
         selected_sectors = st.multiselect(
             "Filtruj sektor",
@@ -679,7 +729,7 @@ def _render_radar_card(r: dict, highlight: bool = False):
     arrow  = "▲" if r["chg_pct"] >= 0 else "▼"
     color  = "#22c55e" if r["chg_pct"] >= 0 else "#ef4444"
     reasons = (r["buy_reasons"] if action == "BUY" else r["sell_reasons"])[:3]
-    reasons_html = " &nbsp;·&nbsp; ".join(
+    reasons_html = " · ".join(
         f'<span style="color:#{"86efac" if action == "BUY" else "fca5a5"}">{s}</span>'
         for s in reasons
     )
@@ -723,17 +773,20 @@ def _render_radar_card(r: dict, highlight: bool = False):
         f'<a href="?page=1&ticker={r["ticker"]}" target="_self" style="text-decoration:none;color:inherit;display:block">'
         f'<div class="{css}" style="cursor:pointer">'
         f'{hz_row}'
-        f'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
-        f'{score_html} &nbsp; <span style="color:#aaa;font-size:0.8rem">{score_label}</span>'
+        f'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px">'
+        f'{score_html} <span style="color:#aaa;font-size:0.8rem">{score_label}</span>'
         f'</div>'
-        f'<div style="margin-top:4px"><strong style="font-size:1.05rem">{r["name"]}</strong>'
-        f' <span style="color:#888;font-size:0.82rem">{r["ticker"]} · {r["sector"]}</span>'
-        f' &nbsp;{r["price"]:.2f} {r["currency"]}'
-        f' <span style="color:{color}">{arrow}{r["chg_pct"]:+.1f}%</span>'
-        f' &nbsp;|&nbsp; RSI: <b>{r["rsi"]:.0f}</b>'
-        + (f' &nbsp;|&nbsp; {sp_str}' if sp_str else "")
+        f'<div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;margin-top:2px">'
+        f'<strong style="font-size:1.05rem">{r["name"]}</strong>'
+        f'<span style="color:#888;font-size:0.82rem">{r["ticker"]} · {r["sector"]}</span>'
+        f'</div>'
+        f'<div style="display:flex;flex-wrap:wrap;align-items:center;gap:2px 10px;margin-top:2px;font-size:0.85rem">'
+        f'<span>{r["price"]:.2f} <span style="color:#94a3b8">{r["currency"]}</span></span>'
+        f'<span style="color:{color};font-weight:600">{arrow}{r["chg_pct"]:+.1f}%</span>'
+        f'<span style="color:#aaa">RSI <b>{r["rsi"]:.0f}</b></span>'
+        + (f'<span>{sp_str}</span>' if sp_str else "")
         + f'</div>'
-        + (f'<div style="margin-top:3px;font-size:0.82rem">{reasons_html}</div>' if reasons_html else "")
+        + (f'<div style="margin-top:3px;font-size:0.8rem;line-height:1.5">{reasons_html}</div>' if reasons_html else "")
         + f'</div></a>',
         unsafe_allow_html=True,
     )
@@ -781,8 +834,8 @@ if page == "Přehled portfolia":
                 },
             ))
             _fig_gauge.update_layout(
-                height=210, template="plotly_dark",
-                margin=dict(l=10, r=10, t=50, b=0),
+                height=300, template="plotly_dark",
+                margin=dict(l=10, r=10, t=60, b=10),
             )
             st.plotly_chart(_fig_gauge, use_container_width=True, config={"displayModeBar": False, "scrollZoom": False})
 
@@ -851,8 +904,18 @@ if page == "Přehled portfolia":
 - **Síla signálu** = kolik % z maximálního počtu indikátorů souhlasí (60%+ = silný signál)
         """)
 
+    # Výběr horizontu pro portfolio overview
+    _pf_hz_label = st.segmented_control(
+        "Investiční horizont signálů",
+        ["Krátkodobý", "Střednědobý", "Dlouhodobý"],
+        default="Krátkodobý",
+        key="pf_horizon",
+    )
+    _pf_period_map = {"Krátkodobý": "3mo", "Střednědobý": "1y", "Dlouhodobý": "2y"}
+    _pf_period = _pf_period_map.get(_pf_hz_label or "Krátkodobý", "3mo")
+
     with st.spinner("Načítám data pro celé portfolio..."):
-        results = scan_stocks(PORTFOLIO, period)
+        results = scan_stocks(PORTFOLIO, _pf_period)
 
     if not results:
         st.error("Nepodařilo se načíst data. Zkontroluj připojení.")
@@ -1006,536 +1069,618 @@ elif page == "Detail akcie":
     ticker   = detail_ticker
     currency = detail_currency
 
-    st.title(f"Detail – {ticker}")
+    _det_tabs = st.tabs(["📊 Analýza", "📈 Backtest"])
+    with _det_tabs[0]:
 
-    with st.spinner("Načítám data..."):
-        df = load_data(ticker, period)
+        st.title(f"Detail – {ticker}")
 
-    if df is None or len(df) < 30:
-        st.error(f"Nepodařilo se načíst data pro '{ticker}'.")
-        st.stop()
+        with st.spinner("Načítám data..."):
+            df = load_data(ticker, period)
 
-    price_now  = float(df["Close"].iloc[-1])
-    price_prev = float(df["Close"].iloc[-2])
-    chg        = price_now - price_prev
-    chg_pct    = chg / price_prev * 100
-    high_52w   = float(df["Close"].tail(252).max())
-    low_52w    = float(df["Close"].tail(252).min())
-    vol_avg    = float(df["Volume"].tail(20).mean())
-    vol_now    = float(df["Volume"].iloc[-1])
-    vol_ratio  = vol_now / vol_avg if vol_avg > 0 else 1
+        if df is None or len(df) < 30:
+            st.error(f"Nepodařilo se načíst data pro '{ticker}'.")
+            st.stop()
 
-    _chg_c = "#22c55e" if chg >= 0 else "#ef4444"
-    _chg_arr = "▲" if chg >= 0 else "▼"
-    _vol_c = "#f59e0b" if vol_ratio > 2 else "#94a3b8"
-    st.markdown(f"""
-<style>
-.price-grid {{ display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px }}
-@media (max-width:640px) {{ .price-grid {{ grid-template-columns:repeat(2,1fr) }} }}
-</style>
-<div class="price-grid">
-  <div style="background:#1e293b;border-radius:10px;padding:10px 12px">
-    <div style="color:#64748b;font-size:0.72rem">Cena</div>
-    <div style="font-size:1.15rem;font-weight:700">{price_now:.2f} <span style="font-size:0.8rem;color:#94a3b8">{currency}</span></div>
-    <div style="color:{_chg_c};font-size:0.8rem">{_chg_arr} {chg:+.2f} ({chg_pct:+.1f}%)</div>
-  </div>
-  <div style="background:#1e293b;border-radius:10px;padding:10px 12px">
-    <div style="color:#64748b;font-size:0.72rem">52W Max</div>
-    <div style="font-size:1.15rem;font-weight:700">{high_52w:.2f}</div>
-    <div style="color:#64748b;font-size:0.8rem">{((price_now/high_52w-1)*100):+.1f}% od maxima</div>
-  </div>
-  <div style="background:#1e293b;border-radius:10px;padding:10px 12px">
-    <div style="color:#64748b;font-size:0.72rem">52W Min</div>
-    <div style="font-size:1.15rem;font-weight:700">{low_52w:.2f}</div>
-    <div style="color:#64748b;font-size:0.8rem">{((price_now/low_52w-1)*100):+.1f}% od minima</div>
-  </div>
-  <div style="background:#1e293b;border-radius:10px;padding:10px 12px">
-    <div style="color:#64748b;font-size:0.72rem">Objem</div>
-    <div style="font-size:1.15rem;font-weight:700;color:{_vol_c}">{vol_ratio:.1f}×</div>
-    <div style="color:#64748b;font-size:0.8rem">průměr 20 dní</div>
-  </div>
-</div>
-""", unsafe_allow_html=True)
+        price_now  = float(df["Close"].iloc[-1])
+        price_prev = float(df["Close"].iloc[-2])
+        chg        = price_now - price_prev
+        chg_pct    = chg / price_prev * 100
+        high_52w   = float(df["Close"].tail(252).max())
+        low_52w    = float(df["Close"].tail(252).min())
+        vol_avg    = float(df["Volume"].tail(20).mean())
+        vol_now    = float(df["Volume"].iloc[-1])
+        vol_ratio  = vol_now / vol_avg if vol_avg > 0 else 1
 
-    st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
-
-    # Načti zprávy, AI sentiment a signály
-    with st.spinner("Načítám analýzu..."):
-        news_raw = load_news(ticker)
-        news     = enrich_news_with_ai(news_raw) if news_raw else []
-        ai_sent  = news_ai_summary(news) if news else {"score": 0, "source": "N/A",
-                                                        "positive": 0, "negative": 0, "neutral": 0}
-
-    signals = generate_signals_with_news(df, ai_sent)
-    action  = signals["action"]
-
-    # Načti signály pro 3 horizonty + AI analýzu
-    import json as _json
-    with st.spinner("Načítám multi-horizont analýzu..."):
-        _mh = cached_multi_horizon(ticker)
-
-    def _sig_to_json(s: dict | None) -> str:
-        if not s:
-            return _json.dumps({})
-        return _json.dumps(
-            {k: (float(v) if isinstance(v, (int, float)) else v)
-             for k, v in s.items() if not isinstance(v, (list, dict))} |
-            {"buy_signals": s.get("buy_signals", []),
-             "sell_signals": s.get("sell_signals", [])}
-        )
-
-    with st.spinner("Volám AI analýzu..."):
-        _claude = cached_claude_analysis(
-            ticker,
-            _sig_to_json(_mh.get("short")),
-            _sig_to_json(_mh.get("medium")),
-            _sig_to_json(_mh.get("long")),
-            _json.dumps([{"title": n.get("title",""), "summary": n.get("summary","")} for n in news[:10]]),
-            _json.dumps({k: (float(v) if isinstance(v, float) else v) for k, v in ai_sent.items()}),
-        )
-
-    # ── Multi-horizont souhrnná karta ────────────────────────────────────────
-    _HINT_LABEL = {"koupit": "KOUPIT", "prodat": "PRODAT", "čekat": "ČEKAT", "sledovat": "SLEDOVAT"}
-    _HINT_COLOR = {"koupit": "#22c55e", "prodat": "#ef4444", "čekat": "#f59e0b", "sledovat": "#60a5fa"}
-    _ai_prov = _claude.get("provider", "AI") if _claude.get("ok") else ""
-
-    def _horizon_badge(key: str, label: str) -> str:
-        """HTML badge pro jeden horizont v horním řádku."""
-        h = _claude.get(key, {}) if _claude.get("ok") else {}
-        hint = h.get("action_hint", "")
-        conf = h.get("confidence", "")
-        sig  = _mh.get(key)
-        tech_action = (sig or {}).get("action", "HOLD") if not hint else ""
-        # Fallback na tech signál pokud AI nedostupná
-        if not hint:
-            hint = {"BUY": "koupit", "SELL": "prodat", "HOLD": "čekat"}.get(tech_action, "čekat")
-        clr = _HINT_COLOR.get(hint, "#94a3b8")
-        lbl = _HINT_LABEL.get(hint, hint.upper())
-        conf_html = f'<div style="color:#64748b;font-size:0.68rem;margin-top:2px">{conf}</div>' if conf else ""
-        return (
-            f'<div style="background:{clr}18;border:2px solid {clr};border-radius:10px;'
-            f'padding:10px 8px;text-align:center">'
-            f'<div style="color:#94a3b8;font-size:0.68rem;margin-bottom:4px">{label}</div>'
-            f'<div style="color:{clr};font-size:1.15rem;font-weight:800">{lbl}</div>'
-            f'{conf_html}</div>'
-        )
-
-    st.markdown(f"""
-<style>
-.horizon-grid {{
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-bottom: 12px;
-}}
-</style>
-<div class="horizon-grid">
-  {_horizon_badge("short",  "Krátkodobý (< 3 měs.)")}
-  {_horizon_badge("medium", "Střednědobý (6m – 2r)")}
-  {_horizon_badge("long",   "Dlouhodobý (3+ roky)")}
-</div>
-""", unsafe_allow_html=True)
-
-    # Přepínač detailu horizontu
-    _sel_hz = st.segmented_control(
-        "Detail horizontu",
-        ["Krátkodobý", "Střednědobý", "Dlouhodobý"],
-        default="Krátkodobý",
-        key=f"hz_detail_{ticker}",
-    )
-    _hz_key = {"Krátkodobý": "short", "Střednědobý": "medium", "Dlouhodobý": "long"}.get(_sel_hz or "Krátkodobý", "short")
-    _hz_sig = _mh.get(_hz_key) or signals  # fallback na 6mo signály
-
-    _hz_data = _claude.get(_hz_key, {}) if _claude.get("ok") else {}
-    _hz_summ = _hz_data.get("summary", "")
-    _hz_hint = _hz_data.get("action_hint", "")
-    _hz_conf = _hz_data.get("confidence", "")
-    _hz_events = _hz_data.get("events", [])
-    _hz_risks  = _hz_data.get("risk_factors", [])
-    _hz_opp    = _hz_data.get("opportunity", "")
-
-    # Technické hodnoty z vybraného horizontu
-    _trend = ("Bullish" if _hz_sig["ema20"] > _hz_sig["ema50"] > _hz_sig["ema200"]
-              else "Bearish" if _hz_sig["ema20"] < _hz_sig["ema50"] < _hz_sig["ema200"]
-              else "Smíšený")
-    _rsi   = _hz_sig["rsi"]
-    _rsi_lbl = "Oversold" if _rsi < 30 else ("Overbought" if _rsi > 70 else "Neutrální")
-    _rsi_c   = "#22c55e" if _rsi < 30 else ("#ef4444" if _rsi > 70 else "#94a3b8")
-    _trend_c = "#22c55e" if _trend == "Bullish" else ("#ef4444" if _trend == "Bearish" else "#94a3b8")
-    _macd_c  = "#22c55e" if _hz_sig["macd"] > _hz_sig["macd_signal"] else "#ef4444"
-    _macd_lbl = "Bullish" if _hz_sig["macd"] > _hz_sig["macd_signal"] else "Bearish"
-    _sent_c  = "#22c55e" if ai_sent["score"] > 0.15 else ("#ef4444" if ai_sent["score"] < -0.15 else "#94a3b8")
-    _sent_lbl = {"positive": "Pozitivní", "negative": "Negativní", "neutral": "Neutrální"}.get(ai_sent.get("dominant","neutral"), "Neutrální")
-    _hz_action = _hz_sig.get("action", "HOLD")
-    _sig_c   = {"BUY": "#22c55e", "SELL": "#ef4444", "HOLD": "#94a3b8"}[_hz_action]
-    _sig_lbl = {"BUY": "KOUPIT", "SELL": "PRODAT", "HOLD": "DRŽET"}[_hz_action]
-
-    score, score_label = _score_label(
-        len(_hz_sig.get("buy_signals", [])), len(_hz_sig.get("sell_signals", [])), _hz_action
-    )
-    score_html = _score_bar_html(score)
-
-    _buy_html  = "".join(f'<div style="color:#22c55e;font-size:0.82rem;padding:2px 0">+ {s}</div>' for s in _hz_sig.get("buy_signals", [])) or '<div style="color:#555;font-size:0.82rem">Žádné</div>'
-    _sell_html = "".join(f'<div style="color:#ef4444;font-size:0.82rem;padding:2px 0">− {s}</div>' for s in _hz_sig.get("sell_signals", [])) or '<div style="color:#555;font-size:0.82rem">Žádné</div>'
-    _hint_c = _HINT_COLOR.get(_hz_hint, "#94a3b8")
-    _ai_row = (f'<div style="color:#94a3b8;font-size:0.78rem;margin-top:4px">AI: '
-               f'<span style="color:{_hint_c};font-weight:600;text-transform:uppercase">{_hz_hint}</span>'
-               f' · jistota: {_hz_conf} · <span style="color:#60a5fa">{_ai_prov}</span></div>') if _hz_hint else ""
-
-    st.markdown(f"""
-<style>
-.summary-grid {{
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  margin: 10px 0;
-}}
-@media (max-width: 640px) {{
-  .summary-grid {{ grid-template-columns: repeat(2, 1fr); }}
-}}
-.summary-cell {{
-  background: #0f172a;
-  border-radius: 8px;
-  padding: 8px;
-  text-align: center;
-}}
-.summary-label {{ color: #64748b; font-size: 0.72rem; }}
-.summary-value {{ font-size: 1.1rem; font-weight: 700; }}
-.summary-sub   {{ color: #64748b; font-size: 0.7rem; }}
-</style>
-<div style="background:#1e293b;border-radius:12px;padding:14px 16px;margin-bottom:12px">
-  <!-- Signál + skóre -->
-  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
-    <div style="background:{_sig_c}22;border:2px solid {_sig_c};border-radius:8px;
-                padding:5px 16px;font-size:1.2rem;font-weight:700;color:{_sig_c}">{_sig_lbl}</div>
-    <div style="flex:1;min-width:120px">{score_html}
-      <div style="color:#94a3b8;font-size:0.78rem;margin-top:2px">{score_label} · {len(_hz_sig.get('buy_signals',[]))} buy / {len(_hz_sig.get('sell_signals',[]))} sell</div>
-      {_ai_row}
+        _chg_c = "#22c55e" if chg >= 0 else "#ef4444"
+        _chg_arr = "▲" if chg >= 0 else "▼"
+        _vol_c = "#f59e0b" if vol_ratio > 2 else "#94a3b8"
+        st.markdown(f"""
+    <style>
+    .price-grid {{ display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px }}
+    @media (max-width:640px) {{ .price-grid {{ grid-template-columns:repeat(2,1fr) }} }}
+    </style>
+    <div class="price-grid">
+      <div style="background:#1e293b;border-radius:10px;padding:10px 12px">
+        <div style="color:#64748b;font-size:0.72rem">Cena</div>
+        <div style="font-size:1.15rem;font-weight:700">{price_now:.2f} <span style="font-size:0.8rem;color:#94a3b8">{currency}</span></div>
+        <div style="color:{_chg_c};font-size:0.8rem">{_chg_arr} {chg:+.2f} ({chg_pct:+.1f}%)</div>
+      </div>
+      <div style="background:#1e293b;border-radius:10px;padding:10px 12px">
+        <div style="color:#64748b;font-size:0.72rem">52W Max</div>
+        <div style="font-size:1.15rem;font-weight:700">{high_52w:.2f}</div>
+        <div style="color:#64748b;font-size:0.8rem">{((price_now/high_52w-1)*100):+.1f}% od maxima</div>
+      </div>
+      <div style="background:#1e293b;border-radius:10px;padding:10px 12px">
+        <div style="color:#64748b;font-size:0.72rem">52W Min</div>
+        <div style="font-size:1.15rem;font-weight:700">{low_52w:.2f}</div>
+        <div style="color:#64748b;font-size:0.8rem">{((price_now/low_52w-1)*100):+.1f}% od minima</div>
+      </div>
+      <div style="background:#1e293b;border-radius:10px;padding:10px 12px">
+        <div style="color:#64748b;font-size:0.72rem">Objem</div>
+        <div style="font-size:1.15rem;font-weight:700;color:{_vol_c}">{vol_ratio:.1f}×</div>
+        <div style="color:#64748b;font-size:0.8rem">průměr 20 dní</div>
+      </div>
     </div>
-  </div>
-  <!-- Metriky 4×2 -->
-  <div class="summary-grid">
-    <div class="summary-cell">
-      <div class="summary-label">RSI (14)</div>
-      <div class="summary-value" style="color:{_rsi_c}">{_rsi:.1f}</div>
-      <div class="summary-sub">{_rsi_lbl}</div>
-    </div>
-    <div class="summary-cell">
-      <div class="summary-label">EMA Trend</div>
-      <div class="summary-value" style="color:{_trend_c}">{_trend}</div>
-      <div class="summary-sub">20/50/200</div>
-    </div>
-    <div class="summary-cell">
-      <div class="summary-label">MACD</div>
-      <div class="summary-value" style="color:{_macd_c}">{_macd_lbl}</div>
-      <div class="summary-sub">{_hz_sig['macd']:.3f}</div>
-    </div>
-    <div class="summary-cell">
-      <div class="summary-label">Sentiment</div>
-      <div class="summary-value" style="color:{_sent_c}">{_sent_lbl}</div>
-      <div class="summary-sub">{ai_sent['score']:+.2f}</div>
-    </div>
-  </div>
-  <!-- AI shrnutí -->
-  {f'<div style="border-top:1px solid #334155;padding-top:10px;margin-top:4px;color:#cbd5e1;font-size:0.85rem"><span style="color:#60a5fa;font-size:0.72rem;font-weight:600">{_ai_prov.upper()} · </span>{_hz_summ}</div>' if _hz_summ else ""}
-  <!-- Signály detail -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;border-top:1px solid #334155;padding-top:10px">
-    <div><div style="color:#64748b;font-size:0.72rem;margin-bottom:4px">BUY signály</div>{_buy_html}</div>
-    <div><div style="color:#64748b;font-size:0.72rem;margin-bottom:4px">SELL signály</div>{_sell_html}</div>
-  </div>
-</div>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
-    st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
 
-    # Indikátory
-    st.subheader("Technické indikátory")
+        # Načti zprávy, AI sentiment a signály
+        with st.spinner("Načítám analýzu..."):
+            news_raw = load_news(ticker)
+            news     = enrich_news_with_ai(news_raw) if news_raw else []
+            ai_sent  = news_ai_summary(news) if news else {"score": 0, "source": "N/A",
+                                                            "positive": 0, "negative": 0, "neutral": 0}
 
-    rsi_v  = signals["rsi"]
-    bb_pos = (price_now - signals["bb_lower"]) / max(signals["bb_upper"] - signals["bb_lower"], 0.01) * 100
-    trend  = ("Bullish" if signals["ema20"] > signals["ema50"] > signals["ema200"]
-              else "Bearish" if signals["ema20"] < signals["ema50"] < signals["ema200"]
-              else "Smíšený")
-    rsi_delta  = "Oversold – levná" if rsi_v < 30 else ("Overbought – drahá" if rsi_v > 70 else "Neutrální")
-    bb_delta   = "Blízko dna" if bb_pos < 20 else ("Blízko vrcholu" if bb_pos > 80 else "Střed pásma")
-    stoch_delta = "Oversold" if signals["stoch_k"] < 20 else ("Overbought" if signals["stoch_k"] > 80 else "Neutrální")
-    rsi_color  = "#22c55e" if rsi_v < 30 else ("#ef4444" if rsi_v > 70 else "#94a3b8")
-    bb_color   = "#22c55e" if bb_pos < 20 else ("#ef4444" if bb_pos > 80 else "#94a3b8")
-    stoch_color = "#22c55e" if signals["stoch_k"] < 20 else ("#ef4444" if signals["stoch_k"] > 80 else "#94a3b8")
-    trend_color = "#22c55e" if trend == "Bullish" else ("#ef4444" if trend == "Bearish" else "#94a3b8")
-    macd_color  = "#22c55e" if signals["macd"] > signals["macd_signal"] else "#ef4444"
+        signals = generate_signals_with_news(df, ai_sent)
+        action  = signals["action"]
 
-    st.markdown(f"""
-<div class="indicator-grid">
-  <div class="indicator-card" title="RSI (Relative Strength Index) měří přeprodanost/překoupenost. Pod 30 = levná → BUY. Nad 70 = drahá → SELL.">
-    <div class="indicator-label">RSI (14)</div>
-    <div class="indicator-value" style="color:{rsi_color}">{rsi_v:.1f}</div>
-    <div class="indicator-delta">{rsi_delta}</div>
-  </div>
-  <div class="indicator-card" title="MACD porovnává EMA 12 a EMA 26. Křížení signal linky nahoru = BUY, dolů = SELL.">
-    <div class="indicator-label">MACD</div>
-    <div class="indicator-value" style="color:{macd_color}">{signals['macd']:.3f}</div>
-    <div class="indicator-delta">Signal: {signals['macd_signal']:.3f}</div>
-  </div>
-  <div class="indicator-card" title="Pozice ceny v Bollinger Bands. 0% = spodní pásmo (levná), 100% = horní pásmo (drahá).">
-    <div class="indicator-label">Bollinger Bands</div>
-    <div class="indicator-value" style="color:{bb_color}">{bb_pos:.0f}%</div>
-    <div class="indicator-delta">{bb_delta}</div>
-  </div>
-  <div class="indicator-card" title="Stochastic porovnává cenu s cenovým rozsahem 14 dní. Pod 20 = přeprodaná, nad 80 = překoupená.">
-    <div class="indicator-label">Stochastic K/D</div>
-    <div class="indicator-value" style="color:{stoch_color}">{signals['stoch_k']:.0f} / {signals['stoch_d']:.0f}</div>
-    <div class="indicator-delta">{stoch_delta}</div>
-  </div>
-  <div class="indicator-card" title="EMA trend: Bullish = EMA20 > EMA50 > EMA200. Bearish = opačně. Golden Cross = EMA20 překříží EMA50 nahoru.">
-    <div class="indicator-label">Trend (EMA)</div>
-    <div class="indicator-value" style="color:{trend_color}">{trend}</div>
-    <div class="indicator-delta">EMA50: {signals['ema50']:.1f}</div>
-  </div>
-</div>
-""", unsafe_allow_html=True)
+        # Načti signály pro 3 horizonty + AI analýzu
+        import json as _json
+        with st.spinner("Načítám multi-horizont analýzu..."):
+            _mh = cached_multi_horizon(ticker)
 
-    # Rozbalovací legenda pro méně zkušené uživatele
-    with st.expander("Co znamenají tyto indikátory?"):
-        st.markdown("""
-**Jak systém funguje:** Sleduje 5 indikátorů najednou. Signál KOUPIT nebo PRODAT se zobrazí teprve
-když **alespoň 3 indikátory souhlasí** — proto je konzervativní a nevydává falešné alarmy při každém malém pohybu.
-
-| Indikátor | Co měří | Kdy říká KOUPIT | Kdy říká PRODAT |
-|---|---|---|---|
-| **RSI** | Síla trendu, přeprodanost | Pod 30 (levná) | Nad 70 (drahá) |
-| **MACD** | Momentum trendu | Křížení nahoru | Křížení dolů |
-| **Bollinger Bands** | Pozice vůči průměru | Cena pod spodním pásmem | Cena nad horním pásmem |
-| **Stochastic** | Přeprodanost za 14 dní | K/D pod 20 | K/D nad 80 |
-| **EMA trend** | Směr krátkodobého vs. dlouhodobého trendu | 20 > 50 > 200 | 20 < 50 < 200 |
-| **AI Sentiment** | Tón zpráv (FinBERT model) | Převažují pozitivní zprávy | Převažují negativní zprávy |
-
-**Bullish** = rostoucí trend, **Bearish** = klesající trend, **Oversold** = přeprodaná (levná), **Overbought** = překoupená (drahá).
-
-> Žádný indikátor není 100% spolehlivý. Vždy kombinuj s vlastním úsudkem a zprávami.
-        """)
-
-    st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
-
-    # Graf (skrytý by default)
-    with st.expander("Graf & technická analýza", expanded=False):
-        close = df["Close"]
-        rsi_s = compute_rsi(close)
-        ml, sl, hist = compute_macd(close)
-        ub, mb, lb = compute_bollinger(close)
-        e20, e50, e200 = compute_emas(close)
-
-        fig = make_subplots(
-            rows=3, cols=1, shared_xaxes=True,
-            row_heights=[0.55, 0.25, 0.20],
-            vertical_spacing=0.04,
-            subplot_titles=(f"{ticker} – Cena", "RSI (14)", "MACD"),
-        )
-
-        fig.add_trace(go.Candlestick(
-            x=df.index, open=df["Open"], high=df["High"], low=df["Low"], close=close,
-            name="Cena",
-            increasing_line_color="#22c55e", decreasing_line_color="#ef4444",
-        ), row=1, col=1)
-
-        if show_bb:
-            fig.add_trace(go.Scatter(x=df.index, y=ub, line=dict(color="rgba(100,149,237,0.4)", width=1), showlegend=False), row=1, col=1)
-            fig.add_trace(go.Scatter(x=df.index, y=lb, line=dict(color="rgba(100,149,237,0.4)", width=1), fill="tonexty", fillcolor="rgba(100,149,237,0.08)", showlegend=False), row=1, col=1)
-            fig.add_trace(go.Scatter(x=df.index, y=mb, line=dict(color="rgba(100,149,237,0.6)", width=1, dash="dot"), name="BB Mid", showlegend=False), row=1, col=1)
-
-        if show_ema:
-            fig.add_trace(go.Scatter(x=df.index, y=e20,  line=dict(color="#f59e0b", width=1.5), name="EMA 20"),  row=1, col=1)
-            fig.add_trace(go.Scatter(x=df.index, y=e50,  line=dict(color="#8b5cf6", width=1.5), name="EMA 50"),  row=1, col=1)
-            fig.add_trace(go.Scatter(x=df.index, y=e200, line=dict(color="#ec4899", width=1.5), name="EMA 200"), row=1, col=1)
-
-        fig.add_trace(go.Scatter(x=df.index, y=rsi_s, line=dict(color="#60a5fa", width=1.5), name="RSI"), row=2, col=1)
-        fig.add_hline(y=70, line=dict(color="#ef4444", dash="dash", width=1), row=2, col=1)
-        fig.add_hline(y=30, line=dict(color="#22c55e", dash="dash", width=1), row=2, col=1)
-
-        hcolors = ["#22c55e" if v >= 0 else "#ef4444" for v in hist]
-        fig.add_trace(go.Bar(x=df.index, y=hist, marker_color=hcolors, showlegend=False), row=3, col=1)
-        fig.add_trace(go.Scatter(x=df.index, y=ml, line=dict(color="#60a5fa", width=1.5), name="MACD"),   row=3, col=1)
-        fig.add_trace(go.Scatter(x=df.index, y=sl, line=dict(color="#f59e0b", width=1.5), name="Signal"), row=3, col=1)
-
-        fig.update_layout(
-            height=660, template="plotly_dark",
-            xaxis_rangeslider_visible=False,
-            legend=dict(orientation="h", yanchor="top", y=-0.05, x=0),
-            margin=dict(l=0, r=0, t=40, b=0),
-        )
-        fig.update_yaxes(range=[0, 100], row=2, col=1)
-        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "scrollZoom": False})
-
-    st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
-
-    # Zprávy & AI Sentiment (skryté by default)
-    with st.expander("Zprávy & AI Sentiment", expanded=False):
-        if news:
-            source_label = "FinBERT AI" if ai_sent.get("source") == "FinBERT" else "Klíčová slova"
-            n1, n2, n3, n4 = st.columns(4)
-            n1.metric("Pozitivní zprávy", ai_sent["positive"])
-            n2.metric("Negativní zprávy", ai_sent["negative"])
-            n3.metric("Neutrální",        ai_sent["neutral"])
-            dom = ai_sent["dominant"]
-            dom_label = {"positive": "Pozitivní", "negative": "Negativní", "neutral": "Neutrální"}[dom]
-            n4.metric(
-                "AI Sentiment", dom_label,
-                f"Skóre: {ai_sent['score']:+.2f} ({source_label})",
-                help="Skóre -1 = velmi negativní, 0 = neutrální, +1 = velmi pozitivní."
+        def _sig_to_json(s: dict | None) -> str:
+            if not s:
+                return _json.dumps({})
+            return _json.dumps(
+                {k: (float(v) if isinstance(v, (int, float)) else v)
+                 for k, v in s.items() if not isinstance(v, (list, dict))} |
+                {"buy_signals": s.get("buy_signals", []),
+                 "sell_signals": s.get("sell_signals", [])}
             )
-            score_val = ai_sent["score"]
-            bar_pct   = int((score_val + 1) / 2 * 100)
-            bar_color = "#22c55e" if score_val > 0.15 else "#ef4444" if score_val < -0.15 else "#888"
-            st.markdown(
-                f'<div style="background:#1a1a2e;border-radius:8px;padding:10px;margin:8px 0">'
-                f'<div style="font-size:0.8rem;color:#888;margin-bottom:4px">Sentiment spektrum &nbsp;·&nbsp; {source_label}</div>'
-                f'<div style="background:#333;border-radius:4px;height:10px;width:100%">'
-                f'<div style="background:{bar_color};border-radius:4px;height:10px;width:{bar_pct}%"></div>'
-                f'</div>'
-                f'<div style="display:flex;justify-content:space-between;font-size:0.75rem;color:#666;margin-top:2px">'
-                f'<span>Velmi negativní</span><span>Neutrální</span><span>Velmi pozitivní</span>'
-                f'</div></div>',
-                unsafe_allow_html=True,
+
+        with st.spinner("Volám AI analýzu..."):
+            _claude = cached_claude_analysis(
+                ticker,
+                _sig_to_json(_mh.get("short")),
+                _sig_to_json(_mh.get("medium")),
+                _sig_to_json(_mh.get("long")),
+                _json.dumps([{"title": n.get("title",""), "summary": n.get("summary","")} for n in news[:10]]),
+                _json.dumps({k: (float(v) if isinstance(v, float) else v) for k, v in ai_sent.items()}),
             )
-            st.markdown("---")
-            for item in news[:15]:
-                s    = item.get("sentiment", "neutral")
-                conf = item.get("sentiment_score", 0)
-                src  = item.get("sentiment_source", "")
-                css  = {"positive": "news-pos", "negative": "news-neg", "neutral": "news-neu"}[s]
-                ico  = {"positive": "🟢", "negative": "🔴", "neutral": "⚪"}[s]
-                sd   = f"{item['source']} · {item['date']}" if item["date"] else item["source"]
-                smr  = f"<br><small style='color:#aaa'>{item['summary']}</small>" if item["summary"] else ""
-                conf_html = (f'<span style="color:#666;font-size:0.75rem"> [{src} {conf:.0%}]</span>') if conf else ""
+
+        # ── Multi-horizont souhrnná karta ────────────────────────────────────────
+        _HINT_LABEL = {"koupit": "KOUPIT", "prodat": "PRODAT", "čekat": "ČEKAT", "sledovat": "SLEDOVAT"}
+        _HINT_COLOR = {"koupit": "#22c55e", "prodat": "#ef4444", "čekat": "#f59e0b", "sledovat": "#60a5fa"}
+        _ai_prov = _claude.get("provider", "AI") if _claude.get("ok") else ""
+
+        def _horizon_badge(key: str, label: str) -> str:
+            """HTML badge pro jeden horizont v horním řádku."""
+            h = _claude.get(key, {}) if _claude.get("ok") else {}
+            hint = h.get("action_hint", "")
+            conf = h.get("confidence", "")
+            sig  = _mh.get(key)
+            tech_action = (sig or {}).get("action", "HOLD") if not hint else ""
+            # Fallback na tech signál pokud AI nedostupná
+            if not hint:
+                hint = {"BUY": "koupit", "SELL": "prodat", "HOLD": "čekat"}.get(tech_action, "čekat")
+            clr = _HINT_COLOR.get(hint, "#94a3b8")
+            lbl = _HINT_LABEL.get(hint, hint.upper())
+            conf_html = f'<div style="color:#64748b;font-size:0.68rem;margin-top:2px">{conf}</div>' if conf else ""
+            return (
+                f'<div style="background:{clr}18;border:2px solid {clr};border-radius:10px;'
+                f'padding:10px 8px;text-align:center">'
+                f'<div style="color:#94a3b8;font-size:0.68rem;margin-bottom:4px">{label}</div>'
+                f'<div style="color:{clr};font-size:1.15rem;font-weight:800">{lbl}</div>'
+                f'{conf_html}</div>'
+            )
+
+        st.markdown(f"""
+    <style>
+    .horizon-grid {{
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }}
+    </style>
+    <div class="horizon-grid">
+      {_horizon_badge("short",  "Krátkodobý (< 3 měs.)")}
+      {_horizon_badge("medium", "Střednědobý (6m – 2r)")}
+      {_horizon_badge("long",   "Dlouhodobý (3+ roky)")}
+    </div>
+    """, unsafe_allow_html=True)
+
+        # Přepínač detailu horizontu
+        _sel_hz = st.segmented_control(
+            "Detail horizontu",
+            ["Krátkodobý", "Střednědobý", "Dlouhodobý"],
+            default="Krátkodobý",
+            key=f"hz_detail_{ticker}",
+        )
+        _hz_key = {"Krátkodobý": "short", "Střednědobý": "medium", "Dlouhodobý": "long"}.get(_sel_hz or "Krátkodobý", "short")
+        _hz_sig = _mh.get(_hz_key) or signals  # fallback na 6mo signály
+
+        _hz_data = _claude.get(_hz_key, {}) if _claude.get("ok") else {}
+        _hz_summ = _hz_data.get("summary", "")
+        _hz_hint = _hz_data.get("action_hint", "")
+        _hz_conf = _hz_data.get("confidence", "")
+        _hz_events = _hz_data.get("events", [])
+        _hz_risks  = _hz_data.get("risk_factors", [])
+        _hz_opp    = _hz_data.get("opportunity", "")
+
+        # Technické hodnoty z vybraného horizontu
+        _trend = ("Bullish" if _hz_sig["ema20"] > _hz_sig["ema50"] > _hz_sig["ema200"]
+                  else "Bearish" if _hz_sig["ema20"] < _hz_sig["ema50"] < _hz_sig["ema200"]
+                  else "Smíšený")
+        _rsi   = _hz_sig["rsi"]
+        _rsi_lbl = "Oversold" if _rsi < 30 else ("Overbought" if _rsi > 70 else "Neutrální")
+        _rsi_c   = "#22c55e" if _rsi < 30 else ("#ef4444" if _rsi > 70 else "#94a3b8")
+        _trend_c = "#22c55e" if _trend == "Bullish" else ("#ef4444" if _trend == "Bearish" else "#94a3b8")
+        _macd_c  = "#22c55e" if _hz_sig["macd"] > _hz_sig["macd_signal"] else "#ef4444"
+        _macd_lbl = "Bullish" if _hz_sig["macd"] > _hz_sig["macd_signal"] else "Bearish"
+        _sent_c  = "#22c55e" if ai_sent["score"] > 0.15 else ("#ef4444" if ai_sent["score"] < -0.15 else "#94a3b8")
+        _sent_lbl = {"positive": "Pozitivní", "negative": "Negativní", "neutral": "Neutrální"}.get(ai_sent.get("dominant","neutral"), "Neutrální")
+        _hz_action = _hz_sig.get("action", "HOLD")
+        _sig_c   = {"BUY": "#22c55e", "SELL": "#ef4444", "HOLD": "#94a3b8"}[_hz_action]
+        _sig_lbl = {"BUY": "KOUPIT", "SELL": "PRODAT", "HOLD": "DRŽET"}[_hz_action]
+
+        score, score_label = _score_label(
+            len(_hz_sig.get("buy_signals", [])), len(_hz_sig.get("sell_signals", [])), _hz_action
+        )
+        score_html = _score_bar_html(score)
+
+        _buy_html  = "".join(f'<div style="color:#22c55e;font-size:0.82rem;padding:2px 0">+ {s}</div>' for s in _hz_sig.get("buy_signals", [])) or '<div style="color:#555;font-size:0.82rem">Žádné</div>'
+        _sell_html = "".join(f'<div style="color:#ef4444;font-size:0.82rem;padding:2px 0">− {s}</div>' for s in _hz_sig.get("sell_signals", [])) or '<div style="color:#555;font-size:0.82rem">Žádné</div>'
+        _hint_c = _HINT_COLOR.get(_hz_hint, "#94a3b8")
+        _ai_row = (f'<div style="color:#94a3b8;font-size:0.78rem;margin-top:4px">AI: '
+                   f'<span style="color:{_hint_c};font-weight:600;text-transform:uppercase">{_hz_hint}</span>'
+                   f' · jistota: {_hz_conf} · <span style="color:#60a5fa">{_ai_prov}</span></div>') if _hz_hint else ""
+
+        st.markdown(f"""
+    <style>
+    .summary-grid {{
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin: 10px 0;
+    }}
+    @media (max-width: 640px) {{
+      .summary-grid {{ grid-template-columns: repeat(2, 1fr); }}
+    }}
+    .summary-cell {{
+      background: #0f172a;
+      border-radius: 8px;
+      padding: 8px;
+      text-align: center;
+    }}
+    .summary-label {{ color: #64748b; font-size: 0.72rem; }}
+    .summary-value {{ font-size: 1.1rem; font-weight: 700; }}
+    .summary-sub   {{ color: #64748b; font-size: 0.7rem; }}
+    </style>
+    <div style="background:#1e293b;border-radius:12px;padding:14px 16px;margin-bottom:12px">
+      <!-- Signál + skóre -->
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+        <div style="background:{_sig_c}22;border:2px solid {_sig_c};border-radius:8px;
+                    padding:5px 16px;font-size:1.2rem;font-weight:700;color:{_sig_c}">{_sig_lbl}</div>
+        <div style="flex:1;min-width:120px">{score_html}
+          <div style="color:#94a3b8;font-size:0.78rem;margin-top:2px">{score_label} · {len(_hz_sig.get('buy_signals',[]))} buy / {len(_hz_sig.get('sell_signals',[]))} sell</div>
+          {_ai_row}
+        </div>
+      </div>
+      <!-- Metriky 4×2 -->
+      <div class="summary-grid">
+        <div class="summary-cell">
+          <div class="summary-label">RSI (14)</div>
+          <div class="summary-value" style="color:{_rsi_c}">{_rsi:.1f}</div>
+          <div class="summary-sub">{_rsi_lbl}</div>
+        </div>
+        <div class="summary-cell">
+          <div class="summary-label">EMA Trend</div>
+          <div class="summary-value" style="color:{_trend_c}">{_trend}</div>
+          <div class="summary-sub">20/50/200</div>
+        </div>
+        <div class="summary-cell">
+          <div class="summary-label">MACD</div>
+          <div class="summary-value" style="color:{_macd_c}">{_macd_lbl}</div>
+          <div class="summary-sub">{_hz_sig['macd']:.3f}</div>
+        </div>
+        <div class="summary-cell">
+          <div class="summary-label">Sentiment</div>
+          <div class="summary-value" style="color:{_sent_c}">{_sent_lbl}</div>
+          <div class="summary-sub">{ai_sent['score']:+.2f}</div>
+        </div>
+      </div>
+      <!-- AI shrnutí -->
+      {f'<div style="border-top:1px solid #334155;padding-top:10px;margin-top:4px;color:#cbd5e1;font-size:0.85rem"><span style="color:#60a5fa;font-size:0.72rem;font-weight:600">{_ai_prov.upper()} · </span>{_hz_summ}</div>' if _hz_summ else ""}
+      <!-- Signály detail -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;border-top:1px solid #334155;padding-top:10px">
+        <div><div style="color:#64748b;font-size:0.72rem;margin-bottom:4px">BUY signály</div>{_buy_html}</div>
+        <div><div style="color:#64748b;font-size:0.72rem;margin-bottom:4px">SELL signály</div>{_sell_html}</div>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+        st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
+
+        # Indikátory
+        st.subheader("Technické indikátory")
+
+        rsi_v  = signals["rsi"]
+        bb_pos = (price_now - signals["bb_lower"]) / max(signals["bb_upper"] - signals["bb_lower"], 0.01) * 100
+        trend  = ("Bullish" if signals["ema20"] > signals["ema50"] > signals["ema200"]
+                  else "Bearish" if signals["ema20"] < signals["ema50"] < signals["ema200"]
+                  else "Smíšený")
+        rsi_delta  = "Oversold – levná" if rsi_v < 30 else ("Overbought – drahá" if rsi_v > 70 else "Neutrální")
+        bb_delta   = "Blízko dna" if bb_pos < 20 else ("Blízko vrcholu" if bb_pos > 80 else "Střed pásma")
+        stoch_delta = "Oversold" if signals["stoch_k"] < 20 else ("Overbought" if signals["stoch_k"] > 80 else "Neutrální")
+        rsi_color  = "#22c55e" if rsi_v < 30 else ("#ef4444" if rsi_v > 70 else "#94a3b8")
+        bb_color   = "#22c55e" if bb_pos < 20 else ("#ef4444" if bb_pos > 80 else "#94a3b8")
+        stoch_color = "#22c55e" if signals["stoch_k"] < 20 else ("#ef4444" if signals["stoch_k"] > 80 else "#94a3b8")
+        trend_color = "#22c55e" if trend == "Bullish" else ("#ef4444" if trend == "Bearish" else "#94a3b8")
+        macd_color  = "#22c55e" if signals["macd"] > signals["macd_signal"] else "#ef4444"
+
+        st.markdown(f"""
+    <div class="indicator-grid">
+      <div class="indicator-card" title="RSI (Relative Strength Index) měří přeprodanost/překoupenost. Pod 30 = levná → BUY. Nad 70 = drahá → SELL.">
+        <div class="indicator-label">RSI (14)</div>
+        <div class="indicator-value" style="color:{rsi_color}">{rsi_v:.1f}</div>
+        <div class="indicator-delta">{rsi_delta}</div>
+      </div>
+      <div class="indicator-card" title="MACD porovnává EMA 12 a EMA 26. Křížení signal linky nahoru = BUY, dolů = SELL.">
+        <div class="indicator-label">MACD</div>
+        <div class="indicator-value" style="color:{macd_color}">{signals['macd']:.3f}</div>
+        <div class="indicator-delta">Signal: {signals['macd_signal']:.3f}</div>
+      </div>
+      <div class="indicator-card" title="Pozice ceny v Bollinger Bands. 0% = spodní pásmo (levná), 100% = horní pásmo (drahá).">
+        <div class="indicator-label">Bollinger Bands</div>
+        <div class="indicator-value" style="color:{bb_color}">{bb_pos:.0f}%</div>
+        <div class="indicator-delta">{bb_delta}</div>
+      </div>
+      <div class="indicator-card" title="Stochastic porovnává cenu s cenovým rozsahem 14 dní. Pod 20 = přeprodaná, nad 80 = překoupená.">
+        <div class="indicator-label">Stochastic K/D</div>
+        <div class="indicator-value" style="color:{stoch_color}">{signals['stoch_k']:.0f} / {signals['stoch_d']:.0f}</div>
+        <div class="indicator-delta">{stoch_delta}</div>
+      </div>
+      <div class="indicator-card" title="EMA trend: Bullish = EMA20 > EMA50 > EMA200. Bearish = opačně. Golden Cross = EMA20 překříží EMA50 nahoru.">
+        <div class="indicator-label">Trend (EMA)</div>
+        <div class="indicator-value" style="color:{trend_color}">{trend}</div>
+        <div class="indicator-delta">EMA50: {signals['ema50']:.1f}</div>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+        # Rozbalovací legenda pro méně zkušené uživatele
+        with st.expander("Co znamenají tyto indikátory?"):
+            st.markdown("""
+    **Jak systém funguje:** Sleduje 5 indikátorů najednou. Signál KOUPIT nebo PRODAT se zobrazí teprve
+    když **alespoň 3 indikátory souhlasí** — proto je konzervativní a nevydává falešné alarmy při každém malém pohybu.
+
+    | Indikátor | Co měří | Kdy říká KOUPIT | Kdy říká PRODAT |
+    |---|---|---|---|
+    | **RSI** | Síla trendu, přeprodanost | Pod 30 (levná) | Nad 70 (drahá) |
+    | **MACD** | Momentum trendu | Křížení nahoru | Křížení dolů |
+    | **Bollinger Bands** | Pozice vůči průměru | Cena pod spodním pásmem | Cena nad horním pásmem |
+    | **Stochastic** | Přeprodanost za 14 dní | K/D pod 20 | K/D nad 80 |
+    | **EMA trend** | Směr krátkodobého vs. dlouhodobého trendu | 20 > 50 > 200 | 20 < 50 < 200 |
+    | **AI Sentiment** | Tón zpráv (FinBERT model) | Převažují pozitivní zprávy | Převažují negativní zprávy |
+
+    **Bullish** = rostoucí trend, **Bearish** = klesající trend, **Oversold** = přeprodaná (levná), **Overbought** = překoupená (drahá).
+
+    > Žádný indikátor není 100% spolehlivý. Vždy kombinuj s vlastním úsudkem a zprávami.
+            """)
+
+        st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
+
+        # Graf (skrytý by default)
+        with st.expander("Graf & technická analýza", expanded=False):
+            close = df["Close"]
+            rsi_s = compute_rsi(close)
+            ml, sl, hist = compute_macd(close)
+            ub, mb, lb = compute_bollinger(close)
+            e20, e50, e200 = compute_emas(close)
+
+            fig = make_subplots(
+                rows=3, cols=1, shared_xaxes=True,
+                row_heights=[0.55, 0.25, 0.20],
+                vertical_spacing=0.04,
+                subplot_titles=(f"{ticker} – Cena", "RSI (14)", "MACD"),
+            )
+
+            fig.add_trace(go.Candlestick(
+                x=df.index, open=df["Open"], high=df["High"], low=df["Low"], close=close,
+                name="Cena",
+                increasing_line_color="#22c55e", decreasing_line_color="#ef4444",
+            ), row=1, col=1)
+
+            if show_bb:
+                fig.add_trace(go.Scatter(x=df.index, y=ub, line=dict(color="rgba(100,149,237,0.4)", width=1), showlegend=False), row=1, col=1)
+                fig.add_trace(go.Scatter(x=df.index, y=lb, line=dict(color="rgba(100,149,237,0.4)", width=1), fill="tonexty", fillcolor="rgba(100,149,237,0.08)", showlegend=False), row=1, col=1)
+                fig.add_trace(go.Scatter(x=df.index, y=mb, line=dict(color="rgba(100,149,237,0.6)", width=1, dash="dot"), name="BB Mid", showlegend=False), row=1, col=1)
+
+            if show_ema:
+                fig.add_trace(go.Scatter(x=df.index, y=e20,  line=dict(color="#f59e0b", width=1.5), name="EMA 20"),  row=1, col=1)
+                fig.add_trace(go.Scatter(x=df.index, y=e50,  line=dict(color="#8b5cf6", width=1.5), name="EMA 50"),  row=1, col=1)
+                fig.add_trace(go.Scatter(x=df.index, y=e200, line=dict(color="#ec4899", width=1.5), name="EMA 200"), row=1, col=1)
+
+            fig.add_trace(go.Scatter(x=df.index, y=rsi_s, line=dict(color="#60a5fa", width=1.5), name="RSI"), row=2, col=1)
+            fig.add_hline(y=70, line=dict(color="#ef4444", dash="dash", width=1), row=2, col=1)
+            fig.add_hline(y=30, line=dict(color="#22c55e", dash="dash", width=1), row=2, col=1)
+
+            hcolors = ["#22c55e" if v >= 0 else "#ef4444" for v in hist]
+            fig.add_trace(go.Bar(x=df.index, y=hist, marker_color=hcolors, showlegend=False), row=3, col=1)
+            fig.add_trace(go.Scatter(x=df.index, y=ml, line=dict(color="#60a5fa", width=1.5), name="MACD"),   row=3, col=1)
+            fig.add_trace(go.Scatter(x=df.index, y=sl, line=dict(color="#f59e0b", width=1.5), name="Signal"), row=3, col=1)
+
+            fig.update_layout(
+                height=660, template="plotly_dark",
+                xaxis_rangeslider_visible=False,
+                legend=dict(orientation="h", yanchor="top", y=-0.05, x=0),
+                margin=dict(l=0, r=0, t=40, b=0),
+            )
+            fig.update_yaxes(range=[0, 100], row=2, col=1)
+            st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "scrollZoom": False})
+
+        st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
+
+        # Zprávy & AI Sentiment (skryté by default)
+        with st.expander("Zprávy & AI Sentiment", expanded=False):
+            if news:
+                source_label = "FinBERT AI" if ai_sent.get("source") == "FinBERT" else "Klíčová slova"
+                n1, n2, n3, n4 = st.columns(4)
+                n1.metric("Pozitivní zprávy", ai_sent["positive"])
+                n2.metric("Negativní zprávy", ai_sent["negative"])
+                n3.metric("Neutrální",        ai_sent["neutral"])
+                dom = ai_sent["dominant"]
+                dom_label = {"positive": "Pozitivní", "negative": "Negativní", "neutral": "Neutrální"}[dom]
+                n4.metric(
+                    "AI Sentiment", dom_label,
+                    f"Skóre: {ai_sent['score']:+.2f} ({source_label})",
+                    help="Skóre -1 = velmi negativní, 0 = neutrální, +1 = velmi pozitivní."
+                )
+                score_val = ai_sent["score"]
+                bar_pct   = int((score_val + 1) / 2 * 100)
+                bar_color = "#22c55e" if score_val > 0.15 else "#ef4444" if score_val < -0.15 else "#888"
                 st.markdown(
-                    f'<div class="{css}">{ico} <a href="{item["link"]}" target="_blank" style="color:inherit">'
-                    f'<strong>{item["title"]}</strong></a>{conf_html}'
-                    f'<br><small style="color:#888">{sd}</small>{smr}</div>',
+                    f'<div style="background:#1a1a2e;border-radius:8px;padding:10px;margin:8px 0">'
+                    f'<div style="font-size:0.8rem;color:#888;margin-bottom:4px">Sentiment spektrum &nbsp;·&nbsp; {source_label}</div>'
+                    f'<div style="background:#333;border-radius:4px;height:10px;width:100%">'
+                    f'<div style="background:{bar_color};border-radius:4px;height:10px;width:{bar_pct}%"></div>'
+                    f'</div>'
+                    f'<div style="display:flex;justify-content:space-between;font-size:0.75rem;color:#666;margin-top:2px">'
+                    f'<span>Velmi negativní</span><span>Neutrální</span><span>Velmi pozitivní</span>'
+                    f'</div></div>',
                     unsafe_allow_html=True,
                 )
+                st.markdown("---")
+                for item in news[:15]:
+                    s    = item.get("sentiment", "neutral")
+                    conf = item.get("sentiment_score", 0)
+                    src  = item.get("sentiment_source", "")
+                    css  = {"positive": "news-pos", "negative": "news-neg", "neutral": "news-neu"}[s]
+                    ico  = {"positive": "🟢", "negative": "🔴", "neutral": "⚪"}[s]
+                    sd   = f"{item['source']} · {item['date']}" if item["date"] else item["source"]
+                    smr  = f"<br><small style='color:#aaa'>{item['summary']}</small>" if item["summary"] else ""
+                    conf_html = (f'<span style="color:#666;font-size:0.75rem"> [{src} {conf:.0%}]</span>') if conf else ""
+                    st.markdown(
+                        f'<div class="{css}">{ico} <a href="{item["link"]}" target="_blank" style="color:inherit">'
+                        f'<strong>{item["title"]}</strong></a>{conf_html}'
+                        f'<br><small style="color:#888">{sd}</small>{smr}</div>',
+                        unsafe_allow_html=True,
+                    )
+            else:
+                st.info("Zprávy se nepodařilo načíst.")
+
+        st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
+
+        # ── AI analýza – události a rizika pro vybraný horizont ──────────────────
+        if _claude.get("ok"):
+            if _hz_events or _hz_risks:
+                _ev_html = "".join(
+                    f'<div style="background:#0c2a4a;border-left:3px solid #60a5fa;border-radius:4px;'
+                    f'padding:8px 12px;margin:4px 0;font-size:0.85rem;color:#cbd5e1">📌 {ev}</div>'
+                    for ev in _hz_events
+                )
+                _ri_html = "".join(
+                    f'<div style="background:#2a1a0a;border-left:3px solid #f59e0b;border-radius:4px;'
+                    f'padding:8px 12px;margin:4px 0;font-size:0.85rem;color:#cbd5e1">⚠️ {ri}</div>'
+                    for ri in _hz_risks
+                )
+                st.markdown(
+                    f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">'
+                    f'<div><div style="color:#94a3b8;font-size:0.75rem;font-weight:600;margin-bottom:4px">KLÍČOVÉ UDÁLOSTI</div>{_ev_html}</div>'
+                    f'<div><div style="color:#94a3b8;font-size:0.75rem;font-weight:600;margin-bottom:4px">RIZIKOVÉ FAKTORY</div>{_ri_html}</div>'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
+            if _hz_opp:
+                hint_color = _HINT_COLOR.get(_hz_hint, "#888")
+                st.markdown(
+                    f'<div style="background:#0f172a;border:1px solid #334155;border-radius:6px;'
+                    f'padding:12px 16px;margin-top:4px">'
+                    f'<span style="color:{hint_color};font-weight:bold;text-transform:uppercase">{_hz_hint}</span>'
+                    f'<span style="color:#94a3b8;font-size:0.8rem"> · jistota: {_hz_conf}</span><br>'
+                    f'<span style="color:#cbd5e1">{_hz_opp}</span>'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
+        elif not _claude.get("ok") and _claude.get("error"):
+            st.warning(f"AI analýza nedostupná: {_claude.get('error')}")
+
+        st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
+
+        # ── Earnings ─────────────────────────────────────────────────────────────
+        _earn = get_earnings(ticker)
+        if _earn:
+            _ed   = _earn.get("earnings_date")
+            _days = _earn.get("days_until")
+            _soon = _earn.get("is_soon", False)
+            _past = _earn.get("is_past", False)
+            if _ed and not _past:
+                _earn_color = "#f59e0b" if _soon else "#60a5fa"
+                _earn_label = f"za {_days} dní" if _days is not None else ""
+                _eps_str = ""
+                if _earn.get("eps_estimate"):
+                    _eps_str = f" · EPS odhad: {_earn['eps_estimate']:.2f}"
+                st.markdown(
+                    f'<div style="background:#1a1a2e;border:1px solid {_earn_color};border-radius:8px;'
+                    f'padding:10px 16px;margin-bottom:8px;display:flex;gap:12px;align-items:center">'
+                    f'<span style="font-size:1.4rem">📅</span>'
+                    f'<div><div style="color:{_earn_color};font-weight:700">Earnings: {_ed.strftime("%d.%m.%Y")} {_earn_label}</div>'
+                    f'<div style="color:#94a3b8;font-size:0.82rem">Výsledky hospodaření{_eps_str}'
+                    + (" · <b>Blíží se!</b>" if _soon else "") +
+                    f'</div></div></div>',
+                    unsafe_allow_html=True,
+                )
+
+        # ── Srovnání s konkurencí ────────────────────────────────────────────────
+        st.subheader("Srovnání s konkurencí")
+        st.caption(f"Výkonnost {ticker} vs. podobné firmy ve stejném období.")
+
+        with st.spinner("Načítám data konkurentů..."):
+            _peers = cached_peer_comparison(ticker, period)
+
+        if _peers.get("ok"):
+            ranked = _peers["ranked"]
+            results = _peers["results"]
+            main_rank = _peers["main_rank"]
+            total = _peers["total"]
+
+            st.caption(f"Pořadí {ticker}: **{main_rank}. z {total}** za vybrané období")
+
+            # Normalizovaný výkonnostní graf
+            pfig = go.Figure()
+            for t, data in results.items():
+                is_main = data["is_main"]
+                pfig.add_trace(go.Scatter(
+                    x=data["dates"],
+                    y=data["normalized"],
+                    name=t,
+                    line=dict(width=3 if is_main else 1.5,
+                              color="#60a5fa" if is_main else None),
+                ))
+            pfig.update_layout(
+                height=340, template="plotly_dark",
+                title="Normalizovaná výkonnost (báze = 100)",
+                margin=dict(l=0, r=0, t=40, b=60),
+                legend=dict(orientation="h", yanchor="top", y=-0.15, x=0),
+            )
+            st.plotly_chart(pfig, use_container_width=True, config={"displayModeBar": False, "scrollZoom": False})
+
+            # Tabulka se změnami – responsivní CSS grid
+            peer_rows = sorted(results.items(), key=lambda x: -x[1]["chg_pct"])
+            cards_html = '<div class="peer-grid">'
+            for t, d in peer_rows:
+                chg = d["chg_pct"]
+                chg_cls = "peer-chg-pos" if chg >= 0 else "peer-chg-neg"
+                main_cls = " peer-main" if d["is_main"] else ""
+                cards_html += (
+                    f'<div class="peer-card{main_cls}">'
+                    f'<div class="peer-ticker">{t}</div>'
+                    f'<div class="{chg_cls}">{chg:+.1f}%</div>'
+                    f'<div class="peer-price">{d["price"]:.2f}</div>'
+                    f'</div>'
+                )
+            cards_html += '</div>'
+            st.markdown(cards_html, unsafe_allow_html=True)
         else:
-            st.info("Zprávy se nepodařilo načíst.")
+            st.info(_peers.get("error", "Peer data nejsou dostupná pro tento ticker."))
 
-    st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
 
-    # ── AI analýza – události a rizika pro vybraný horizont ──────────────────
-    if _claude.get("ok"):
-        if _hz_events or _hz_risks:
-            _ev_html = "".join(
-                f'<div style="background:#0c2a4a;border-left:3px solid #60a5fa;border-radius:4px;'
-                f'padding:8px 12px;margin:4px 0;font-size:0.85rem;color:#cbd5e1">📌 {ev}</div>'
-                for ev in _hz_events
-            )
-            _ri_html = "".join(
-                f'<div style="background:#2a1a0a;border-left:3px solid #f59e0b;border-radius:4px;'
-                f'padding:8px 12px;margin:4px 0;font-size:0.85rem;color:#cbd5e1">⚠️ {ri}</div>'
-                for ri in _hz_risks
-            )
-            st.markdown(
-                f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">'
-                f'<div><div style="color:#94a3b8;font-size:0.75rem;font-weight:600;margin-bottom:4px">KLÍČOVÉ UDÁLOSTI</div>{_ev_html}</div>'
-                f'<div><div style="color:#94a3b8;font-size:0.75rem;font-weight:600;margin-bottom:4px">RIZIKOVÉ FAKTORY</div>{_ri_html}</div>'
-                f'</div>',
-                unsafe_allow_html=True,
-            )
-        if _hz_opp:
-            hint_color = _HINT_COLOR.get(_hz_hint, "#888")
-            st.markdown(
-                f'<div style="background:#0f172a;border:1px solid #334155;border-radius:6px;'
-                f'padding:12px 16px;margin-top:4px">'
-                f'<span style="color:{hint_color};font-weight:bold;text-transform:uppercase">{_hz_hint}</span>'
-                f'<span style="color:#94a3b8;font-size:0.8rem"> · jistota: {_hz_conf}</span><br>'
-                f'<span style="color:#cbd5e1">{_hz_opp}</span>'
-                f'</div>',
-                unsafe_allow_html=True,
-            )
-    elif not _claude.get("ok") and _claude.get("error"):
-        st.warning(f"AI analýza nedostupná: {_claude.get('error')}")
-
-    st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
-
-    # ── Earnings ─────────────────────────────────────────────────────────────
-    _earn = get_earnings(ticker)
-    if _earn:
-        _ed   = _earn.get("earnings_date")
-        _days = _earn.get("days_until")
-        _soon = _earn.get("is_soon", False)
-        _past = _earn.get("is_past", False)
-        if _ed and not _past:
-            _earn_color = "#f59e0b" if _soon else "#60a5fa"
-            _earn_label = f"za {_days} dní" if _days is not None else ""
-            _eps_str = ""
-            if _earn.get("eps_estimate"):
-                _eps_str = f" · EPS odhad: {_earn['eps_estimate']:.2f}"
-            st.markdown(
-                f'<div style="background:#1a1a2e;border:1px solid {_earn_color};border-radius:8px;'
-                f'padding:10px 16px;margin-bottom:8px;display:flex;gap:12px;align-items:center">'
-                f'<span style="font-size:1.4rem">📅</span>'
-                f'<div><div style="color:{_earn_color};font-weight:700">Earnings: {_ed.strftime("%d.%m.%Y")} {_earn_label}</div>'
-                f'<div style="color:#94a3b8;font-size:0.82rem">Výsledky hospodaření{_eps_str}'
-                + (" · <b>Blíží se!</b>" if _soon else "") +
-                f'</div></div></div>',
-                unsafe_allow_html=True,
-            )
-
-    # ── Srovnání s konkurencí ────────────────────────────────────────────────
-    st.subheader("Srovnání s konkurencí")
-    st.caption(f"Výkonnost {ticker} vs. podobné firmy ve stejném období.")
-
-    with st.spinner("Načítám data konkurentů..."):
-        _peers = cached_peer_comparison(ticker, period)
-
-    if _peers.get("ok"):
-        ranked = _peers["ranked"]
-        results = _peers["results"]
-        main_rank = _peers["main_rank"]
-        total = _peers["total"]
-
-        st.caption(f"Pořadí {ticker}: **{main_rank}. z {total}** za vybrané období")
-
-        # Normalizovaný výkonnostní graf
-        pfig = go.Figure()
-        for t, data in results.items():
-            is_main = data["is_main"]
-            pfig.add_trace(go.Scatter(
-                x=data["dates"],
-                y=data["normalized"],
-                name=t,
-                line=dict(width=3 if is_main else 1.5,
-                          color="#60a5fa" if is_main else None),
-            ))
-        pfig.update_layout(
-            height=340, template="plotly_dark",
-            title="Normalizovaná výkonnost (báze = 100)",
-            margin=dict(l=0, r=0, t=40, b=60),
-            legend=dict(orientation="h", yanchor="top", y=-0.15, x=0),
+    with _det_tabs[1]:
+        st.subheader("Backtest signálů")
+        st.caption(
+            "Jak by dopadly BUY/SELL signály tohoto systému na historických datech. "
+            "Win rate = procento obchodů v zisku. Backtest negarantuje budoucí výsledky."
         )
-        st.plotly_chart(pfig, use_container_width=True, config={"displayModeBar": False, "scrollZoom": False})
 
-        # Tabulka se změnami – responsivní CSS grid
-        peer_rows = sorted(results.items(), key=lambda x: -x[1]["chg_pct"])
-        cards_html = '<div class="peer-grid">'
-        for t, d in peer_rows:
-            chg = d["chg_pct"]
-            chg_cls = "peer-chg-pos" if chg >= 0 else "peer-chg-neg"
-            main_cls = " peer-main" if d["is_main"] else ""
-            cards_html += (
-                f'<div class="peer-card{main_cls}">'
-                f'<div class="peer-ticker">{t}</div>'
-                f'<div class="{chg_cls}">{chg:+.1f}%</div>'
-                f'<div class="peer-price">{d["price"]:.2f}</div>'
-                f'</div>'
-            )
-        cards_html += '</div>'
-        st.markdown(cards_html, unsafe_allow_html=True)
-    else:
-        st.info(_peers.get("error", "Peer data nejsou dostupná pro tento ticker."))
+        all_bt_stocks = {**{n: t for n, (t, c, s) in PORTFOLIO.items()},
+                         **{n: t for n, (t, c, s) in RADAR_STOCKS.items()}}
+        _bt_default_name = next(
+            (n for n, t in all_bt_stocks.items() if t == ticker),
+            list(all_bt_stocks.keys())[0]
+        )
+        bt_choice = st.selectbox(
+            "Vyber akcii pro backtest",
+            list(all_bt_stocks.keys()),
+            index=list(all_bt_stocks.keys()).index(_bt_default_name),
+            key="bt_selectbox",
+        )
+        bt_period = st.select_slider("Historické období", ["1y", "2y", "3y", "5y"], value="2y")
+        bt_ticker = all_bt_stocks[bt_choice]
+
+        if st.button("Spustit backtest", type="primary", key="bt_run_btn"):
+            with st.spinner(f"Počítám backtest pro {bt_ticker} za {bt_period}... (může trvat 20–60s)"):
+                result = run_backtest(bt_ticker, period=bt_period)
+
+            if not result.get("ok"):
+                st.error(f"Chyba: {result.get('error', 'Neznámá chyba')}")
+            else:
+                st.subheader("Souhrnné výsledky")
+                tbl = backtest_summary_table(result)
+                if not tbl.empty:
+                    st.dataframe(tbl, hide_index=True, use_container_width=True)
+
+                for action in ("BUY", "SELL"):
+                    data = result.get(action, {})
+                    if data.get("count", 0) == 0:
+                        continue
+                    label = "BUY" if action == "BUY" else "SELL"
+                    color = "#22c55e" if action == "BUY" else "#ef4444"
+                    st.subheader(f"{label} signály – distribuce výnosů")
+                    trades = data.get("trades", [])
+                    for fd in [10, 20, 30]:
+                        key = f"ret_{fd}d"
+                        rets = [t[key] for t in trades if key in t]
+                        if not rets:
+                            continue
+                        fig_hist = go.Figure()
+                        fig_hist.add_trace(go.Histogram(
+                            x=rets,
+                            nbinsx=20,
+                            marker_color=color,
+                            opacity=0.8,
+                            name=f"{fd}D výnosy",
+                        ))
+                        fig_hist.add_vline(x=0, line=dict(color="white", dash="dash"))
+                        fig_hist.add_vline(
+                            x=float(np.mean(rets)),
+                            line=dict(color="#f59e0b", dash="dot"),
+                            annotation_text=f"avg {np.mean(rets):+.1f}%",
+                        )
+                        wr = sum(1 for r in rets if r > 0) / len(rets) * 100
+                        fig_hist.update_layout(
+                            title=f"Horizon {fd} dní | Win rate: {wr:.0f}% | n={len(rets)}",
+                            template="plotly_dark", height=220,
+                            margin=dict(l=0, r=0, t=40, b=10),
+                            showlegend=False,
+                        )
+                        st.plotly_chart(fig_hist, use_container_width=True, config={"displayModeBar": False, "scrollZoom": False})
+
+                st.info(
+                    "Interpretace: Win rate > 55% a průměrný výnos > 0 naznačuje, "
+                    "že signály mají historicky prediktivní hodnotu. "
+                    "Pod 45% win rate je signální systém pro danou akcii méně spolehlivý."
+                )
+        else:
+            st.info("Klikni na 'Spustit backtest' pro zahájení analýzy.")
 
 
 # ═════════════════════════════════════════════════════════════════════════════
 # STRANA 3 – Radar & Trh
 # ═════════════════════════════════════════════════════════════════════════════
-elif page == "Radar & Trh":
+elif page == "Příležitosti":
     tab_radar, tab_makro, tab_korelace = st.tabs([
         "Radar příležitostí",
         "Sektory & Makro",
@@ -2014,164 +2159,6 @@ Myslíš si, že máš 3 různé pozice, ale ve skutečnosti máš 1 velkou sáz
                 legend=dict(orientation="h", y=-0.15),
             )
             st.plotly_chart(fig_norm, use_container_width=True, config={"displayModeBar": False, "scrollZoom": False, "staticPlot": True})
-
-
-# ═════════════════════════════════════════════════════════════════════════════
-# STRANA 4 – Analytika
-# ═════════════════════════════════════════════════════════════════════════════
-elif page == "Analytika":
-    tab_earnings, tab_backtest = st.tabs([
-        "Earnings kalendář",
-        "Backtest signálů",
-    ])
-
-    # ── Tab: Earnings kalendář ────────────────────────────────────────────────
-    with tab_earnings:
-        st.title("Earnings kalendář")
-        st.caption("Příští výsledky hospodaření pro tvoje portfolio.")
-        with st.expander("Co jsou Earnings a proč jsou důležité?"):
-            st.markdown("""
-**Earnings** (výsledky hospodaření) = každé čtvrtletí firmy zveřejňují své skutečné tržby a zisky.
-Trh reaguje velmi silně — cena může vyletět nebo propadnout o desítky procent během hodin.
-
-**EPS** (Earnings Per Share) = zisk na akcii. Čím vyšší, tím lépe.
-
-**Proč nekupovat 1–2 týdny před earnings:**
-- Cena může být uměle nafouklá spekulacemi
-- Po zveřejnění může cena prudce klesnout i při dobrých výsledcích (\"buy the rumor, sell the news\")
-- Výsledky jsou v podstatě nepředvídatelné
-
-**Strategie:** Pokud máš BUY signál, ale earnings jsou za méně než 14 dní — počkej na výsledky.
-Po zveřejnění se situace vyjasní a signál bude spolehlivější.
-            """)
-
-        with st.spinner("Načítám earnings data..."):
-            earnings = get_portfolio_earnings(PORTFOLIO)
-
-        if not earnings:
-            st.warning("Nepodařilo se načíst earnings data.")
-        else:
-            for e in earnings:
-                ed = e.get("earnings_date")
-                days = e.get("days_until")
-
-                if ed is None:
-                    continue
-
-                if days is not None and days < 0:
-                    # Proběhlé – šedé
-                    css = "card-hold"
-                    badge_html = '<span class="badge-hold">PROBĚHLO</span>'
-                    date_str = f"{ed} (před {abs(days)} dny)"
-                elif days is not None and days <= 7:
-                    css = "card-sell"
-                    badge_html = '<span class="badge-sell">TENTO TÝDEN</span>'
-                    date_str = f"{ed} (za {days} dní)"
-                elif days is not None and days <= 14:
-                    css = "card-radar"
-                    badge_html = f'<span style="background:#f59e0b;color:#000;padding:2px 8px;border-radius:4px;font-weight:700;font-size:0.8rem">ZA {days} DNÍ</span>'
-                    date_str = f"{ed}"
-                else:
-                    css = "card-hold"
-                    badge_html = f'<span class="badge-hold">ZA {days} DNÍ</span>' if days else '<span class="badge-hold">---</span>'
-                    date_str = f"{ed}" if ed else "Neznámo"
-
-                eps_html = ""
-                if e.get("eps_estimate"):
-                    eps_html = f'&nbsp;|&nbsp; EPS odhad: <b>{e["eps_estimate"]:.2f}</b>'
-
-                st.markdown(
-                    f'<div class="{css}">'
-                    f'{badge_html} &nbsp; '
-                    f'<strong>{e["name"]}</strong> '
-                    f'<span style="color:#888">{e["ticker"]}</span>'
-                    f'&nbsp;&nbsp;<span style="color:#aaa">{date_str}</span>'
-                    f'{eps_html}'
-                    f'</div>',
-                    unsafe_allow_html=True,
-                )
-
-            st.divider()
-            st.info(
-                "Strategie: Pokud máš BUY signál na akcii, ale earnings jsou za méně než 14 dní, "
-                "zvažuj počkat na výsledky — výsledky mohou signál potvrdit nebo zvrátit."
-            )
-
-    # ── Tab: Backtest signálů ─────────────────────────────────────────────────
-    with tab_backtest:
-        st.title("Backtest signálů")
-        st.caption(
-            "Jak by dopadly BUY/SELL signály tohoto systému na historických datech. "
-            "Win rate = procento obchodů v zisku. Backtest negarantuje budoucí výsledky."
-        )
-
-        all_bt_stocks = {**{n: t for n, (t, c, s) in PORTFOLIO.items()},
-                         **{n: t for n, (t, c, s) in RADAR_STOCKS.items()}}
-
-        bt_choice = st.selectbox("Vyber akcii pro backtest", list(all_bt_stocks.keys()))
-        bt_period = st.select_slider("Historické období", ["1y", "2y", "3y", "5y"], value="2y")
-        bt_ticker = all_bt_stocks[bt_choice]
-
-        if st.button("Spustit backtest", type="primary"):
-            with st.spinner(f"Počítám backtest pro {bt_ticker} za {bt_period}... (může trvat 20–60s)"):
-                result = run_backtest(bt_ticker, period=bt_period)
-
-            if not result.get("ok"):
-                st.error(f"Chyba: {result.get('error', 'Neznámá chyba')}")
-            else:
-                # Souhrnná tabulka
-                st.subheader("Souhrnné výsledky")
-                tbl = backtest_summary_table(result)
-                if not tbl.empty:
-                    st.dataframe(tbl, hide_index=True, use_container_width=True)
-
-                # Detailní grafy
-                for action in ("BUY", "SELL"):
-                    data = result.get(action, {})
-                    if data.get("count", 0) == 0:
-                        continue
-
-                    label = "BUY" if action == "BUY" else "SELL"
-                    color = "#22c55e" if action == "BUY" else "#ef4444"
-                    st.subheader(f"{label} signály – distribuce výnosů")
-
-                    trades = data.get("trades", [])
-                    for fd in [10, 20, 30]:
-                        key = f"ret_{fd}d"
-                        rets = [t[key] for t in trades if key in t]
-                        if not rets:
-                            continue
-
-                        fig_hist = go.Figure()
-                        fig_hist.add_trace(go.Histogram(
-                            x=rets,
-                            nbinsx=20,
-                            marker_color=color,
-                            opacity=0.8,
-                            name=f"{fd}D výnosy",
-                        ))
-                        fig_hist.add_vline(x=0, line=dict(color="white", dash="dash"))
-                        fig_hist.add_vline(
-                            x=float(np.mean(rets)),
-                            line=dict(color="#f59e0b", dash="dot"),
-                            annotation_text=f"avg {np.mean(rets):+.1f}%",
-                        )
-                        wr = sum(1 for r in rets if r > 0) / len(rets) * 100
-                        fig_hist.update_layout(
-                            title=f"Horizon {fd} dní | Win rate: {wr:.0f}% | n={len(rets)}",
-                            template="plotly_dark", height=220,
-                            margin=dict(l=0, r=0, t=40, b=10),
-                            showlegend=False,
-                        )
-                        st.plotly_chart(fig_hist, use_container_width=True, config={"displayModeBar": False, "scrollZoom": False})
-
-                st.info(
-                    "Interpretace: Win rate > 55% a průměrný výnos > 0 naznačuje, "
-                    "že signály mají historicky prediktivní hodnotu. "
-                    "Pod 45% win rate je signální systém pro danou akcii méně spolehlivý."
-                )
-        else:
-            st.info("Vyber akcii a klikni na 'Spustit backtest'.")
 
 
 # ═════════════════════════════════════════════════════════════════════════════
