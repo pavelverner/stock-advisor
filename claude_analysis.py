@@ -42,13 +42,13 @@ def _get_secret(key: str) -> str:
 # ── Provider detekce ──────────────────────────────────────────────────────────
 
 def _get_provider() -> str | None:
-    """Vrátí název dostupného AI providera v pořadí priorit: claude → gemini → groq."""
+    """Vrátí název dostupného AI providera v pořadí priorit: claude → groq → gemini."""
     if _get_secret("ANTHROPIC_API_KEY"):
         return "claude"
-    if _get_secret("GEMINI_API_KEY"):
-        return "gemini"
     if _get_secret("GROQ_API_KEY"):
         return "groq"
+    if _get_secret("GEMINI_API_KEY"):
+        return "gemini"
     return None
 
 
