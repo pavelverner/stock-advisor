@@ -1,10 +1,10 @@
 """
-AI analýza – shrnutí situace, detekce tržních událostí, peer comparison.
+AI analýza – multi-horizont (krátkodobý/střednědobý/dlouhodobý), peer comparison.
 
 Priorita AI providera:
   1. Claude  (ANTHROPIC_API_KEY) – nejkvalitnější
-  2. Gemini  (GEMINI_API_KEY)    – free tier, 1 M tokenů/den
-  3. Groq    (GROQ_API_KEY)      – free tier, LLaMA3, velmi rychlý
+  2. Groq    (GROQ_API_KEY)      – free tier, LLaMA3, velmi rychlý
+  3. Gemini  (GEMINI_API_KEY)    – free tier, 1 M tokenů/den
 """
 import os
 import json

@@ -17,7 +17,7 @@ from indicators import (
 )
 from news_scraper import get_all_news, news_sentiment_summary
 from macro import fetch_fear_greed, fetch_macro_tickers, fetch_sectors, fg_label
-from earnings import get_portfolio_earnings
+from earnings import get_portfolio_earnings, get_earnings
 from backtest import run_backtest, backtest_summary_table
 from ai_sentiment import enrich_news_with_ai, news_ai_summary, sentiment_to_signal
 from claude_analysis import analyze_stock_with_claude, get_peer_comparison
@@ -214,8 +214,8 @@ div:has(> [data-testid="stExpander"]) { gap: 2px !important; }
 .pf-left { grid-column:1; grid-row:1/3; display:flex; flex-direction:column; gap:6px; align-items:flex-start; min-width:80px; }
 
 /* střed – název + ticker */
-.pf-name  { grid-column:2; grid-row:1; font-size:1.0rem; font-weight:700; color:#f1f5f9; }
-.pf-meta  { grid-column:2; grid-row:2; font-size:0.78rem; color:#94a3b8; display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+.pf-name  { grid-column:2; grid-row:1; font-size:1.0rem; font-weight:700; color:#f1f5f9; text-align:left; }
+.pf-meta  { grid-column:2; grid-row:2; font-size:0.78rem; color:#94a3b8; display:flex; flex-wrap:wrap; gap:6px; align-items:center; text-align:left; }
 
 /* pravý sloupec – cena + změna */
 .pf-price-block { grid-column:3; grid-row:1/3; text-align:right; }
@@ -1416,6 +1416,30 @@ když **alespoň 3 indikátory souhlasí** — proto je konzervativní a nevydá
         st.warning(f"AI analýza nedostupná: {_claude.get('error')}")
 
     st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
+
+    # ── Earnings ─────────────────────────────────────────────────────────────
+    _earn = get_earnings(ticker)
+    if _earn:
+        _ed   = _earn.get("earnings_date")
+        _days = _earn.get("days_until")
+        _soon = _earn.get("is_soon", False)
+        _past = _earn.get("is_past", False)
+        if _ed and not _past:
+            _earn_color = "#f59e0b" if _soon else "#60a5fa"
+            _earn_label = f"za {_days} dní" if _days is not None else ""
+            _eps_str = ""
+            if _earn.get("eps_estimate"):
+                _eps_str = f" · EPS odhad: {_earn['eps_estimate']:.2f}"
+            st.markdown(
+                f'<div style="background:#1a1a2e;border:1px solid {_earn_color};border-radius:8px;'
+                f'padding:10px 16px;margin-bottom:8px;display:flex;gap:12px;align-items:center">'
+                f'<span style="font-size:1.4rem">📅</span>'
+                f'<div><div style="color:{_earn_color};font-weight:700">Earnings: {_ed.strftime("%d.%m.%Y")} {_earn_label}</div>'
+                f'<div style="color:#94a3b8;font-size:0.82rem">Výsledky hospodaření{_eps_str}'
+                + (" · <b>Blíží se!</b>" if _soon else "") +
+                f'</div></div></div>',
+                unsafe_allow_html=True,
+            )
 
     # ── Srovnání s konkurencí ────────────────────────────────────────────────
     st.subheader("Srovnání s konkurencí")
