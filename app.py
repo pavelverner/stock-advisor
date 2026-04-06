@@ -437,14 +437,12 @@ _mob_links = "".join(
 )
 st.markdown(f'<div class="mob-nav">{_mob_links}</div>', unsafe_allow_html=True)
 
-    period_map = {
-        "3 měsíce": "3mo",
-        "6 měsíců": "6mo",
-        "1 rok":    "1y",
-        "2 roky":   "2y",
-    }
-    period_label = st.selectbox("Časové období", list(period_map.keys()), index=1)
-    period = period_map[period_label]
+with st.sidebar:
+    period_map = {"3M": "3mo", "6M": "6mo", "1R": "1y", "2R": "2y"}
+    period_label = st.segmented_control(
+        "Období", list(period_map.keys()), default="6M", label_visibility="collapsed"
+    )
+    period = period_map.get(period_label, "6mo")
 
     if page == "Detail akcie":
         all_stocks = dict(PORTFOLIO)
