@@ -360,6 +360,7 @@ RADAR_STOCKS = {
 }
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
+refresh = False  # default; přepsáno tlačítkem v sidebaru
 with st.sidebar:
     st.title("Stock Advisor")
     page = st.radio(
@@ -525,7 +526,7 @@ def cached_peer_comparison(ticker: str, period: str) -> dict:
     return get_peer_comparison(ticker, period)
 
 
-if globals().get("refresh"):
+if refresh:
     st.cache_data.clear()
 
 
