@@ -131,9 +131,17 @@ div:has(> [data-testid="stExpander"]) { gap: 2px !important; }
 }
 
 /* ── Expander – menší rozestupy ── */
-[data-testid="stExpander"] {
+[data-testid="stExpander"],
+details,
+details summary {
     margin-top: 4px !important;
     margin-bottom: 4px !important;
+}
+/* Streamlit obaluje expandery do element-container s výchozím paddingem */
+[data-testid="element-container"]:has(details),
+[data-testid="stElementContainer"]:has(details) {
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
 }
 
 /* ── Základní karty ── */
@@ -1343,37 +1351,20 @@ elif page == "Detail akcie":
     </div>
     """, unsafe_allow_html=True)
 
-        # Přepínač detailu horizontu
-        st.markdown("""
-<style>
-/* Zacíl parent element-container */
-[data-testid="element-container"]:has([data-testid="stSegmentedControl"]),
-[data-testid="stElementContainer"]:has([data-testid="stSegmentedControl"]) {
-    width: 100% !important; display: block !important;
-}
-/* Samotný widget a jeho přímý div child */
-[data-testid="stSegmentedControl"],
-[data-testid="stSegmentedControl"] > div {
-    width: 100% !important; display: block !important; box-sizing: border-box !important;
-}
-/* Skupina tlačítek – flex pro rovnoměrné roztažení */
-[data-testid="stSegmentedControl"] div[role="group"],
-div[role="radiogroup"] {
-    width: 100% !important; display: flex !important; box-sizing: border-box !important;
-}
-/* Každé tlačítko stejně velké */
-[data-testid="stSegmentedControl"] div[role="group"] > *,
-div[role="radiogroup"] > * {
-    flex: 1 1 0 !important; min-width: 0 !important; justify-content: center !important;
-}
-</style>""", unsafe_allow_html=True)
-        _sel_hz = st.segmented_control(
-            "Detail horizontu",
-            ["Krátkodobý", "Střednědobý", "Dlouhodobý"],
-            default="Krátkodobý",
-            key=f"hz_detail_{ticker}",
-            label_visibility="collapsed",
-        )
+        # Přepínač detailu horizontu – columns + buttons (zaručeně celá šířka)
+        _hz_options = ["Krátkodobý", "Střednědobý", "Dlouhodobý"]
+        _hz_state_key = f"hz_sel_{ticker}"
+        if _hz_state_key not in st.session_state:
+            st.session_state[_hz_state_key] = "Krátkodobý"
+        _hz_cols = st.columns(3, gap="small")
+        for _col, _opt in zip(_hz_cols, _hz_options):
+            _is_sel = st.session_state[_hz_state_key] == _opt
+            if _col.button(_opt, use_container_width=True,
+                           type="primary" if _is_sel else "secondary",
+                           key=f"hz_btn_{ticker}_{_opt}"):
+                st.session_state[_hz_state_key] = _opt
+                st.rerun()
+        _sel_hz = st.session_state[_hz_state_key]
         _hz_key = {"Krátkodobý": "short", "Střednědobý": "medium", "Dlouhodobý": "long"}.get(_sel_hz or "Krátkodobý", "short")
         _hz_sig = _mh.get(_hz_key) or signals  # fallback na 6mo signály
 
