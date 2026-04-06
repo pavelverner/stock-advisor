@@ -194,6 +194,11 @@ div:has(> [data-testid="stExpander"]) { gap: 2px !important; }
     h1 { font-size: 1.4rem !important; }
     h2 { font-size: 1.15rem !important; }
     h3 { font-size: 1rem !important; }
+
+    /* Segmented control – celá šířka */
+    [data-testid="stSegmentedControl"] { width: 100% !important; }
+    [data-testid="stSegmentedControl"] > div { width: 100% !important; display: flex !important; }
+    [data-testid="stSegmentedControl"] > div > label { flex: 1 !important; text-align: center !important; }
 }
 
 /* ── Tablet ── */
@@ -527,7 +532,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 _mob_links = "".join(
-    f'<a href="javascript:void(0)" onclick="window.location.href=\'?page={i}\'" '
+    f'<a href="?page={i}" target="_self" '
     f'class="{"active" if _pages[i] == page else ""}">{_page_icons[i]} {_pages[i]}</a>'
     for i in range(len(_pages))
 )
@@ -776,8 +781,8 @@ def _render_radar_card(r: dict, highlight: bool = False):
         f'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px">'
         f'{score_html} <span style="color:#aaa;font-size:0.8rem">{score_label}</span>'
         f'</div>'
-        f'<div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;margin-top:2px">'
-        f'<strong style="font-size:1.05rem">{r["name"]}</strong>'
+        f'<div style="margin-top:2px">'
+        f'<strong style="font-size:1.05rem;margin-right:6px">{r["name"]}</strong>'
         f'<span style="color:#888;font-size:0.82rem">{r["ticker"]} · {r["sector"]}</span>'
         f'</div>'
         f'<div style="display:flex;flex-wrap:wrap;align-items:center;gap:2px 10px;margin-top:2px;font-size:0.85rem">'
@@ -984,7 +989,6 @@ if page == "Přehled portfolia":
   <div class="pf-left">
     <span class="{badge}">{label}</span>
     <div style="margin-top:2px">{score_html}</div>
-    <div style="color:#94a3b8;font-size:0.7rem;white-space:nowrap">{score_label}</div>
   </div>
   <div class="pf-name">
     {r['name']} <span style="color:#555;font-size:0.78rem;font-weight:400">{r['ticker']}</span>
@@ -1166,7 +1170,7 @@ elif page == "Detail akcie":
         _HINT_COLOR = {"koupit": "#22c55e", "prodat": "#ef4444", "čekat": "#f59e0b", "sledovat": "#60a5fa"}
         _ai_prov = _claude.get("provider", "AI") if _claude.get("ok") else ""
 
-        def _horizon_badge(key: str, label: str) -> str:
+        def _horizon_badge(key: str, title: str, subtitle: str = "") -> str:
             """HTML badge pro jeden horizont v horním řádku."""
             h = _claude.get(key, {}) if _claude.get("ok") else {}
             hint = h.get("action_hint", "")
@@ -1179,10 +1183,12 @@ elif page == "Detail akcie":
             clr = _HINT_COLOR.get(hint, "#94a3b8")
             lbl = _HINT_LABEL.get(hint, hint.upper())
             conf_html = f'<div style="color:#64748b;font-size:0.68rem;margin-top:2px">{conf}</div>' if conf else ""
+            sub_html = f'<div style="color:#475569;font-size:0.62rem;line-height:1.2">{subtitle}</div>' if subtitle else ""
             return (
                 f'<div style="background:{clr}18;border:2px solid {clr};border-radius:10px;'
                 f'padding:10px 8px;text-align:center">'
-                f'<div style="color:#94a3b8;font-size:0.68rem;margin-bottom:4px">{label}</div>'
+                f'<div style="color:#94a3b8;font-size:0.68rem;line-height:1.3;margin-bottom:4px">'
+                f'{title}{sub_html}</div>'
                 f'<div style="color:{clr};font-size:1.15rem;font-weight:800">{lbl}</div>'
                 f'{conf_html}</div>'
             )
@@ -1197,9 +1203,9 @@ elif page == "Detail akcie":
     }}
     </style>
     <div class="horizon-grid">
-      {_horizon_badge("short",  "Krátkodobý (< 3 měs.)")}
-      {_horizon_badge("medium", "Střednědobý (6m – 2r)")}
-      {_horizon_badge("long",   "Dlouhodobý (3+ roky)")}
+      {_horizon_badge("short",  "Krátkodobý", "< 3 měs.")}
+      {_horizon_badge("medium", "Střednědobý", "6m – 2 roky")}
+      {_horizon_badge("long",   "Dlouhodobý",  "3+ roky")}
     </div>
     """, unsafe_allow_html=True)
 
