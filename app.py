@@ -33,7 +33,6 @@ st.set_page_config(
 # ── Google login ─────────────────────────────────────────────────────────────
 _ALLOWED_EMAIL = "seusdt@gmail.com"
 
-st.write("DEBUG user:", st.user.is_logged_in, "email:", getattr(st.user, "email", "N/A"))  # TODO: smazat
 
 if not st.user.is_logged_in:
     st.markdown("""
@@ -367,6 +366,8 @@ with st.sidebar:
     _user = st.user
     if _user.is_logged_in:
         st.caption(f"👤 {_user.name or _user.email}")
+        if st.button("Odhlásit se", use_container_width=True):
+            st.logout()
 
     period_map = {
         "3 měsíce": "3mo",
