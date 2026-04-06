@@ -106,8 +106,13 @@ div:has(> [data-testid="stExpander"]) { gap: 2px !important; }
 }
 /* Plotly toolbar skryj všude */
 .modebar                                             { display: none !important; }
-/* Zamez zachycení scrollu grafem na mobilu */
-.js-plotly-plot .plotly                              { touch-action: pan-y !important; }
+/* Zamez zachycení scrollu grafem na mobilu – grafy nepřebírají dotyk */
+@media (max-width: 768px) {
+  .js-plotly-plot, .js-plotly-plot .plotly, .plotly-graph-div {
+    touch-action: pan-y !important;
+    pointer-events: none !important;
+  }
+}
 
 /* ── Základní karty ── */
 .signal-buy  { background:#0d6e2f; color:#fff; padding:10px 20px; border-radius:8px;
