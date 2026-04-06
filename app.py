@@ -71,12 +71,11 @@ st.markdown("""
 st.markdown("""
 <style>
 /* ── Skryj Streamlit branding a systémové prvky ── */
-#MainMenu, footer, header                            { display: none !important; }
-[data-testid="stToolbar"]                            { display: none !important; }
-[data-testid="stDecoration"]                         { display: none !important; }
-[data-testid="stStatusWidget"]                       { display: none !important; }
-[data-testid="stHeader"]                             { display: none !important; }
-[data-testid="stAppViewBlockContainer"] > div:first-child > div:first-child { padding-top: 0 !important; }
+#MainMenu, footer, header                            { display: none !important; height: 0 !important; }
+[data-testid="stToolbar"]                            { display: none !important; height: 0 !important; }
+[data-testid="stDecoration"]                         { display: none !important; height: 0 !important; }
+[data-testid="stStatusWidget"]                       { display: none !important; height: 0 !important; }
+[data-testid="stHeader"]                             { display: none !important; height: 0 !important; min-height: 0 !important; }
 .stDeployButton                                      { display: none !important; }
 [data-testid="baseButton-headerNoPadding"]           { display: none !important; }
 .viewerBadge_container__1QSob                        { display: none !important; }
@@ -87,8 +86,11 @@ st.markdown("""
 a[href*="streamlit.io"]                              { display: none !important; }
 a[href*="share.streamlit.io"]                        { display: none !important; }
 a[href*="github.com"][target]                        { display: none !important; }
-/* Odstraň horní padding způsobený skrytým headerem */
-.stMainBlockContainer, [data-testid="stMain"] > div { padding-top: 1rem !important; }
+/* Odstraň veškerý horní padding */
+.stMainBlockContainer, [data-testid="stMain"] > div  { padding-top: 0 !important; }
+[data-testid="stAppViewBlockContainer"]              { padding-top: 0 !important; }
+section[data-testid="stSidebar"] ~ div               { padding-top: 0 !important; }
+.main .block-container                               { padding-top: 0 !important; }
 /* Plynulý přechod při překliknutí stránek */
 [data-testid="stMainBlockContainer"] {
   animation: fadeIn 0.25s ease-in-out;
