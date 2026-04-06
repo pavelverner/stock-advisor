@@ -1683,30 +1683,29 @@ elif page == "Detail akcie":
         # ── AI analýza – události a rizika pro vybraný horizont ──────────────────
         if _claude.get("ok"):
             if _hz_events or _hz_risks:
-                _ev_html = "".join(
-                    f'<div style="background:#0c2a4a;border-left:3px solid #60a5fa;border-radius:4px;'
-                    f'padding:8px 12px;margin:4px 0;font-size:0.85rem;color:#cbd5e1">📌 {ev}</div>'
-                    for ev in _hz_events
-                )
-                _ri_html = "".join(
-                    f'<div style="background:#2a1a0a;border-left:3px solid #f59e0b;border-radius:4px;'
-                    f'padding:8px 12px;margin:4px 0;font-size:0.85rem;color:#cbd5e1">⚠️ {ri}</div>'
-                    for ri in _hz_risks
-                )
+                # Interleave: každý řádek = jeden event + jeden risk (zarovnané vedle sebe)
+                _max_rows = max(len(_hz_events), len(_hz_risks))
+                _rows_html = ""
+                for _i in range(_max_rows):
+                    _ev = _hz_events[_i] if _i < len(_hz_events) else None
+                    _ri = _hz_risks[_i]  if _i < len(_hz_risks)  else None
+                    _rows_html += (
+                        (f'<div style="background:#0c2a4a;border-left:3px solid #60a5fa;border-radius:4px;'
+                         f'padding:8px 12px;font-size:0.85rem;color:#cbd5e1">📌 {_ev}</div>'
+                         if _ev else '<div></div>')
+                        +
+                        (f'<div style="background:#2a1a0a;border-left:3px solid #f59e0b;border-radius:4px;'
+                         f'padding:8px 12px;font-size:0.85rem;color:#cbd5e1">⚠️ {_ri}</div>'
+                         if _ri else '<div></div>')
+                    )
                 st.markdown(f"""
 <style>
-.ev-grid {{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:8px; align-items:start; }}
-@media (max-width:640px) {{ .ev-grid {{ grid-template-columns:1fr; }} }}
+.ev-grid {{ display:grid; grid-template-columns:1fr 1fr; gap:6px 12px; margin-top:8px; }}
 </style>
 <div class="ev-grid">
-  <div>
-    <div style="color:#94a3b8;font-size:0.75rem;font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">📌 Klíčové události</div>
-    {_ev_html if _ev_html else '<div style="color:#475569;font-size:0.8rem">Žádné klíčové události</div>'}
-  </div>
-  <div>
-    <div style="color:#94a3b8;font-size:0.75rem;font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">⚠️ Rizikové faktory</div>
-    {_ri_html if _ri_html else '<div style="color:#475569;font-size:0.8rem">Žádné rizikové faktory</div>'}
-  </div>
+  <div style="color:#94a3b8;font-size:0.75rem;font-weight:600;padding-bottom:2px;text-transform:uppercase;letter-spacing:.05em">📌 Klíčové události</div>
+  <div style="color:#94a3b8;font-size:0.75rem;font-weight:600;padding-bottom:2px;text-transform:uppercase;letter-spacing:.05em">⚠️ Rizikové faktory</div>
+  {_rows_html}
 </div>""", unsafe_allow_html=True)
             if _hz_opp:
                 hint_color = _HINT_COLOR.get(_hz_hint, "#888")
@@ -1896,6 +1895,17 @@ elif page == "Příležitosti":
         st.title("Radar – nové příležitosti")
         st.caption(f"{len(RADAR_STOCKS_FULL)} akcií ze všech sektorů (včetně portfolia). Signál = ≥3 shodné technické indikátory.")
 
+        # Horizontový filtr
+        _radar_hz = st.segmented_control(
+            "Horizont radaru",
+            ["Krátkodobý", "Střednědobý", "Dlouhodobý"],
+            default="Střednědobý",
+            key="radar_hz",
+            label_visibility="collapsed",
+        )
+        _radar_period_map = {"Krátkodobý": "3mo", "Střednědobý": "6mo", "Dlouhodobý": "2y"}
+        _radar_period = _radar_period_map.get(_radar_hz or "Střednědobý", "6mo")
+
         with st.expander("Jak radar funguje?"):
             st.markdown("""
 Radar prohledává ~50 akcií pokrývající všechny hlavní sektory (energie, tech, finance, zdravotnictví...).
@@ -1917,7 +1927,7 @@ Technické indikátory to zachytí — akcie v silném sektoru BEZ BUY signálu 
 
         # ── Načtení sektorové výkonnosti ─────────────────────────────────────
         with st.spinner("Načítám sektorová data..."):
-            sector_perf_raw = fetch_sectors(period)
+            sector_perf_raw = fetch_sectors(_radar_period)
         sector_perf = {s["name"]: s["chg_period"] for s in sector_perf_raw}
 
         # ── Sektorový přehled – kompaktní flex grid ───────────────────────────
@@ -1941,7 +1951,7 @@ Technické indikátory to zachytí — akcie v silném sektoru BEZ BUY signálu 
 
         # ── Scan akcií – vždy celý RADAR_STOCKS_FULL, filtr až na výsledky ────
         with st.spinner(f"Skenuji {len(RADAR_STOCKS_FULL)} akcií... (výsledky se cachují na 1h)"):
-            all_radar_results = scan_stocks(RADAR_STOCKS_FULL, period)
+            all_radar_results = scan_stocks(RADAR_STOCKS_FULL, _radar_period)
 
         # Přidej sektorový kontext a aplikuj sektorový filtr
         for r in all_radar_results:
