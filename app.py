@@ -414,7 +414,8 @@ investment_horizon = "Střednědobý (3–12 měs.)"
 _pages = ["Přehled portfolia", "Detail akcie", "Radar & Trh", "Analytika", "Deník obchodů"]
 
 # Mobilní navigace – query param přepíše session state před renderem radia
-_qp = st.query_params.get("page", None)
+_qp        = st.query_params.get("page",   None)
+_qp_ticker = st.query_params.get("ticker", None)
 if _qp is not None:
     try:
         _qi = int(_qp)
@@ -422,6 +423,10 @@ if _qp is not None:
             st.session_state["nav_page"] = _pages[_qi]
     except ValueError:
         pass
+if _qp_ticker:
+    st.session_state["_nav_ticker"] = _qp_ticker
+    st.session_state["nav_page"] = "Detail akcie"
+if _qp is not None or _qp_ticker:
     st.query_params.clear()
 
 with st.sidebar:
@@ -463,7 +468,8 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 _mob_links = "".join(
-    f'<a href="?page={i}" class="{"active" if _pages[i] == page else ""}">{_page_icons[i]} {_pages[i]}</a>'
+    f'<a href="javascript:void(0)" onclick="window.location.href=\'?page={i}\'" '
+    f'class="{"active" if _pages[i] == page else ""}">{_page_icons[i]} {_pages[i]}</a>'
     for i in range(len(_pages))
 )
 st.markdown(f'<div class="mob-nav">{_mob_links}</div>', unsafe_allow_html=True)
@@ -476,7 +482,16 @@ with st.sidebar:
         all_stocks = dict(PORTFOLIO)
         all_stocks.update(RADAR_STOCKS)
         all_stocks["Vlastní ticker..."] = ("CUSTOM", "", "")
-        stock_choice = st.selectbox("Akcie", list(all_stocks.keys()), index=0)
+        _stock_names = list(all_stocks.keys())
+        # Pokud přišel ticker přes query param (?ticker=NVDA), předvyber ho
+        _nav_t = st.session_state.pop("_nav_ticker", None)
+        _default_idx = 0
+        if _nav_t:
+            for _i, _n in enumerate(_stock_names):
+                if all_stocks[_n][0] == _nav_t:
+                    _default_idx = _i
+                    break
+        stock_choice = st.selectbox("Akcie", _stock_names, index=_default_idx, key="stock_select")
         if stock_choice == "Vlastní ticker...":
             custom = st.text_input("Ticker (např. AAPL)").upper().strip()
             detail_ticker = custom or "AAPL"
@@ -683,7 +698,8 @@ def _render_radar_card(r: dict, highlight: bool = False):
         f'<span class="{badge}">{label}</span> &nbsp;'
         f'{score_html} &nbsp; <span style="color:#aaa;font-size:0.8rem">{score_label}</span>'
         f' &nbsp; {med_badge}'
-        f'<br><strong style="font-size:1.05rem">{r["name"]}</strong>'
+        f'<br><a href="javascript:void(0)" onclick="window.location.href=\'?page=1&ticker={r["ticker"]}\'" '
+        f'style="color:inherit;text-decoration:none;font-size:1.05rem;font-weight:700">{r["name"]}</a>'
         f' <span style="color:#888;font-size:0.82rem">{r["ticker"]} · {r["sector"]}</span>'
         f' &nbsp;{r["price"]:.2f} {r["currency"]}'
         f' <span style="color:{color}">{arrow}{r["chg_pct"]:+.1f}%</span>'
@@ -877,7 +893,12 @@ if page == "Přehled portfolia":
     <div style="margin-top:2px">{score_html}</div>
     <div style="color:#94a3b8;font-size:0.7rem;white-space:nowrap">{score_label}</div>
   </div>
-  <div class="pf-name">{r['name']} <span style="color:#555;font-size:0.78rem;font-weight:400">{r['ticker']}</span></div>
+  <div class="pf-name">
+    <a href="javascript:void(0)" onclick="window.location.href='?page=1&ticker={r['ticker']}'"
+       style="color:inherit;text-decoration:none;cursor:pointer"
+       title="Otevřít detail {r['name']}">{r['name']}</a>
+    <span style="color:#555;font-size:0.78rem;font-weight:400">{r['ticker']}</span>
+  </div>
   <div class="pf-meta">
     <span class="pf-pill" style="color:{rsi_color}">RSI {r['rsi']:.0f}</span>
     <span class="pf-pill" style="color:{trend_color}">{r['ema_trend']}</span>
