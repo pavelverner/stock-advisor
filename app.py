@@ -525,7 +525,7 @@ def cached_peer_comparison(ticker: str, period: str) -> dict:
     return get_peer_comparison(ticker, period)
 
 
-if refresh:
+if globals().get("refresh"):
     st.cache_data.clear()
 
 
