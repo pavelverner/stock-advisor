@@ -841,8 +841,8 @@ if page == "Přehled portfolia":
                 },
             ))
             _fig_gauge.update_layout(
-                height=340, template="plotly_dark",
-                margin=dict(l=10, r=10, t=40, b=10),
+                height=250, template="plotly_dark",
+                margin=dict(l=10, r=10, t=30, b=5),
             )
             st.plotly_chart(_fig_gauge, use_container_width=True, config={"displayModeBar": False, "scrollZoom": False})
 
