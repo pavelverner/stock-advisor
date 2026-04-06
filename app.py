@@ -855,16 +855,86 @@ elif page == "Detail akcie":
 
     st.divider()
 
-    # Načti zprávy a AI sentiment před výpočtem signálů
-    with st.spinner("Načítám zprávy a AI sentiment analýzu..."):
+    # Načti zprávy, AI sentiment a signály
+    with st.spinner("Načítám analýzu..."):
         news_raw = load_news(ticker)
         news     = enrich_news_with_ai(news_raw) if news_raw else []
         ai_sent  = news_ai_summary(news) if news else {"score": 0, "source": "N/A",
                                                         "positive": 0, "negative": 0, "neutral": 0}
 
-    # Signály včetně AI news sentimentu
     signals = generate_signals_with_news(df, ai_sent)
     action  = signals["action"]
+
+    # Načti AI analýzu hned – použijeme ji i v summary kartě
+    import json as _json
+    with st.spinner("Volám AI analýzu..."):
+        _claude = cached_claude_analysis(
+            ticker,
+            _json.dumps({k: (float(v) if isinstance(v, (int, float)) else v)
+                         for k, v in signals.items()
+                         if not isinstance(v, (list, dict))} |
+                        {"buy_signals": signals.get("buy_signals", []),
+                         "sell_signals": signals.get("sell_signals", [])}),
+            _json.dumps([{"title": n.get("title",""), "summary": n.get("summary","")} for n in news[:10]]),
+            _json.dumps({k: (float(v) if isinstance(v, float) else v) for k, v in ai_sent.items()}),
+        )
+
+    # ── Souhrnná karta ───────────────────────────────────────────────────────
+    _trend = ("Bullish" if signals["ema20"] > signals["ema50"] > signals["ema200"]
+              else "Bearish" if signals["ema20"] < signals["ema50"] < signals["ema200"]
+              else "Smíšený")
+    _rsi   = signals["rsi"]
+    _rsi_lbl = "Oversold" if _rsi < 30 else ("Overbought" if _rsi > 70 else "Neutrální")
+    _rsi_c   = "#22c55e" if _rsi < 30 else ("#ef4444" if _rsi > 70 else "#94a3b8")
+    _trend_c = "#22c55e" if _trend == "Bullish" else ("#ef4444" if _trend == "Bearish" else "#94a3b8")
+    _macd_c  = "#22c55e" if signals["macd"] > signals["macd_signal"] else "#ef4444"
+    _macd_lbl = "Bullish" if signals["macd"] > signals["macd_signal"] else "Bearish"
+    _sent_c  = "#22c55e" if ai_sent["score"] > 0.15 else ("#ef4444" if ai_sent["score"] < -0.15 else "#94a3b8")
+    _sent_lbl = {"positive": "Pozitivní", "negative": "Negativní", "neutral": "Neutrální"}.get(ai_sent.get("dominant","neutral"), "Neutrální")
+    _sig_c   = {"BUY": "#22c55e", "SELL": "#ef4444", "HOLD": "#94a3b8"}[action]
+    _sig_lbl = {"BUY": "KOUPIT", "SELL": "PRODAT", "HOLD": "DRŽET"}[action]
+
+    _ai_hint = _claude.get("action_hint", "") if _claude.get("ok") else ""
+    _ai_conf = _claude.get("confidence", "") if _claude.get("ok") else ""
+    _ai_summ = _claude.get("summary", "") if _claude.get("ok") else ""
+    _ai_prov = _claude.get("provider", "AI") if _claude.get("ok") else ""
+    _hint_c  = {"koupit": "#22c55e", "prodat": "#ef4444"}.get(_ai_hint, "#94a3b8")
+
+    st.markdown(f"""
+<div style="background:#1e293b;border-radius:12px;padding:18px 20px;margin-bottom:16px">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+    <div style="background:{_sig_c}22;border:2px solid {_sig_c};border-radius:8px;
+                padding:6px 18px;font-size:1.3rem;font-weight:700;color:{_sig_c}">{_sig_lbl}</div>
+    <div style="color:#94a3b8;font-size:0.85rem">
+      {len(signals['buy_signals'])} BUY · {len(signals['sell_signals'])} SELL signálů
+    </div>
+    {"<div style='margin-left:auto;color:#94a3b8;font-size:0.8rem'>AI: <span style=\"color:" + _hint_c + ";font-weight:600;text-transform:uppercase\">" + _ai_hint + "</span> · jistota: " + _ai_conf + " · <span style=\"color:#60a5fa\">" + _ai_prov + "</span></div>" if _ai_hint else ""}
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:{'14px' if _ai_summ else '0'}">
+    <div style="background:#0f172a;border-radius:8px;padding:10px;text-align:center">
+      <div style="color:#64748b;font-size:0.75rem">RSI (14)</div>
+      <div style="color:{_rsi_c};font-size:1.2rem;font-weight:700">{_rsi:.1f}</div>
+      <div style="color:#64748b;font-size:0.75rem">{_rsi_lbl}</div>
+    </div>
+    <div style="background:#0f172a;border-radius:8px;padding:10px;text-align:center">
+      <div style="color:#64748b;font-size:0.75rem">EMA Trend</div>
+      <div style="color:{_trend_c};font-size:1.2rem;font-weight:700">{_trend}</div>
+      <div style="color:#64748b;font-size:0.75rem">EMA 20/50/200</div>
+    </div>
+    <div style="background:#0f172a;border-radius:8px;padding:10px;text-align:center">
+      <div style="color:#64748b;font-size:0.75rem">MACD</div>
+      <div style="color:{_macd_c};font-size:1.2rem;font-weight:700">{_macd_lbl}</div>
+      <div style="color:#64748b;font-size:0.75rem">{signals['macd']:.3f}</div>
+    </div>
+    <div style="background:#0f172a;border-radius:8px;padding:10px;text-align:center">
+      <div style="color:#64748b;font-size:0.75rem">Sentiment zpráv</div>
+      <div style="color:{_sent_c};font-size:1.2rem;font-weight:700">{_sent_lbl}</div>
+      <div style="color:#64748b;font-size:0.75rem">Skóre: {ai_sent['score']:+.2f}</div>
+    </div>
+  </div>
+  {f'<div style="border-top:1px solid #334155;padding-top:12px;color:#cbd5e1;font-size:0.9rem"><span style="color:#60a5fa;font-size:0.75rem;font-weight:600">{_ai_prov.upper()} · </span>{_ai_summ}</div>' if _ai_summ else ""}
+</div>
+""", unsafe_allow_html=True)
 
     sig_col, detail_col = st.columns([1, 2])
     with sig_col:
@@ -970,146 +1040,109 @@ když **alespoň 3 indikátory souhlasí** — proto je konzervativní a nevydá
 
     st.divider()
 
-    # Graf
-    close = df["Close"]
-    rsi_s = compute_rsi(close)
-    ml, sl, hist = compute_macd(close)
-    ub, mb, lb = compute_bollinger(close)
-    e20, e50, e200 = compute_emas(close)
+    # Graf (skrytý by default)
+    with st.expander("Graf & technická analýza", expanded=False):
+        close = df["Close"]
+        rsi_s = compute_rsi(close)
+        ml, sl, hist = compute_macd(close)
+        ub, mb, lb = compute_bollinger(close)
+        e20, e50, e200 = compute_emas(close)
 
-    fig = make_subplots(
-        rows=3, cols=1, shared_xaxes=True,
-        row_heights=[0.55, 0.25, 0.20],
-        vertical_spacing=0.04,
-        subplot_titles=(f"{ticker} – Cena", "RSI (14)", "MACD"),
-    )
+        fig = make_subplots(
+            rows=3, cols=1, shared_xaxes=True,
+            row_heights=[0.55, 0.25, 0.20],
+            vertical_spacing=0.04,
+            subplot_titles=(f"{ticker} – Cena", "RSI (14)", "MACD"),
+        )
 
-    fig.add_trace(go.Candlestick(
-        x=df.index, open=df["Open"], high=df["High"], low=df["Low"], close=close,
-        name="Cena",
-        increasing_line_color="#22c55e", decreasing_line_color="#ef4444",
-    ), row=1, col=1)
+        fig.add_trace(go.Candlestick(
+            x=df.index, open=df["Open"], high=df["High"], low=df["Low"], close=close,
+            name="Cena",
+            increasing_line_color="#22c55e", decreasing_line_color="#ef4444",
+        ), row=1, col=1)
 
-    if show_bb:
-        fig.add_trace(go.Scatter(x=df.index, y=ub, line=dict(color="rgba(100,149,237,0.4)", width=1), showlegend=False), row=1, col=1)
-        fig.add_trace(go.Scatter(x=df.index, y=lb, line=dict(color="rgba(100,149,237,0.4)", width=1), fill="tonexty", fillcolor="rgba(100,149,237,0.08)", showlegend=False), row=1, col=1)
-        fig.add_trace(go.Scatter(x=df.index, y=mb, line=dict(color="rgba(100,149,237,0.6)", width=1, dash="dot"), name="BB Mid", showlegend=False), row=1, col=1)
+        if show_bb:
+            fig.add_trace(go.Scatter(x=df.index, y=ub, line=dict(color="rgba(100,149,237,0.4)", width=1), showlegend=False), row=1, col=1)
+            fig.add_trace(go.Scatter(x=df.index, y=lb, line=dict(color="rgba(100,149,237,0.4)", width=1), fill="tonexty", fillcolor="rgba(100,149,237,0.08)", showlegend=False), row=1, col=1)
+            fig.add_trace(go.Scatter(x=df.index, y=mb, line=dict(color="rgba(100,149,237,0.6)", width=1, dash="dot"), name="BB Mid", showlegend=False), row=1, col=1)
 
-    if show_ema:
-        fig.add_trace(go.Scatter(x=df.index, y=e20,  line=dict(color="#f59e0b", width=1.5), name="EMA 20"),  row=1, col=1)
-        fig.add_trace(go.Scatter(x=df.index, y=e50,  line=dict(color="#8b5cf6", width=1.5), name="EMA 50"),  row=1, col=1)
-        fig.add_trace(go.Scatter(x=df.index, y=e200, line=dict(color="#ec4899", width=1.5), name="EMA 200"), row=1, col=1)
+        if show_ema:
+            fig.add_trace(go.Scatter(x=df.index, y=e20,  line=dict(color="#f59e0b", width=1.5), name="EMA 20"),  row=1, col=1)
+            fig.add_trace(go.Scatter(x=df.index, y=e50,  line=dict(color="#8b5cf6", width=1.5), name="EMA 50"),  row=1, col=1)
+            fig.add_trace(go.Scatter(x=df.index, y=e200, line=dict(color="#ec4899", width=1.5), name="EMA 200"), row=1, col=1)
 
-    fig.add_trace(go.Scatter(x=df.index, y=rsi_s, line=dict(color="#60a5fa", width=1.5), name="RSI"), row=2, col=1)
-    fig.add_hline(y=70, line=dict(color="#ef4444", dash="dash", width=1), row=2, col=1)
-    fig.add_hline(y=30, line=dict(color="#22c55e", dash="dash", width=1), row=2, col=1)
+        fig.add_trace(go.Scatter(x=df.index, y=rsi_s, line=dict(color="#60a5fa", width=1.5), name="RSI"), row=2, col=1)
+        fig.add_hline(y=70, line=dict(color="#ef4444", dash="dash", width=1), row=2, col=1)
+        fig.add_hline(y=30, line=dict(color="#22c55e", dash="dash", width=1), row=2, col=1)
 
-    hcolors = ["#22c55e" if v >= 0 else "#ef4444" for v in hist]
-    fig.add_trace(go.Bar(x=df.index, y=hist, marker_color=hcolors, showlegend=False), row=3, col=1)
-    fig.add_trace(go.Scatter(x=df.index, y=ml, line=dict(color="#60a5fa", width=1.5), name="MACD"),   row=3, col=1)
-    fig.add_trace(go.Scatter(x=df.index, y=sl, line=dict(color="#f59e0b", width=1.5), name="Signal"), row=3, col=1)
+        hcolors = ["#22c55e" if v >= 0 else "#ef4444" for v in hist]
+        fig.add_trace(go.Bar(x=df.index, y=hist, marker_color=hcolors, showlegend=False), row=3, col=1)
+        fig.add_trace(go.Scatter(x=df.index, y=ml, line=dict(color="#60a5fa", width=1.5), name="MACD"),   row=3, col=1)
+        fig.add_trace(go.Scatter(x=df.index, y=sl, line=dict(color="#f59e0b", width=1.5), name="Signal"), row=3, col=1)
 
-    fig.update_layout(
-        height=660, template="plotly_dark",
-        xaxis_rangeslider_visible=False,
-        legend=dict(orientation="h", yanchor="bottom", y=1.01, x=0),
-        margin=dict(l=0, r=0, t=40, b=0),
-    )
-    fig.update_yaxes(range=[0, 100], row=2, col=1)
-    st.plotly_chart(fig, use_container_width=True)
+        fig.update_layout(
+            height=660, template="plotly_dark",
+            xaxis_rangeslider_visible=False,
+            legend=dict(orientation="h", yanchor="top", y=-0.05, x=0),
+            margin=dict(l=0, r=0, t=40, b=0),
+        )
+        fig.update_yaxes(range=[0, 100], row=2, col=1)
+        st.plotly_chart(fig, use_container_width=True)
 
     st.divider()
 
-    # Zprávy & AI Sentiment (zprávy již načteny výše)
-    st.subheader("Zprávy & AI Sentiment")
-
-    if news:
-        # Souhrnné metriky
-        source_label = f"FinBERT AI" if ai_sent.get("source") == "FinBERT" else "Klíčová slova"
-        n1, n2, n3, n4 = st.columns(4)
-        n1.metric("Pozitivní zprávy", ai_sent["positive"])
-        n2.metric("Negativní zprávy", ai_sent["negative"])
-        n3.metric("Neutrální",        ai_sent["neutral"])
-        dom = ai_sent["dominant"]
-        dom_label = {"positive": "Pozitivní", "negative": "Negativní", "neutral": "Neutrální"}[dom]
-        dom_color = {"positive": "#22c55e", "negative": "#ef4444", "neutral": "#888"}[dom]
-        n4.metric(
-            "AI Sentiment",
-            dom_label,
-            f"Skóre: {ai_sent['score']:+.2f} ({source_label})",
-            help="Skóre -1 = velmi negativní, 0 = neutrální, +1 = velmi pozitivní. "
-                 "FinBERT model je trénovaný specificky na finančních textech."
-        )
-
-        # AI sentiment bar
-        score_val = ai_sent["score"]
-        bar_pct   = int((score_val + 1) / 2 * 100)  # převod -1..+1 na 0..100%
-        bar_color = "#22c55e" if score_val > 0.15 else "#ef4444" if score_val < -0.15 else "#888"
-        st.markdown(
-            f'<div style="background:#1a1a2e;border-radius:8px;padding:10px;margin:8px 0">'
-            f'<div style="font-size:0.8rem;color:#888;margin-bottom:4px">'
-            f'Sentiment spektrum (FinBERT) &nbsp;·&nbsp; {source_label}</div>'
-            f'<div style="background:#333;border-radius:4px;height:10px;width:100%">'
-            f'<div style="background:{bar_color};border-radius:4px;height:10px;width:{bar_pct}%"></div>'
-            f'</div>'
-            f'<div style="display:flex;justify-content:space-between;font-size:0.75rem;color:#666;margin-top:2px">'
-            f'<span>Velmi negativní</span><span>Neutrální</span><span>Velmi pozitivní</span>'
-            f'</div></div>',
-            unsafe_allow_html=True,
-        )
-
-        st.markdown("---")
-        for item in news[:15]:
-            s   = item.get("sentiment", "neutral")
-            conf = item.get("sentiment_score", 0)
-            src  = item.get("sentiment_source", "")
-            css = {"positive": "news-pos", "negative": "news-neg", "neutral": "news-neu"}[s]
-            ico = {"positive": "🟢", "negative": "🔴", "neutral": "⚪"}[s]
-            sd  = f"{item['source']} · {item['date']}" if item["date"] else item["source"]
-            smr = f"<br><small style='color:#aaa'>{item['summary']}</small>" if item["summary"] else ""
-            conf_html = (f'<span style="color:#666;font-size:0.75rem"> '
-                         f'[{src} {conf:.0%}]</span>') if conf else ""
+    # Zprávy & AI Sentiment (skryté by default)
+    with st.expander("Zprávy & AI Sentiment", expanded=False):
+        if news:
+            source_label = "FinBERT AI" if ai_sent.get("source") == "FinBERT" else "Klíčová slova"
+            n1, n2, n3, n4 = st.columns(4)
+            n1.metric("Pozitivní zprávy", ai_sent["positive"])
+            n2.metric("Negativní zprávy", ai_sent["negative"])
+            n3.metric("Neutrální",        ai_sent["neutral"])
+            dom = ai_sent["dominant"]
+            dom_label = {"positive": "Pozitivní", "negative": "Negativní", "neutral": "Neutrální"}[dom]
+            n4.metric(
+                "AI Sentiment", dom_label,
+                f"Skóre: {ai_sent['score']:+.2f} ({source_label})",
+                help="Skóre -1 = velmi negativní, 0 = neutrální, +1 = velmi pozitivní."
+            )
+            score_val = ai_sent["score"]
+            bar_pct   = int((score_val + 1) / 2 * 100)
+            bar_color = "#22c55e" if score_val > 0.15 else "#ef4444" if score_val < -0.15 else "#888"
             st.markdown(
-                f'<div class="{css}">{ico} <a href="{item["link"]}" target="_blank" style="color:inherit">'
-                f'<strong>{item["title"]}</strong></a>{conf_html}'
-                f'<br><small style="color:#888">{sd}</small>{smr}</div>',
+                f'<div style="background:#1a1a2e;border-radius:8px;padding:10px;margin:8px 0">'
+                f'<div style="font-size:0.8rem;color:#888;margin-bottom:4px">Sentiment spektrum &nbsp;·&nbsp; {source_label}</div>'
+                f'<div style="background:#333;border-radius:4px;height:10px;width:100%">'
+                f'<div style="background:{bar_color};border-radius:4px;height:10px;width:{bar_pct}%"></div>'
+                f'</div>'
+                f'<div style="display:flex;justify-content:space-between;font-size:0.75rem;color:#666;margin-top:2px">'
+                f'<span>Velmi negativní</span><span>Neutrální</span><span>Velmi pozitivní</span>'
+                f'</div></div>',
                 unsafe_allow_html=True,
             )
-    else:
-        st.info("Zprávy se nepodařilo načíst.")
+            st.markdown("---")
+            for item in news[:15]:
+                s    = item.get("sentiment", "neutral")
+                conf = item.get("sentiment_score", 0)
+                src  = item.get("sentiment_source", "")
+                css  = {"positive": "news-pos", "negative": "news-neg", "neutral": "news-neu"}[s]
+                ico  = {"positive": "🟢", "negative": "🔴", "neutral": "⚪"}[s]
+                sd   = f"{item['source']} · {item['date']}" if item["date"] else item["source"]
+                smr  = f"<br><small style='color:#aaa'>{item['summary']}</small>" if item["summary"] else ""
+                conf_html = (f'<span style="color:#666;font-size:0.75rem"> [{src} {conf:.0%}]</span>') if conf else ""
+                st.markdown(
+                    f'<div class="{css}">{ico} <a href="{item["link"]}" target="_blank" style="color:inherit">'
+                    f'<strong>{item["title"]}</strong></a>{conf_html}'
+                    f'<br><small style="color:#888">{sd}</small>{smr}</div>',
+                    unsafe_allow_html=True,
+                )
+        else:
+            st.info("Zprávy se nepodařilo načíst.")
 
     st.divider()
 
-    # ── AI analýza ───────────────────────────────────────────────────────────
-    st.subheader("AI analýza")
-    st.caption("Shrnutí situace + detekce tržních událostí. Funguje s Claude, Gemini nebo Groq (nastav API klíč v secrets).")
-
-    import json as _json
-    with st.spinner("Volám AI analýzu..."):
-        _claude = cached_claude_analysis(
-            ticker,
-            _json.dumps({k: (float(v) if isinstance(v, (int, float)) else v)
-                         for k, v in signals.items()
-                         if not isinstance(v, (list, dict))} |
-                        {"buy_signals": signals.get("buy_signals", []),
-                         "sell_signals": signals.get("sell_signals", [])}),
-            _json.dumps([{"title": n.get("title",""), "summary": n.get("summary","")} for n in news[:10]]),
-            _json.dumps({k: (float(v) if isinstance(v, float) else v) for k, v in ai_sent.items()}),
-        )
-
+    # ── AI analýza – detailní (summary je již v kartě nahoře) ────────────────
     if _claude.get("ok"):
-        _provider = _claude.get("provider", "AI")
-        # Shrnutí
-        st.markdown(
-            f'<div style="background:#1e293b;border-left:4px solid #60a5fa;'
-            f'border-radius:6px;padding:14px 18px;margin-bottom:12px">'
-            f'<div style="color:#94a3b8;font-size:0.8rem;margin-bottom:6px">'
-            f'SHRNUTÍ SITUACE &nbsp;·&nbsp; <span style="color:#60a5fa">{_provider}</span></div>'
-            f'<div style="color:#e2e8f0">{_claude.get("summary","")}</div>'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
-
         ca1, ca2 = st.columns(2)
         with ca1:
             events = _claude.get("events", [])
@@ -1123,25 +1156,22 @@ když **alespoň 3 indikátory souhlasí** — proto je konzervativní a nevydá
                 st.markdown("**Rizikové faktory**")
                 for r in risks:
                     st.warning(f"⚠️ {r}")
-
         opp = _claude.get("opportunity", "")
         if opp:
-            conf = _claude.get("confidence", "")
-            hint = _claude.get("action_hint", "")
+            hint       = _claude.get("action_hint", "")
+            conf       = _claude.get("confidence", "")
             hint_color = {"koupit": "#22c55e", "prodat": "#ef4444"}.get(hint, "#888")
             st.markdown(
                 f'<div style="background:#0f172a;border:1px solid #334155;border-radius:6px;'
-                f'padding:12px 16px;margin-top:8px">'
-                f'<span style="color:{hint_color};font-weight:bold;text-transform:uppercase">'
-                f'{hint}</span>'
+                f'padding:12px 16px;margin-top:4px">'
+                f'<span style="color:{hint_color};font-weight:bold;text-transform:uppercase">{hint}</span>'
                 f'<span style="color:#94a3b8;font-size:0.8rem"> · jistota: {conf}</span><br>'
                 f'<span style="color:#cbd5e1">{opp}</span>'
                 f'</div>',
                 unsafe_allow_html=True,
             )
-    else:
-        err = _claude.get("error", "Neznámá chyba")
-        st.warning(f"Claude AI není dostupný: {err}")
+    elif not _claude.get("ok") and _claude.get("error"):
+        st.warning(f"AI analýza nedostupná: {_claude.get('error')}")
 
     st.divider()
 
@@ -1172,10 +1202,10 @@ když **alespoň 3 indikátory souhlasí** — proto je konzervativní a nevydá
                           color="#60a5fa" if is_main else None),
             ))
         pfig.update_layout(
-            height=320, template="plotly_dark",
+            height=340, template="plotly_dark",
             title="Normalizovaná výkonnost (báze = 100)",
-            margin=dict(l=0, r=0, t=40, b=0),
-            legend=dict(orientation="h", yanchor="bottom", y=1.01, x=0),
+            margin=dict(l=0, r=0, t=40, b=60),
+            legend=dict(orientation="h", yanchor="top", y=-0.15, x=0),
         )
         st.plotly_chart(pfig, use_container_width=True)
 
