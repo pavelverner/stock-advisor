@@ -588,6 +588,17 @@ RADAR_STOCKS = {
 # ── Sada tickerů v portfoliu (pro filtrování signálů v radaru) ────────────────
 PORTFOLIO_TICKERS = {t for t, _, _ in PORTFOLIO.values()}
 
+# ── Radar zahrnuje i portfolio (bez ETF, bez duplicit) ───────────────────────
+_PF_SECTOR_MAP = {"tech": "Technologie", "defense": "Obrana & Průmysl", "etf": None}
+_RADAR_TICKERS = {t for t, _, _ in RADAR_STOCKS.values()}
+_PORTFOLIO_EXTRA = {
+    name: (ticker, currency, _PF_SECTOR_MAP[sector])
+    for name, (ticker, currency, sector) in PORTFOLIO.items()
+    if _PF_SECTOR_MAP.get(sector) is not None
+    and ticker not in _RADAR_TICKERS
+}
+RADAR_STOCKS_FULL = {**RADAR_STOCKS, **_PORTFOLIO_EXTRA}
+
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 refresh = False       # default; přepsáno tlačítkem v sidebaru
 period  = "6mo"       # default; přepsáno selectboxem v sidebaru
@@ -692,7 +703,7 @@ with st.sidebar:
         show_bb  = st.checkbox("Bollinger Bands", value=True)
 
     if page == "Příležitosti":
-        all_sectors = sorted(set(v[2] for v in RADAR_STOCKS.values()))
+        all_sectors = sorted(set(v[2] for v in RADAR_STOCKS_FULL.values()))
         selected_sectors = st.multiselect(
             "Filtruj sektor",
             options=all_sectors,
@@ -1192,7 +1203,7 @@ if page == "Přehled portfolia":
     with st.expander("Top příležitosti z Radaru (rozbal)"):
         st.caption("Akcie mimo tvoje portfolio se silným signálem.")
         with st.spinner("Skenuji radar..."):
-            _radar_results = scan_stocks(RADAR_STOCKS, period)
+            _radar_results = scan_stocks(RADAR_STOCKS_FULL, period)
         _top = [r for r in _radar_results if r["action"] == "BUY" or (r["action"] == "SELL" and r["ticker"] in PORTFOLIO_TICKERS)]
         _top = sorted(_top, key=lambda x: -x["strength"])[:5]
         if _top:
@@ -1850,7 +1861,7 @@ elif page == "Příležitosti":
     # ── Tab: Radar příležitostí ───────────────────────────────────────────────
     with tab_radar:
         st.title("Radar – nové příležitosti")
-        st.caption(f"{len(RADAR_STOCKS)} akcií ze všech sektorů. Signál = ≥3 shodné technické indikátory.")
+        st.caption(f"{len(RADAR_STOCKS_FULL)} akcií ze všech sektorů (včetně portfolia). Signál = ≥3 shodné technické indikátory.")
 
         with st.expander("Jak radar funguje?"):
             st.markdown("""
@@ -1895,9 +1906,9 @@ Technické indikátory to zachytí — akcie v silném sektoru BEZ BUY signálu 
 
         st.divider()
 
-        # ── Scan akcií – vždy celý RADAR_STOCKS, filtr až na výsledky ────────
-        with st.spinner(f"Skenuji {len(RADAR_STOCKS)} akcií... (výsledky se cachují na 1h)"):
-            all_radar_results = scan_stocks(RADAR_STOCKS, period)
+        # ── Scan akcií – vždy celý RADAR_STOCKS_FULL, filtr až na výsledky ────
+        with st.spinner(f"Skenuji {len(RADAR_STOCKS_FULL)} akcií... (výsledky se cachují na 1h)"):
+            all_radar_results = scan_stocks(RADAR_STOCKS_FULL, period)
 
         # Přidej sektorový kontext a aplikuj sektorový filtr
         for r in all_radar_results:
