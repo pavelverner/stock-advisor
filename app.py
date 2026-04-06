@@ -195,10 +195,19 @@ div:has(> [data-testid="stExpander"]) { gap: 2px !important; }
     h2 { font-size: 1.15rem !important; }
     h3 { font-size: 1rem !important; }
 
-    /* Segmented control – celá šířka */
-    [data-testid="stSegmentedControl"] { width: 100% !important; }
-    [data-testid="stSegmentedControl"] > div { width: 100% !important; display: flex !important; }
-    [data-testid="stSegmentedControl"] > div > label { flex: 1 !important; text-align: center !important; }
+    /* Segmented control – celá šířka na mobilu */
+    [data-testid="stSegmentedControl"],
+    [data-testid="stSegmentedControl"] > div,
+    [data-testid="stSegmentedControl"] div[role="group"] {
+        width: 100% !important;
+        display: flex !important;
+    }
+    [data-testid="stSegmentedControl"] label,
+    [data-testid="stSegmentedControl"] div[role="group"] > * {
+        flex: 1 !important;
+        text-align: center !important;
+        justify-content: center !important;
+    }
 }
 
 /* ── Tablet ── */
