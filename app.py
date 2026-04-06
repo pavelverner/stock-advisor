@@ -264,14 +264,10 @@ with st.sidebar:
     page = st.radio(
         "Zobrazení",
         [
-            "Portfolio přehled",
+            "Přehled portfolia",
             "Detail akcie",
-            "Radar – nové příležitosti",
-            "Makro & Sentiment",
-            "Earnings kalendář",
-            "Korelace portfolia",
-            "Backtest signálů",
-            "Sektorový přehled",
+            "Radar & Trh",
+            "Analytika",
         ],
         index=0,
     )
@@ -300,6 +296,15 @@ with st.sidebar:
 
         show_ema = st.checkbox("EMA (20/50/200)", value=True)
         show_bb  = st.checkbox("Bollinger Bands", value=True)
+
+    if page == "Radar & Trh":
+        all_sectors = sorted(set(v[2] for v in RADAR_STOCKS.values()))
+        selected_sectors = st.multiselect(
+            "Filtruj sektor",
+            options=all_sectors,
+            default=[],
+            placeholder="Všechny sektory",
+        )
 
     refresh = st.button("Obnovit data", use_container_width=True)
     st.divider()
@@ -468,11 +473,29 @@ def _render_radar_card(r: dict, highlight: bool = False):
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# STRANA 1 – Portfolio přehled
+# STRANA 1 – Přehled portfolia
 # ═════════════════════════════════════════════════════════════════════════════
-if page == "Portfolio přehled":
+if page == "Přehled portfolia":
     st.title("Portfolio přehled")
     st.caption(f"Aktualizováno: {datetime.now().strftime('%d.%m.%Y %H:%M')}")
+
+    # Mini tržní kontext
+    with st.spinner("Načítám tržní kontext..."):
+        _fg = fetch_fear_greed()
+        _macro_mini = fetch_macro_tickers()
+
+    _fg_score = _fg.get("score") if _fg.get("ok") else None
+    _vix = _macro_mini.get("VIX", {}).get("price") if _macro_mini else None
+    _fg_label_str, _fg_color = fg_label(_fg_score) if _fg_score is not None else ("N/A", "#888")
+    _vix_color = "#22c55e" if _vix and _vix < 20 else "#ef4444" if _vix and _vix > 30 else "#f59e0b"
+
+    ctx_cols = st.columns(3)
+    ctx_cols[0].metric("Fear & Greed", f"{_fg_score:.0f} – {_fg_label_str}" if _fg_score else "N/A")
+    ctx_cols[1].metric("VIX", f"{_vix:.1f}" if _vix else "N/A",
+                       "Nízká volatilita" if _vix and _vix < 20 else "Zvýšená volatilita" if _vix and _vix > 25 else "Normální")
+    ctx_cols[2].metric("Období", period_label)
+    st.divider()
+
     with st.expander("Jak číst tento přehled?"):
         st.markdown("""
 - **KOUPIT** (zelená) = alespoň 3 technické indikátory najednou naznačují, že akcie je podhodnocená nebo se chystá růst
@@ -598,6 +621,19 @@ if page == "Portfolio přehled":
         showlegend=False,
     )
     st.plotly_chart(fig_chg, use_container_width=True)
+
+    st.divider()
+    with st.expander("Top příležitosti z Radaru (rozbal)"):
+        st.caption("Akcie mimo tvoje portfolio se silným signálem.")
+        with st.spinner("Skenuji radar..."):
+            _radar_results = scan_stocks(RADAR_STOCKS, period)
+        _top = [r for r in _radar_results if r["action"] != "HOLD"]
+        _top = sorted(_top, key=lambda x: -x["strength"])[:5]
+        if _top:
+            for r in _top:
+                _render_radar_card(r)
+        else:
+            st.info("Žádné silné signály v radaru momentálně.")
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -977,14 +1013,22 @@ když **alespoň 3 indikátory souhlasí** — proto je konzervativní a nevydá
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# STRANA 3 – Radar (nové příležitosti)
+# STRANA 3 – Radar & Trh
 # ═════════════════════════════════════════════════════════════════════════════
-elif page == "Radar – nové příležitosti":
-    st.title("Radar – nové příležitosti")
-    st.caption(f"{len(RADAR_STOCKS)} akcií ze všech sektorů. Signál = ≥3 shodné technické indikátory.")
+elif page == "Radar & Trh":
+    tab_radar, tab_makro, tab_korelace = st.tabs([
+        "Radar příležitostí",
+        "Sektory & Makro",
+        "Korelace portfolia",
+    ])
 
-    with st.expander("Jak radar funguje?"):
-        st.markdown("""
+    # ── Tab: Radar příležitostí ───────────────────────────────────────────────
+    with tab_radar:
+        st.title("Radar – nové příležitosti")
+        st.caption(f"{len(RADAR_STOCKS)} akcií ze všech sektorů. Signál = ≥3 shodné technické indikátory.")
+
+        with st.expander("Jak radar funguje?"):
+            st.markdown("""
 Radar prohledává ~50 akcií pokrývající všechny hlavní sektory (energie, tech, finance, zdravotnictví...).
 
 **Logika:**
@@ -1000,152 +1044,226 @@ Technické indikátory to zachytí — akcie v silném sektoru BEZ BUY signálu 
 - Sektor je v zelených číslech (roste)
 - Akcie má BUY signál od ≥3 indikátorů
 → to je tzv. **double confirmation** — silná příležitost.
-        """)
+            """)
 
-    # ── Načtení sektorové výkonnosti ─────────────────────────────────────────
-    with st.spinner("Načítám sektorová data..."):
-        sector_perf_raw = fetch_sectors(period)
-    sector_perf = {s["name"]: s["chg_period"] for s in sector_perf_raw}
+        # ── Načtení sektorové výkonnosti ─────────────────────────────────────
+        with st.spinner("Načítám sektorová data..."):
+            sector_perf_raw = fetch_sectors(period)
+        sector_perf = {s["name"]: s["chg_period"] for s in sector_perf_raw}
 
-    # ── Filtr sektoru v sidebaru ──────────────────────────────────────────────
-    all_sectors = sorted(set(v[2] for v in RADAR_STOCKS.values()))
-    with st.sidebar:
-        st.divider()
-        selected_sectors = st.multiselect(
-            "Filtruj sektor",
-            options=all_sectors,
-            default=[],
-            placeholder="Všechny sektory",
-        )
+        filtered_radar = {
+            name: val for name, val in RADAR_STOCKS.items()
+            if not selected_sectors or val[2] in selected_sectors
+        }
 
-    filtered_radar = {
-        name: val for name, val in RADAR_STOCKS.items()
-        if not selected_sectors or val[2] in selected_sectors
-    }
-
-    # ── Sektorový přehled – lišta nahoře ─────────────────────────────────────
-    st.subheader("Výkon sektorů (kontext pro signály)")
-    sector_cols = st.columns(min(len(sector_perf_raw), 5))
-    for i, s in enumerate(sector_perf_raw[:5]):
-        cp = s["chg_period"]
-        color = "#22c55e" if cp >= 0 else "#ef4444"
-        sector_cols[i].markdown(
-            f'<div style="text-align:center;background:#1a1a2e;border-radius:8px;padding:8px 4px">'
-            f'<div style="font-size:0.75rem;color:#888">{s["name"]}</div>'
-            f'<div style="font-size:1.1rem;color:{color};font-weight:700">{cp:+.1f}%</div>'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
-    if len(sector_perf_raw) > 5:
-        sector_cols2 = st.columns(len(sector_perf_raw) - 5)
-        for i, s in enumerate(sector_perf_raw[5:]):
+        # ── Sektorový přehled – lišta nahoře ─────────────────────────────────
+        st.subheader("Výkon sektorů (kontext pro signály)")
+        sector_cols = st.columns(min(len(sector_perf_raw), 5))
+        for i, s in enumerate(sector_perf_raw[:5]):
             cp = s["chg_period"]
             color = "#22c55e" if cp >= 0 else "#ef4444"
-            sector_cols2[i].markdown(
+            sector_cols[i].markdown(
                 f'<div style="text-align:center;background:#1a1a2e;border-radius:8px;padding:8px 4px">'
                 f'<div style="font-size:0.75rem;color:#888">{s["name"]}</div>'
                 f'<div style="font-size:1.1rem;color:{color};font-weight:700">{cp:+.1f}%</div>'
                 f'</div>',
                 unsafe_allow_html=True,
             )
-
-    st.divider()
-
-    # ── Scan akcií ────────────────────────────────────────────────────────────
-    with st.spinner(f"Skenuji {len(filtered_radar)} akcií..."):
-        results = scan_stocks(filtered_radar, period)
-
-    # Přidej sektorový kontext ke každému výsledku
-    for r in results:
-        r["sector_chg"] = sector_perf.get(r["sector"], None)
-
-    strong = [r for r in results if r["action"] != "HOLD"]
-    hold   = [r for r in results if r["action"] == "HOLD"]
-
-    # ── Double confirmation – silný sektor + BUY signál ───────────────────────
-    double_conf = [
-        r for r in strong
-        if r["action"] == "BUY"
-        and r.get("sector_chg") is not None
-        and r["sector_chg"] > 1.0
-    ]
-
-    if double_conf:
-        st.subheader(f"Double confirmation – silný sektor + BUY signál ({len(double_conf)})")
-        st.caption("Tyto akcie mají BUY signál A zároveň jejich sektor roste nad 1% — nejsilnější příležitosti.")
-        for r in sorted(double_conf, key=lambda x: -(x["strength"] + (x["sector_chg"] or 0) / 20)):
-            _render_radar_card(r, highlight=True)
-        st.divider()
-
-    # ── Ostatní silné signály ─────────────────────────────────────────────────
-    other_strong = [r for r in strong if r not in double_conf]
-    if other_strong:
-        st.subheader(f"Ostatní signály ({len(other_strong)})")
-        for r in sorted(other_strong, key=lambda x: -x["strength"]):
-            _render_radar_card(r, highlight=False)
-    elif not double_conf:
-        st.info("Žádné silné signály. Trh je momentálně v klidném pásmu — čekej na příležitost.")
-
-    # ── Přehled podle sektoru – co sledovat ──────────────────────────────────
-    st.divider()
-    st.subheader("Přehled podle sektoru")
-    sectors_with_stocks = {}
-    for r in sorted(hold + strong, key=lambda x: x["name"]):
-        s = r["sector"]
-        sectors_with_stocks.setdefault(s, []).append(r)
-
-    # Seřaď sektory od nejsilnějšího výkonu
-    def sector_sort_key(s):
-        return -(sector_perf.get(s, 0))
-
-    for sector_name in sorted(sectors_with_stocks.keys(), key=sector_sort_key):
-        stocks_in_sector = sectors_with_stocks[sector_name]
-        sp = sector_perf.get(sector_name)
-        sp_str = f"{sp:+.1f}%" if sp is not None else "N/A"
-        sp_color = "#22c55e" if (sp or 0) >= 0 else "#ef4444"
-        buy_in  = sum(1 for r in stocks_in_sector if r["action"] == "BUY")
-        sell_in = sum(1 for r in stocks_in_sector if r["action"] == "SELL")
-
-        label_parts = []
-        if buy_in:  label_parts.append(f"{buy_in} BUY")
-        if sell_in: label_parts.append(f"{sell_in} SELL")
-        signal_summary = " · ".join(label_parts) if label_parts else "vše HOLD"
-
-        with st.expander(
-            f"{sector_name}  —  ETF: {sp_str}  |  {signal_summary}  ({len(stocks_in_sector)} akcií)"
-        ):
-            for r in sorted(stocks_in_sector, key=lambda x: {"BUY": 0, "SELL": 1, "HOLD": 2}[x["action"]]):
-                arrow = "▲" if r["chg_pct"] >= 0 else "▼"
-                price_color = "#22c55e" if r["chg_pct"] >= 0 else "#ef4444"
-                trend_color = {"Bullish": "#22c55e", "Bearish": "#ef4444", "Smíšený": "#888"}[r["ema_trend"]]
-                badge_css = {"BUY": "badge-buy", "SELL": "badge-sell", "HOLD": "badge-hold"}[r["action"]]
-                badge_lbl = {"BUY": "KOUPIT", "SELL": "PRODAT", "HOLD": "DRŽET"}[r["action"]]
-                card_css  = {"BUY": "card-buy", "SELL": "card-sell", "HOLD": "card-hold"}[r["action"]]
-                reasons = (r["buy_reasons"] if r["action"] == "BUY" else r["sell_reasons"])[:2]
-                reasons_html = " · ".join(reasons) if reasons else ""
-                st.markdown(
-                    f'<div class="{card_css}" style="margin:3px 0;padding:10px">'
-                    f'<span class="{badge_css}">{badge_lbl}</span> &nbsp;'
-                    f'<strong>{r["name"]}</strong> <span style="color:#888;font-size:0.8rem">{r["ticker"]}</span>'
-                    f' &nbsp;{r["price"]:.2f} {r["currency"]}'
-                    f' <span style="color:{price_color}">{arrow}{r["chg_pct"]:+.1f}%</span>'
-                    f' &nbsp;|&nbsp; RSI: <b>{r["rsi"]:.0f}</b>'
-                    f' &nbsp;|&nbsp; Trend: <span style="color:{trend_color}">{r["ema_trend"]}</span>'
-                    + (f'<br><small style="color:#aaa">{reasons_html}</small>' if reasons_html else "")
-                    + '</div>',
+        if len(sector_perf_raw) > 5:
+            sector_cols2 = st.columns(len(sector_perf_raw) - 5)
+            for i, s in enumerate(sector_perf_raw[5:]):
+                cp = s["chg_period"]
+                color = "#22c55e" if cp >= 0 else "#ef4444"
+                sector_cols2[i].markdown(
+                    f'<div style="text-align:center;background:#1a1a2e;border-radius:8px;padding:8px 4px">'
+                    f'<div style="font-size:0.75rem;color:#888">{s["name"]}</div>'
+                    f'<div style="font-size:1.1rem;color:{color};font-weight:700">{cp:+.1f}%</div>'
+                    f'</div>',
                     unsafe_allow_html=True,
                 )
 
+        st.divider()
 
-# ═════════════════════════════════════════════════════════════════════════════
-# STRANA 4 – Makro & Sentiment
-# ═════════════════════════════════════════════════════════════════════════════
-elif page == "Makro & Sentiment":
-    st.title("Makro & Sentiment")
-    st.caption("Globální tržní kontext – Fear & Greed, VIX, dluhopisy, komodity.")
+        # ── Scan akcií ────────────────────────────────────────────────────────
+        with st.spinner(f"Skenuji {len(filtered_radar)} akcií..."):
+            results = scan_stocks(filtered_radar, period)
 
-    with st.expander("Co jsou tyto indikátory a proč jsou důležité?"):
-        st.markdown("""
+        # Přidej sektorový kontext ke každému výsledku
+        for r in results:
+            r["sector_chg"] = sector_perf.get(r["sector"], None)
+
+        strong = [r for r in results if r["action"] != "HOLD"]
+        hold   = [r for r in results if r["action"] == "HOLD"]
+
+        # ── Double confirmation – silný sektor + BUY signál ───────────────────
+        double_conf = [
+            r for r in strong
+            if r["action"] == "BUY"
+            and r.get("sector_chg") is not None
+            and r["sector_chg"] > 1.0
+        ]
+
+        if double_conf:
+            st.subheader(f"Double confirmation – silný sektor + BUY signál ({len(double_conf)})")
+            st.caption("Tyto akcie mají BUY signál A zároveň jejich sektor roste nad 1% — nejsilnější příležitosti.")
+            for r in sorted(double_conf, key=lambda x: -(x["strength"] + (x["sector_chg"] or 0) / 20)):
+                _render_radar_card(r, highlight=True)
+            st.divider()
+
+        # ── Ostatní silné signály ─────────────────────────────────────────────
+        other_strong = [r for r in strong if r not in double_conf]
+        if other_strong:
+            st.subheader(f"Ostatní signály ({len(other_strong)})")
+            for r in sorted(other_strong, key=lambda x: -x["strength"]):
+                _render_radar_card(r, highlight=False)
+        elif not double_conf:
+            st.info("Žádné silné signály. Trh je momentálně v klidném pásmu — čekej na příležitost.")
+
+        # ── Přehled podle sektoru – co sledovat ──────────────────────────────
+        st.divider()
+        st.subheader("Přehled podle sektoru")
+        sectors_with_stocks = {}
+        for r in sorted(hold + strong, key=lambda x: x["name"]):
+            s = r["sector"]
+            sectors_with_stocks.setdefault(s, []).append(r)
+
+        # Seřaď sektory od nejsilnějšího výkonu
+        def sector_sort_key(s):
+            return -(sector_perf.get(s, 0))
+
+        for sector_name in sorted(sectors_with_stocks.keys(), key=sector_sort_key):
+            stocks_in_sector = sectors_with_stocks[sector_name]
+            sp = sector_perf.get(sector_name)
+            sp_str = f"{sp:+.1f}%" if sp is not None else "N/A"
+            sp_color = "#22c55e" if (sp or 0) >= 0 else "#ef4444"
+            buy_in  = sum(1 for r in stocks_in_sector if r["action"] == "BUY")
+            sell_in = sum(1 for r in stocks_in_sector if r["action"] == "SELL")
+
+            label_parts = []
+            if buy_in:  label_parts.append(f"{buy_in} BUY")
+            if sell_in: label_parts.append(f"{sell_in} SELL")
+            signal_summary = " · ".join(label_parts) if label_parts else "vše HOLD"
+
+            with st.expander(
+                f"{sector_name}  —  ETF: {sp_str}  |  {signal_summary}  ({len(stocks_in_sector)} akcií)"
+            ):
+                for r in sorted(stocks_in_sector, key=lambda x: {"BUY": 0, "SELL": 1, "HOLD": 2}[x["action"]]):
+                    arrow = "▲" if r["chg_pct"] >= 0 else "▼"
+                    price_color = "#22c55e" if r["chg_pct"] >= 0 else "#ef4444"
+                    trend_color = {"Bullish": "#22c55e", "Bearish": "#ef4444", "Smíšený": "#888"}[r["ema_trend"]]
+                    badge_css = {"BUY": "badge-buy", "SELL": "badge-sell", "HOLD": "badge-hold"}[r["action"]]
+                    badge_lbl = {"BUY": "KOUPIT", "SELL": "PRODAT", "HOLD": "DRŽET"}[r["action"]]
+                    card_css  = {"BUY": "card-buy", "SELL": "card-sell", "HOLD": "card-hold"}[r["action"]]
+                    reasons = (r["buy_reasons"] if r["action"] == "BUY" else r["sell_reasons"])[:2]
+                    reasons_html = " · ".join(reasons) if reasons else ""
+                    st.markdown(
+                        f'<div class="{card_css}" style="margin:3px 0;padding:10px">'
+                        f'<span class="{badge_css}">{badge_lbl}</span> &nbsp;'
+                        f'<strong>{r["name"]}</strong> <span style="color:#888;font-size:0.8rem">{r["ticker"]}</span>'
+                        f' &nbsp;{r["price"]:.2f} {r["currency"]}'
+                        f' <span style="color:{price_color}">{arrow}{r["chg_pct"]:+.1f}%</span>'
+                        f' &nbsp;|&nbsp; RSI: <b>{r["rsi"]:.0f}</b>'
+                        f' &nbsp;|&nbsp; Trend: <span style="color:{trend_color}">{r["ema_trend"]}</span>'
+                        + (f'<br><small style="color:#aaa">{reasons_html}</small>' if reasons_html else "")
+                        + '</div>',
+                        unsafe_allow_html=True,
+                    )
+
+    # ── Tab: Sektory & Makro ──────────────────────────────────────────────────
+    with tab_makro:
+        # ── Sektorový přehled (původní strana 8) ─────────────────────────────
+        st.title("Sektorový přehled")
+        st.caption("Výkonnost hlavních tržních sektorů. Pomáhá pochopit kontext – jde dolů jen tvoje akcie nebo celý sektor?")
+
+        sector_period_map = {"1 týden": "5d", "1 měsíc": "1mo", "3 měsíce": "3mo", "6 měsíců": "6mo"}
+        sp_label = st.selectbox("Období sektorů", list(sector_period_map.keys()), index=1)
+        sp = sector_period_map[sp_label]
+
+        with st.spinner("Načítám sektorová data..."):
+            sectors = fetch_sectors(sp)
+
+        if not sectors:
+            st.error("Nepodařilo se načíst sektorová data.")
+        else:
+            # Sloupcový graf sektorů
+            names   = [s["name"] for s in sectors]
+            chg_p   = [s["chg_period"] for s in sectors]
+            chg_d   = [s["chg_day"] for s in sectors]
+            bar_colors = ["#22c55e" if v >= 0 else "#ef4444" for v in chg_p]
+
+            fig_sec = go.Figure()
+            fig_sec.add_trace(go.Bar(
+                x=names, y=chg_p,
+                marker_color=bar_colors,
+                name=f"Za {sp_label}",
+                text=[f"{v:+.1f}%" for v in chg_p],
+                textposition="outside",
+            ))
+            fig_sec.add_trace(go.Scatter(
+                x=names, y=chg_d,
+                mode="markers",
+                marker=dict(size=10, color=["#22c55e" if v >= 0 else "#ef4444" for v in chg_d],
+                            symbol="diamond"),
+                name="Dnešní změna",
+            ))
+            fig_sec.add_hline(y=0, line=dict(color="#666", width=1))
+            fig_sec.update_layout(
+                template="plotly_dark", height=380,
+                margin=dict(l=0, r=0, t=20, b=0),
+                legend=dict(orientation="h", y=1.1),
+                yaxis_title="Výkonnost (%)",
+            )
+            st.plotly_chart(fig_sec, use_container_width=True)
+
+            # Tabulka + komentáře
+            st.subheader("Detail sektorů")
+            for s in sectors:
+                cp = s["chg_period"]
+                cd = s["chg_day"]
+                css = "card-buy" if cp > 2 else "card-sell" if cp < -2 else "card-hold"
+                color_p = "#22c55e" if cp >= 0 else "#ef4444"
+                color_d = "#22c55e" if cd >= 0 else "#ef4444"
+                st.markdown(
+                    f'<div class="{css}" style="padding:10px">'
+                    f'<strong>{s["name"]}</strong> '
+                    f'<span style="color:#888;font-size:0.85rem">{s["symbol"]}</span>'
+                    f'&nbsp;&nbsp; {s["price"]:.2f} USD'
+                    f'&nbsp;|&nbsp; <span style="color:{color_p}">{sp_label}: {cp:+.1f}%</span>'
+                    f'&nbsp;|&nbsp; <span style="color:{color_d}">Dnes: {cd:+.1f}%</span>'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
+
+            # Kontext pro tvoje portfolio
+            st.divider()
+            st.subheader("Jak to ovlivňuje tvoje portfolio")
+
+            portfolio_sectors = {
+                "Technologie": ["NVIDIA", "AMD", "Alphabet", "Microsoft", "Palo Alto", "Amazon", "Taiwan Semi"],
+                "Obrana & Průmysl": ["SAAB", "Rheinmetall"],
+            }
+            sector_perf_tab = {s["name"]: s["chg_period"] for s in sectors}
+
+            for sector_name, stocks in portfolio_sectors.items():
+                perf = sector_perf_tab.get(sector_name)
+                if perf is None:
+                    continue
+                color = "#22c55e" if perf >= 0 else "#ef4444"
+                stocks_str = ", ".join(stocks)
+                st.markdown(
+                    f'**{sector_name}** ({sp_label}: <span style="color:{color}">{perf:+.1f}%</span>) '
+                    f'– ovlivňuje: {stocks_str}',
+                    unsafe_allow_html=True,
+                )
+
+        st.divider()
+
+        # ── Makro & Sentiment (původní strana 4) ─────────────────────────────
+        st.title("Makro & Sentiment")
+        st.caption("Globální tržní kontext – Fear & Greed, VIX, dluhopisy, komodity.")
+
+        with st.expander("Co jsou tyto indikátory a proč jsou důležité?"):
+            st.markdown("""
 **Fear & Greed Index** (Strach a chamtivost, 0–100) – měří celkovou náladu na americkém trhu.
 Historicky platí: *když ostatní se bojí, je čas kupovat; když jsou chamtiví, je čas prodávat.*
 - 0–25 = Extreme Fear (extrémní strach) → trh v panice, akcie levné
@@ -1167,207 +1285,129 @@ Historicky platí: *když ostatní se bojí, je čas kupovat; když jsou chamtiv
 **Gold (Zlato)** – bezpečný přístav. Když zlato roste, investoři se bojí → negativní pro akcie.
 
 **USD Index** – síla amerického dolaru. Silný dolar = slabší zisky amerických firem ze zahraničí.
-        """)
+            """)
 
-    col_fg, col_macro = st.columns([1, 2])
+        col_fg, col_macro = st.columns([1, 2])
 
-    with col_fg:
-        st.subheader("Fear & Greed Index")
-        with st.spinner("Načítám F&G..."):
-            fg = fetch_fear_greed()
+        with col_fg:
+            st.subheader("Fear & Greed Index")
+            with st.spinner("Načítám F&G..."):
+                fg = fetch_fear_greed()
 
-        if fg.get("ok") and fg.get("score") is not None:
-            score = fg["score"]
-            label, color = fg_label(score)
+            if fg.get("ok") and fg.get("score") is not None:
+                score = fg["score"]
+                label, color = fg_label(score)
 
-            # Gauge chart
-            fig_gauge = go.Figure(go.Indicator(
-                mode="gauge+number",
-                value=score,
-                title={"text": label, "font": {"size": 18}},
-                gauge={
-                    "axis": {"range": [0, 100]},
-                    "bar":  {"color": color},
-                    "steps": [
-                        {"range": [0, 25],  "color": "#7f1d1d"},
-                        {"range": [25, 45], "color": "#9a3412"},
-                        {"range": [45, 55], "color": "#713f12"},
-                        {"range": [55, 75], "color": "#365314"},
-                        {"range": [75, 100],"color": "#14532d"},
-                    ],
-                    "threshold": {
-                        "line": {"color": "white", "width": 3},
-                        "thickness": 0.85,
-                        "value": score,
+                # Gauge chart
+                fig_gauge = go.Figure(go.Indicator(
+                    mode="gauge+number",
+                    value=score,
+                    title={"text": label, "font": {"size": 18}},
+                    gauge={
+                        "axis": {"range": [0, 100]},
+                        "bar":  {"color": color},
+                        "steps": [
+                            {"range": [0, 25],  "color": "#7f1d1d"},
+                            {"range": [25, 45], "color": "#9a3412"},
+                            {"range": [45, 55], "color": "#713f12"},
+                            {"range": [55, 75], "color": "#365314"},
+                            {"range": [75, 100],"color": "#14532d"},
+                        ],
+                        "threshold": {
+                            "line": {"color": "white", "width": 3},
+                            "thickness": 0.85,
+                            "value": score,
+                        },
                     },
-                },
-            ))
-            fig_gauge.update_layout(
-                height=240, template="plotly_dark",
-                margin=dict(l=20, r=20, t=40, b=10),
-            )
-            st.plotly_chart(fig_gauge, use_container_width=True)
-
-            m1, m2 = st.columns(2)
-            if fg.get("prev_week"):
-                diff_w = score - fg["prev_week"]
-                m1.metric("Před týdnem", f"{fg['prev_week']:.0f}", f"{diff_w:+.1f}")
-            if fg.get("prev_month"):
-                diff_m = score - fg["prev_month"]
-                m2.metric("Před měsícem", f"{fg['prev_month']:.0f}", f"{diff_m:+.1f}")
-
-            # Interpretace
-            if score <= 25:
-                st.error("Extreme Fear – trh je v panice. Historicky dobrá příležitost k nákupu pro long-term investory.")
-            elif score <= 45:
-                st.warning("Fear – pesimismus převládá. Opatrný optimismus může být opodstatněný.")
-            elif score <= 55:
-                st.info("Neutral – trh neví kam. Čekej na jasný signál.")
-            elif score <= 75:
-                st.success("Greed – optimismus na trhu. Pozor na overvaluation.")
-            else:
-                st.error("Extreme Greed – euforie! Zvažuj profit-taking, trh může být přehřátý.")
-        else:
-            st.warning("Fear & Greed Index se nepodařilo načíst.")
-
-    with col_macro:
-        st.subheader("Makro indikátory")
-        with st.spinner("Načítám makro data..."):
-            macro = fetch_macro_tickers()
-
-        if macro:
-            for name, data in macro.items():
-                price = data["price"]
-                chg   = data["chg"]
-                arrow = "▲" if chg >= 0 else "▼"
-                color = "#22c55e" if chg >= 0 else "#ef4444"
-
-                # Speciální interpretace VIX
-                note = ""
-                if name == "VIX":
-                    if price < 15:
-                        note = " – nízká volatilita, klidný trh"
-                    elif price < 25:
-                        note = " – normální volatilita"
-                    elif price < 35:
-                        note = " – zvýšená volatilita, nervozita"
-                    else:
-                        note = " – extrémní volatilita / panika"
-                elif name == "10Y Treasury":
-                    if price > 5.0:
-                        note = " – výnosy vysoké, akcie pod tlakem"
-                    elif price > 4.0:
-                        note = " – výnosy zvýšené"
-                    else:
-                        note = " – výnosy nízké, příznivé pro akcie"
-
-                st.markdown(
-                    f'<div class="card-hold" style="margin:4px 0">'
-                    f'<strong>{name}</strong> &nbsp; '
-                    f'<span style="font-size:1.1rem">{price:.2f}</span> &nbsp; '
-                    f'<span style="color:{color}">{arrow} {chg:+.1f}%</span>'
-                    f'<span style="color:#888;font-size:0.82rem">{note}</span>'
-                    f'</div>',
-                    unsafe_allow_html=True,
+                ))
+                fig_gauge.update_layout(
+                    height=240, template="plotly_dark",
+                    margin=dict(l=20, r=20, t=40, b=10),
                 )
+                st.plotly_chart(fig_gauge, use_container_width=True)
 
-            # Interpretace kombinace VIX + F&G
-            st.divider()
-            st.subheader("Celkové vyhodnocení prostředí")
-            vix_val = macro.get("VIX", {}).get("price", 20)
-            fg_score = fg.get("score", 50) if fg.get("ok") else 50
+                m1, m2 = st.columns(2)
+                if fg.get("prev_week"):
+                    diff_w = score - fg["prev_week"]
+                    m1.metric("Před týdnem", f"{fg['prev_week']:.0f}", f"{diff_w:+.1f}")
+                if fg.get("prev_month"):
+                    diff_m = score - fg["prev_month"]
+                    m2.metric("Před měsícem", f"{fg['prev_month']:.0f}", f"{diff_m:+.1f}")
 
-            if vix_val < 20 and fg_score > 50:
-                st.success("Příznivé prostředí pro akcie – nízká volatilita + optimismus trhu.")
-            elif vix_val > 30 or fg_score < 30:
-                st.error("Rizikové prostředí – vysoká volatilita nebo strach na trhu. Konzervativní přístup doporučen.")
+                # Interpretace
+                if score <= 25:
+                    st.error("Extreme Fear – trh je v panice. Historicky dobrá příležitost k nákupu pro long-term investory.")
+                elif score <= 45:
+                    st.warning("Fear – pesimismus převládá. Opatrný optimismus může být opodstatněný.")
+                elif score <= 55:
+                    st.info("Neutral – trh neví kam. Čekej na jasný signál.")
+                elif score <= 75:
+                    st.success("Greed – optimismus na trhu. Pozor na overvaluation.")
+                else:
+                    st.error("Extreme Greed – euforie! Zvažuj profit-taking, trh může být přehřátý.")
             else:
-                st.info("Smíšené prostředí – žádný jasný extrém. Řiď se individuálními signály akcií.")
+                st.warning("Fear & Greed Index se nepodařilo načíst.")
 
+        with col_macro:
+            st.subheader("Makro indikátory")
+            with st.spinner("Načítám makro data..."):
+                macro = fetch_macro_tickers()
 
-# ═════════════════════════════════════════════════════════════════════════════
-# STRANA 5 – Earnings kalendář
-# ═════════════════════════════════════════════════════════════════════════════
-elif page == "Earnings kalendář":
-    st.title("Earnings kalendář")
-    st.caption("Příští výsledky hospodaření pro tvoje portfolio.")
-    with st.expander("Co jsou Earnings a proč jsou důležité?"):
-        st.markdown("""
-**Earnings** (výsledky hospodaření) = každé čtvrtletí firmy zveřejňují své skutečné tržby a zisky.
-Trh reaguje velmi silně — cena může vyletět nebo propadnout o desítky procent během hodin.
+            if macro:
+                for name, data in macro.items():
+                    price = data["price"]
+                    chg   = data["chg"]
+                    arrow = "▲" if chg >= 0 else "▼"
+                    color = "#22c55e" if chg >= 0 else "#ef4444"
 
-**EPS** (Earnings Per Share) = zisk na akcii. Čím vyšší, tím lépe.
+                    # Speciální interpretace VIX
+                    note = ""
+                    if name == "VIX":
+                        if price < 15:
+                            note = " – nízká volatilita, klidný trh"
+                        elif price < 25:
+                            note = " – normální volatilita"
+                        elif price < 35:
+                            note = " – zvýšená volatilita, nervozita"
+                        else:
+                            note = " – extrémní volatilita / panika"
+                    elif name == "10Y Treasury":
+                        if price > 5.0:
+                            note = " – výnosy vysoké, akcie pod tlakem"
+                        elif price > 4.0:
+                            note = " – výnosy zvýšené"
+                        else:
+                            note = " – výnosy nízké, příznivé pro akcie"
 
-**Proč nekupovat 1–2 týdny před earnings:**
-- Cena může být uměle nafouklá spekulacemi
-- Po zveřejnění může cena prudce klesnout i při dobrých výsledcích (\"buy the rumor, sell the news\")
-- Výsledky jsou v podstatě nepředvídatelné
+                    st.markdown(
+                        f'<div class="card-hold" style="margin:4px 0">'
+                        f'<strong>{name}</strong> &nbsp; '
+                        f'<span style="font-size:1.1rem">{price:.2f}</span> &nbsp; '
+                        f'<span style="color:{color}">{arrow} {chg:+.1f}%</span>'
+                        f'<span style="color:#888;font-size:0.82rem">{note}</span>'
+                        f'</div>',
+                        unsafe_allow_html=True,
+                    )
 
-**Strategie:** Pokud máš BUY signál, ale earnings jsou za méně než 14 dní — počkej na výsledky.
-Po zveřejnění se situace vyjasní a signál bude spolehlivější.
-        """)
+                # Interpretace kombinace VIX + F&G
+                st.divider()
+                st.subheader("Celkové vyhodnocení prostředí")
+                vix_val = macro.get("VIX", {}).get("price", 20)
+                fg_score = fg.get("score", 50) if fg.get("ok") else 50
 
-    with st.spinner("Načítám earnings data..."):
-        earnings = get_portfolio_earnings(PORTFOLIO)
+                if vix_val < 20 and fg_score > 50:
+                    st.success("Příznivé prostředí pro akcie – nízká volatilita + optimismus trhu.")
+                elif vix_val > 30 or fg_score < 30:
+                    st.error("Rizikové prostředí – vysoká volatilita nebo strach na trhu. Konzervativní přístup doporučen.")
+                else:
+                    st.info("Smíšené prostředí – žádný jasný extrém. Řiď se individuálními signály akcií.")
 
-    if not earnings:
-        st.warning("Nepodařilo se načíst earnings data.")
-    else:
-        for e in earnings:
-            ed = e.get("earnings_date")
-            days = e.get("days_until")
-
-            if ed is None:
-                continue
-
-            if days is not None and days < 0:
-                # Proběhlé – šedé
-                css = "card-hold"
-                badge_html = '<span class="badge-hold">PROBĚHLO</span>'
-                date_str = f"{ed} (před {abs(days)} dny)"
-            elif days is not None and days <= 7:
-                css = "card-sell"
-                badge_html = '<span class="badge-sell">TENTO TÝDEN</span>'
-                date_str = f"{ed} (za {days} dní)"
-            elif days is not None and days <= 14:
-                css = "card-radar"
-                badge_html = f'<span style="background:#f59e0b;color:#000;padding:2px 8px;border-radius:4px;font-weight:700;font-size:0.8rem">ZA {days} DNÍ</span>'
-                date_str = f"{ed}"
-            else:
-                css = "card-hold"
-                badge_html = f'<span class="badge-hold">ZA {days} DNÍ</span>' if days else '<span class="badge-hold">---</span>'
-                date_str = f"{ed}" if ed else "Neznámo"
-
-            eps_html = ""
-            if e.get("eps_estimate"):
-                eps_html = f'&nbsp;|&nbsp; EPS odhad: <b>{e["eps_estimate"]:.2f}</b>'
-
-            st.markdown(
-                f'<div class="{css}">'
-                f'{badge_html} &nbsp; '
-                f'<strong>{e["name"]}</strong> '
-                f'<span style="color:#888">{e["ticker"]}</span>'
-                f'&nbsp;&nbsp;<span style="color:#aaa">{date_str}</span>'
-                f'{eps_html}'
-                f'</div>',
-                unsafe_allow_html=True,
-            )
-
-        st.divider()
-        st.info(
-            "Strategie: Pokud máš BUY signál na akcii, ale earnings jsou za méně než 14 dní, "
-            "zvažuj počkat na výsledky — výsledky mohou signál potvrdit nebo zvrátit."
-        )
-
-
-# ═════════════════════════════════════════════════════════════════════════════
-# STRANA 6 – Korelace portfolia
-# ═════════════════════════════════════════════════════════════════════════════
-elif page == "Korelace portfolia":
-    st.title("Korelace portfolia")
-    st.caption("Jak moc se akcie pohybují společně — odhalí skrytou koncentraci rizika.")
-    with st.expander("Co je korelace a proč na ní záleží?"):
-        st.markdown("""
+    # ── Tab: Korelace portfolia ───────────────────────────────────────────────
+    with tab_korelace:
+        st.title("Korelace portfolia")
+        st.caption("Jak moc se akcie pohybují společně — odhalí skrytou koncentraci rizika.")
+        with st.expander("Co je korelace a proč na ní záleží?"):
+            st.markdown("""
 **Korelace** = číslo od -1 do +1, které říká, jak moc se dvě akcie pohybují společně.
 
 | Hodnota | Meaning | Příklad |
@@ -1386,247 +1426,237 @@ Myslíš si, že máš 3 různé pozice, ale ve skutečnosti máš 1 velkou sáz
 - Tmavě červená = vysoká kladná korelace (riziko)
 - Tmavě modrá = záporná korelace (dobrá diverzifikace)
 - Střední = nízká korelace (dobré)
-        """)
+            """)
 
-    with st.spinner("Načítám data pro korelační analýzu..."):
-        closes = {}
-        for name, (ticker, currency, sector) in PORTFOLIO.items():
-            df = load_data(ticker, period)
-            if df is not None and len(df) > 30:
-                closes[name.split()[0]] = df["Close"]
+        with st.spinner("Načítám data pro korelační analýzu..."):
+            closes = {}
+            for name, (ticker, currency, sector) in PORTFOLIO.items():
+                df = load_data(ticker, period)
+                if df is not None and len(df) > 30:
+                    closes[name.split()[0]] = df["Close"]
 
-    if len(closes) < 2:
-        st.error("Nedostatek dat pro korelaci.")
-    else:
-        price_df = pd.DataFrame(closes).dropna()
-        returns  = price_df.pct_change().dropna()
-        corr     = returns.corr()
-
-        # Heatmapa
-        fig_corr = go.Figure(go.Heatmap(
-            z=corr.values,
-            x=corr.columns.tolist(),
-            y=corr.index.tolist(),
-            colorscale=[
-                [0.0,  "#1d4ed8"],
-                [0.5,  "#1e1e2e"],
-                [1.0,  "#b91c1c"],
-            ],
-            zmin=-1, zmax=1,
-            text=[[f"{v:.2f}" for v in row] for row in corr.values],
-            texttemplate="%{text}",
-            textfont={"size": 11},
-        ))
-        fig_corr.update_layout(
-            template="plotly_dark",
-            height=500,
-            margin=dict(l=0, r=0, t=20, b=0),
-        )
-        st.plotly_chart(fig_corr, use_container_width=True)
-
-        # Varování na vysoké korelace
-        st.subheader("Rizikové páry (korelace > 0.80)")
-        high_corr = []
-        cols = corr.columns.tolist()
-        for i in range(len(cols)):
-            for j in range(i + 1, len(cols)):
-                v = corr.iloc[i, j]
-                if v > 0.80:
-                    high_corr.append((cols[i], cols[j], v))
-
-        if high_corr:
-            for a, b, v in sorted(high_corr, key=lambda x: -x[2]):
-                st.warning(f"**{a}** ↔ **{b}**: korelace {v:.2f} – pohybují se velmi podobně, zdvojené riziko v sektoru.")
+        if len(closes) < 2:
+            st.error("Nedostatek dat pro korelaci.")
         else:
-            st.success("Žádné extrémně korelované páry. Portfolio je dobře diverzifikované.")
+            price_df = pd.DataFrame(closes).dropna()
+            returns  = price_df.pct_change().dropna()
+            corr     = returns.corr()
 
-        # Výkonnostní přehled (normalizovaná cena)
-        st.subheader("Normalizovaná výkonnost (báze = 100)")
-        normalized = (price_df / price_df.iloc[0] * 100)
-        fig_norm = go.Figure()
-        colors_list = ["#60a5fa","#34d399","#f59e0b","#f87171","#a78bfa",
-                       "#fb923c","#4ade80","#38bdf8","#e879f9","#facc15","#94a3b8"]
-        for idx, col in enumerate(normalized.columns):
-            fig_norm.add_trace(go.Scatter(
-                x=normalized.index, y=normalized[col],
-                name=col,
-                line=dict(width=1.8, color=colors_list[idx % len(colors_list)]),
+            # Heatmapa
+            fig_corr = go.Figure(go.Heatmap(
+                z=corr.values,
+                x=corr.columns.tolist(),
+                y=corr.index.tolist(),
+                colorscale=[
+                    [0.0,  "#1d4ed8"],
+                    [0.5,  "#1e1e2e"],
+                    [1.0,  "#b91c1c"],
+                ],
+                zmin=-1, zmax=1,
+                text=[[f"{v:.2f}" for v in row] for row in corr.values],
+                texttemplate="%{text}",
+                textfont={"size": 11},
             ))
-        fig_norm.add_hline(y=100, line=dict(color="#666", dash="dot", width=1))
-        fig_norm.update_layout(
-            template="plotly_dark", height=380,
-            margin=dict(l=0, r=0, t=20, b=0),
-            legend=dict(orientation="h", y=-0.15),
-        )
-        st.plotly_chart(fig_norm, use_container_width=True)
+            fig_corr.update_layout(
+                template="plotly_dark",
+                height=500,
+                margin=dict(l=0, r=0, t=20, b=0),
+            )
+            st.plotly_chart(fig_corr, use_container_width=True)
+
+            # Varování na vysoké korelace
+            st.subheader("Rizikové páry (korelace > 0.80)")
+            high_corr = []
+            cols = corr.columns.tolist()
+            for i in range(len(cols)):
+                for j in range(i + 1, len(cols)):
+                    v = corr.iloc[i, j]
+                    if v > 0.80:
+                        high_corr.append((cols[i], cols[j], v))
+
+            if high_corr:
+                for a, b, v in sorted(high_corr, key=lambda x: -x[2]):
+                    st.warning(f"**{a}** ↔ **{b}**: korelace {v:.2f} – pohybují se velmi podobně, zdvojené riziko v sektoru.")
+            else:
+                st.success("Žádné extrémně korelované páry. Portfolio je dobře diverzifikované.")
+
+            # Výkonnostní přehled (normalizovaná cena)
+            st.subheader("Normalizovaná výkonnost (báze = 100)")
+            normalized = (price_df / price_df.iloc[0] * 100)
+            fig_norm = go.Figure()
+            colors_list = ["#60a5fa","#34d399","#f59e0b","#f87171","#a78bfa",
+                           "#fb923c","#4ade80","#38bdf8","#e879f9","#facc15","#94a3b8"]
+            for idx, col in enumerate(normalized.columns):
+                fig_norm.add_trace(go.Scatter(
+                    x=normalized.index, y=normalized[col],
+                    name=col,
+                    line=dict(width=1.8, color=colors_list[idx % len(colors_list)]),
+                ))
+            fig_norm.add_hline(y=100, line=dict(color="#666", dash="dot", width=1))
+            fig_norm.update_layout(
+                template="plotly_dark", height=380,
+                margin=dict(l=0, r=0, t=20, b=0),
+                legend=dict(orientation="h", y=-0.15),
+            )
+            st.plotly_chart(fig_norm, use_container_width=True)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# STRANA 7 – Backtest signálů
+# STRANA 4 – Analytika
 # ═════════════════════════════════════════════════════════════════════════════
-elif page == "Backtest signálů":
-    st.title("Backtest signálů")
-    st.caption(
-        "Jak by dopadly BUY/SELL signály tohoto systému na historických datech. "
-        "Win rate = procento obchodů v zisku. Backtest negarantuje budoucí výsledky."
-    )
+elif page == "Analytika":
+    tab_earnings, tab_backtest = st.tabs([
+        "Earnings kalendář",
+        "Backtest signálů",
+    ])
 
-    all_bt_stocks = {**{n: t for n, (t, c, s) in PORTFOLIO.items()},
-                     **{n: t for n, (t, c, s) in RADAR_STOCKS.items()}}
+    # ── Tab: Earnings kalendář ────────────────────────────────────────────────
+    with tab_earnings:
+        st.title("Earnings kalendář")
+        st.caption("Příští výsledky hospodaření pro tvoje portfolio.")
+        with st.expander("Co jsou Earnings a proč jsou důležité?"):
+            st.markdown("""
+**Earnings** (výsledky hospodaření) = každé čtvrtletí firmy zveřejňují své skutečné tržby a zisky.
+Trh reaguje velmi silně — cena může vyletět nebo propadnout o desítky procent během hodin.
 
-    bt_choice = st.selectbox("Vyber akcii pro backtest", list(all_bt_stocks.keys()))
-    bt_period = st.select_slider("Historické období", ["1y", "2y", "3y", "5y"], value="2y")
-    bt_ticker = all_bt_stocks[bt_choice]
+**EPS** (Earnings Per Share) = zisk na akcii. Čím vyšší, tím lépe.
 
-    if st.button("Spustit backtest", type="primary"):
-        with st.spinner(f"Počítám backtest pro {bt_ticker} za {bt_period}... (může trvat 20–60s)"):
-            result = run_backtest(bt_ticker, period=bt_period)
+**Proč nekupovat 1–2 týdny před earnings:**
+- Cena může být uměle nafouklá spekulacemi
+- Po zveřejnění může cena prudce klesnout i při dobrých výsledcích (\"buy the rumor, sell the news\")
+- Výsledky jsou v podstatě nepředvídatelné
 
-        if not result.get("ok"):
-            st.error(f"Chyba: {result.get('error', 'Neznámá chyba')}")
+**Strategie:** Pokud máš BUY signál, ale earnings jsou za méně než 14 dní — počkej na výsledky.
+Po zveřejnění se situace vyjasní a signál bude spolehlivější.
+            """)
+
+        with st.spinner("Načítám earnings data..."):
+            earnings = get_portfolio_earnings(PORTFOLIO)
+
+        if not earnings:
+            st.warning("Nepodařilo se načíst earnings data.")
         else:
-            # Souhrnná tabulka
-            st.subheader("Souhrnné výsledky")
-            tbl = backtest_summary_table(result)
-            if not tbl.empty:
-                st.dataframe(tbl, hide_index=True, use_container_width=True)
+            for e in earnings:
+                ed = e.get("earnings_date")
+                days = e.get("days_until")
 
-            # Detailní grafy
-            for action in ("BUY", "SELL"):
-                data = result.get(action, {})
-                if data.get("count", 0) == 0:
+                if ed is None:
                     continue
 
-                label = "BUY" if action == "BUY" else "SELL"
-                color = "#22c55e" if action == "BUY" else "#ef4444"
-                st.subheader(f"{label} signály – distribuce výnosů")
+                if days is not None and days < 0:
+                    # Proběhlé – šedé
+                    css = "card-hold"
+                    badge_html = '<span class="badge-hold">PROBĚHLO</span>'
+                    date_str = f"{ed} (před {abs(days)} dny)"
+                elif days is not None and days <= 7:
+                    css = "card-sell"
+                    badge_html = '<span class="badge-sell">TENTO TÝDEN</span>'
+                    date_str = f"{ed} (za {days} dní)"
+                elif days is not None and days <= 14:
+                    css = "card-radar"
+                    badge_html = f'<span style="background:#f59e0b;color:#000;padding:2px 8px;border-radius:4px;font-weight:700;font-size:0.8rem">ZA {days} DNÍ</span>'
+                    date_str = f"{ed}"
+                else:
+                    css = "card-hold"
+                    badge_html = f'<span class="badge-hold">ZA {days} DNÍ</span>' if days else '<span class="badge-hold">---</span>'
+                    date_str = f"{ed}" if ed else "Neznámo"
 
-                trades = data.get("trades", [])
-                for fd in [10, 20, 30]:
-                    key = f"ret_{fd}d"
-                    rets = [t[key] for t in trades if key in t]
-                    if not rets:
+                eps_html = ""
+                if e.get("eps_estimate"):
+                    eps_html = f'&nbsp;|&nbsp; EPS odhad: <b>{e["eps_estimate"]:.2f}</b>'
+
+                st.markdown(
+                    f'<div class="{css}">'
+                    f'{badge_html} &nbsp; '
+                    f'<strong>{e["name"]}</strong> '
+                    f'<span style="color:#888">{e["ticker"]}</span>'
+                    f'&nbsp;&nbsp;<span style="color:#aaa">{date_str}</span>'
+                    f'{eps_html}'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
+
+            st.divider()
+            st.info(
+                "Strategie: Pokud máš BUY signál na akcii, ale earnings jsou za méně než 14 dní, "
+                "zvažuj počkat na výsledky — výsledky mohou signál potvrdit nebo zvrátit."
+            )
+
+    # ── Tab: Backtest signálů ─────────────────────────────────────────────────
+    with tab_backtest:
+        st.title("Backtest signálů")
+        st.caption(
+            "Jak by dopadly BUY/SELL signály tohoto systému na historických datech. "
+            "Win rate = procento obchodů v zisku. Backtest negarantuje budoucí výsledky."
+        )
+
+        all_bt_stocks = {**{n: t for n, (t, c, s) in PORTFOLIO.items()},
+                         **{n: t for n, (t, c, s) in RADAR_STOCKS.items()}}
+
+        bt_choice = st.selectbox("Vyber akcii pro backtest", list(all_bt_stocks.keys()))
+        bt_period = st.select_slider("Historické období", ["1y", "2y", "3y", "5y"], value="2y")
+        bt_ticker = all_bt_stocks[bt_choice]
+
+        if st.button("Spustit backtest", type="primary"):
+            with st.spinner(f"Počítám backtest pro {bt_ticker} za {bt_period}... (může trvat 20–60s)"):
+                result = run_backtest(bt_ticker, period=bt_period)
+
+            if not result.get("ok"):
+                st.error(f"Chyba: {result.get('error', 'Neznámá chyba')}")
+            else:
+                # Souhrnná tabulka
+                st.subheader("Souhrnné výsledky")
+                tbl = backtest_summary_table(result)
+                if not tbl.empty:
+                    st.dataframe(tbl, hide_index=True, use_container_width=True)
+
+                # Detailní grafy
+                for action in ("BUY", "SELL"):
+                    data = result.get(action, {})
+                    if data.get("count", 0) == 0:
                         continue
 
-                    fig_hist = go.Figure()
-                    fig_hist.add_trace(go.Histogram(
-                        x=rets,
-                        nbinsx=20,
-                        marker_color=color,
-                        opacity=0.8,
-                        name=f"{fd}D výnosy",
-                    ))
-                    fig_hist.add_vline(x=0, line=dict(color="white", dash="dash"))
-                    fig_hist.add_vline(
-                        x=float(np.mean(rets)),
-                        line=dict(color="#f59e0b", dash="dot"),
-                        annotation_text=f"avg {np.mean(rets):+.1f}%",
-                    )
-                    wr = sum(1 for r in rets if r > 0) / len(rets) * 100
-                    fig_hist.update_layout(
-                        title=f"Horizon {fd} dní | Win rate: {wr:.0f}% | n={len(rets)}",
-                        template="plotly_dark", height=220,
-                        margin=dict(l=0, r=0, t=40, b=10),
-                        showlegend=False,
-                    )
-                    st.plotly_chart(fig_hist, use_container_width=True)
+                    label = "BUY" if action == "BUY" else "SELL"
+                    color = "#22c55e" if action == "BUY" else "#ef4444"
+                    st.subheader(f"{label} signály – distribuce výnosů")
 
-            st.info(
-                "Interpretace: Win rate > 55% a průměrný výnos > 0 naznačuje, "
-                "že signály mají historicky prediktivní hodnotu. "
-                "Pod 45% win rate je signální systém pro danou akcii méně spolehlivý."
-            )
-    else:
-        st.info("Vyber akcii a klikni na 'Spustit backtest'.")
+                    trades = data.get("trades", [])
+                    for fd in [10, 20, 30]:
+                        key = f"ret_{fd}d"
+                        rets = [t[key] for t in trades if key in t]
+                        if not rets:
+                            continue
 
+                        fig_hist = go.Figure()
+                        fig_hist.add_trace(go.Histogram(
+                            x=rets,
+                            nbinsx=20,
+                            marker_color=color,
+                            opacity=0.8,
+                            name=f"{fd}D výnosy",
+                        ))
+                        fig_hist.add_vline(x=0, line=dict(color="white", dash="dash"))
+                        fig_hist.add_vline(
+                            x=float(np.mean(rets)),
+                            line=dict(color="#f59e0b", dash="dot"),
+                            annotation_text=f"avg {np.mean(rets):+.1f}%",
+                        )
+                        wr = sum(1 for r in rets if r > 0) / len(rets) * 100
+                        fig_hist.update_layout(
+                            title=f"Horizon {fd} dní | Win rate: {wr:.0f}% | n={len(rets)}",
+                            template="plotly_dark", height=220,
+                            margin=dict(l=0, r=0, t=40, b=10),
+                            showlegend=False,
+                        )
+                        st.plotly_chart(fig_hist, use_container_width=True)
 
-# ═════════════════════════════════════════════════════════════════════════════
-# STRANA 8 – Sektorový přehled
-# ═════════════════════════════════════════════════════════════════════════════
-elif page == "Sektorový přehled":
-    st.title("Sektorový přehled")
-    st.caption("Výkonnost hlavních tržních sektorů. Pomáhá pochopit kontext – jde dolů jen tvoje akcie nebo celý sektor?")
-
-    sector_period_map = {"1 týden": "5d", "1 měsíc": "1mo", "3 měsíce": "3mo", "6 měsíců": "6mo"}
-    sp_label = st.selectbox("Období sektorů", list(sector_period_map.keys()), index=1)
-    sp = sector_period_map[sp_label]
-
-    with st.spinner("Načítám sektorová data..."):
-        sectors = fetch_sectors(sp)
-
-    if not sectors:
-        st.error("Nepodařilo se načíst sektorová data.")
-    else:
-        # Sloupcový graf sektorů
-        names   = [s["name"] for s in sectors]
-        chg_p   = [s["chg_period"] for s in sectors]
-        chg_d   = [s["chg_day"] for s in sectors]
-        bar_colors = ["#22c55e" if v >= 0 else "#ef4444" for v in chg_p]
-
-        fig_sec = go.Figure()
-        fig_sec.add_trace(go.Bar(
-            x=names, y=chg_p,
-            marker_color=bar_colors,
-            name=f"Za {sp_label}",
-            text=[f"{v:+.1f}%" for v in chg_p],
-            textposition="outside",
-        ))
-        fig_sec.add_trace(go.Scatter(
-            x=names, y=chg_d,
-            mode="markers",
-            marker=dict(size=10, color=["#22c55e" if v >= 0 else "#ef4444" for v in chg_d],
-                        symbol="diamond"),
-            name="Dnešní změna",
-        ))
-        fig_sec.add_hline(y=0, line=dict(color="#666", width=1))
-        fig_sec.update_layout(
-            template="plotly_dark", height=380,
-            margin=dict(l=0, r=0, t=20, b=0),
-            legend=dict(orientation="h", y=1.1),
-            yaxis_title="Výkonnost (%)",
-        )
-        st.plotly_chart(fig_sec, use_container_width=True)
-
-        # Tabulka + komentáře
-        st.subheader("Detail sektorů")
-        for s in sectors:
-            cp = s["chg_period"]
-            cd = s["chg_day"]
-            css = "card-buy" if cp > 2 else "card-sell" if cp < -2 else "card-hold"
-            color_p = "#22c55e" if cp >= 0 else "#ef4444"
-            color_d = "#22c55e" if cd >= 0 else "#ef4444"
-            st.markdown(
-                f'<div class="{css}" style="padding:10px">'
-                f'<strong>{s["name"]}</strong> '
-                f'<span style="color:#888;font-size:0.85rem">{s["symbol"]}</span>'
-                f'&nbsp;&nbsp; {s["price"]:.2f} USD'
-                f'&nbsp;|&nbsp; <span style="color:{color_p}">{sp_label}: {cp:+.1f}%</span>'
-                f'&nbsp;|&nbsp; <span style="color:{color_d}">Dnes: {cd:+.1f}%</span>'
-                f'</div>',
-                unsafe_allow_html=True,
-            )
-
-        # Kontext pro tvoje portfolio
-        st.divider()
-        st.subheader("Jak to ovlivňuje tvoje portfolio")
-
-        portfolio_sectors = {
-            "Technologie": ["NVIDIA", "AMD", "Alphabet", "Microsoft", "Palo Alto", "Amazon", "Taiwan Semi"],
-            "Obrana & Průmysl": ["SAAB", "Rheinmetall"],
-        }
-        sector_perf = {s["name"]: s["chg_period"] for s in sectors}
-
-        for sector_name, stocks in portfolio_sectors.items():
-            perf = sector_perf.get(sector_name)
-            if perf is None:
-                continue
-            color = "#22c55e" if perf >= 0 else "#ef4444"
-            stocks_str = ", ".join(stocks)
-            st.markdown(
-                f'**{sector_name}** ({sp_label}: <span style="color:{color}">{perf:+.1f}%</span>) '
-                f'– ovlivňuje: {stocks_str}',
-                unsafe_allow_html=True,
-            )
+                st.info(
+                    "Interpretace: Win rate > 55% a průměrný výnos > 0 naznačuje, "
+                    "že signály mají historicky prediktivní hodnotu. "
+                    "Pod 45% win rate je signální systém pro danou akcii méně spolehlivý."
+                )
+        else:
+            st.info("Vyber akcii a klikni na 'Spustit backtest'.")
 
 
 # ── Patička ───────────────────────────────────────────────────────────────────
