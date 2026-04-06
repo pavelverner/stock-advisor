@@ -468,19 +468,10 @@ _mob_links = "".join(
 )
 st.markdown(f'<div class="mob-nav">{_mob_links}</div>', unsafe_allow_html=True)
 
-# Period selector – jen na stránkách kde má smysl
-_period_opts = ["1T", "1M", "3M", "6M", "1R", "2R"]
-_period_map  = {"1T": "5d", "1M": "1mo", "3M": "3mo", "6M": "6mo", "1R": "1y", "2R": "2y"}
-_pages_with_period = {"Přehled portfolia", "Detail akcie", "Radar & Trh"}
+# Výchozí období pro grafy (pevné – horizonty se načítají interně)
+period = "6mo"
 
-if (page or "") in _pages_with_period:
-    _period_label = st.segmented_control(
-        "Časové období", _period_opts, default="6M", key="period_ctrl"
-    )
-    period = _period_map.get(_period_label or "6M", "6mo")
-else:
-    period = _period_map.get(st.session_state.get("period_ctrl", "6M"), "6mo")
-
+with st.sidebar:
     if page == "Detail akcie":
         all_stocks = dict(PORTFOLIO)
         all_stocks.update(RADAR_STOCKS)
@@ -504,14 +495,6 @@ else:
             default=[],
             placeholder="Všechny sektory",
         )
-
-    st.divider()
-    investment_horizon = st.radio(
-        "Investiční horizont",
-        ["Krátkodobý (< 3 měs.)", "Střednědobý (3–12 měs.)", "Dlouhodobý (> 1 rok)"],
-        index=1,
-        key="inv_horizon",
-    )
 
     refresh = st.button("Obnovit data", use_container_width=True)
     st.divider()
@@ -577,13 +560,34 @@ def scan_stocks(stock_dict: dict, period: str) -> list[dict]:
     return results
 
 
+@st.cache_data(ttl=900)
+def cached_multi_horizon(ticker: str) -> dict:
+    """Generuje technické signály pro 3 investiční horizonty."""
+    from indicators import generate_signals
+    result = {}
+    for key, p in [("short", "3mo"), ("medium", "1y"), ("long", "2y")]:
+        df = load_data(ticker, p)
+        if df is not None and len(df) >= 30:
+            try:
+                result[key] = generate_signals(df)
+            except Exception:
+                result[key] = None
+        else:
+            result[key] = None
+    return result
+
+
 @st.cache_data(ttl=1800)
-def cached_claude_analysis(ticker: str, signals_json: str, news_json: str, sentiment_json: str, horizon: str = "Střednědobý (3–12 měs.)") -> dict:
+def cached_claude_analysis(ticker: str, short_json: str, medium_json: str, long_json: str, news_json: str, sentiment_json: str) -> dict:
     import json
-    signals   = json.loads(signals_json)
-    news      = json.loads(news_json)
-    sentiment = json.loads(sentiment_json)
-    return analyze_stock_with_claude(ticker, signals, news, sentiment, horizon=horizon)
+    return analyze_stock_with_claude(
+        ticker,
+        short_signals=json.loads(short_json),
+        medium_signals=json.loads(medium_json),
+        long_signals=json.loads(long_json),
+        news=json.loads(news_json),
+        ai_sentiment=json.loads(sentiment_json),
+    )
 
 
 @st.cache_data(ttl=3600)
@@ -668,16 +672,22 @@ def _render_radar_card(r: dict, highlight: bool = False):
     sp = r.get("sector_chg")
     sp_str = (f'<span style="color:{"#22c55e" if (sp or 0) >= 0 else "#ef4444"}">'
               f'Sektor: {sp:+.1f}%</span>' if sp is not None else "")
+    # Střednědobý hint z EMA uspořádání (bez extra downloadu)
+    _med_trend = r["ema_trend"]
+    _med_c = {"Bullish": "#22c55e", "Bearish": "#ef4444", "Smíšený": "#f59e0b"}[_med_trend]
+    _med_icon = {"Bullish": "↑", "Bearish": "↓", "Smíšený": "→"}[_med_trend]
+    med_badge = (f'<span style="background:{_med_c}22;border:1px solid {_med_c};border-radius:4px;'
+                 f'padding:1px 6px;font-size:0.72rem;color:{_med_c}">Střední {_med_icon} {_med_trend}</span>')
     st.markdown(
         f'<div class="{css}">'
         f'<span class="{badge}">{label}</span> &nbsp;'
         f'{score_html} &nbsp; <span style="color:#aaa;font-size:0.8rem">{score_label}</span>'
+        f' &nbsp; {med_badge}'
         f'<br><strong style="font-size:1.05rem">{r["name"]}</strong>'
         f' <span style="color:#888;font-size:0.82rem">{r["ticker"]} · {r["sector"]}</span>'
         f' &nbsp;{r["price"]:.2f} {r["currency"]}'
         f' <span style="color:{color}">{arrow}{r["chg_pct"]:+.1f}%</span>'
         f' &nbsp;|&nbsp; RSI: <b>{r["rsi"]:.0f}</b>'
-        f' &nbsp;|&nbsp; Trend: <span style="color:{trend_color}">{r["ema_trend"]}</span>'
         + (f' &nbsp;|&nbsp; {sp_str}' if sp_str else "")
         + (f'<br><small>{reasons_html}</small>' if reasons_html else "")
         + '</div>',
@@ -1011,52 +1021,118 @@ elif page == "Detail akcie":
     signals = generate_signals_with_news(df, ai_sent)
     action  = signals["action"]
 
-    # Načti AI analýzu hned – použijeme ji i v summary kartě
+    # Načti signály pro 3 horizonty + AI analýzu
     import json as _json
+    with st.spinner("Načítám multi-horizont analýzu..."):
+        _mh = cached_multi_horizon(ticker)
+
+    def _sig_to_json(s: dict | None) -> str:
+        if not s:
+            return _json.dumps({})
+        return _json.dumps(
+            {k: (float(v) if isinstance(v, (int, float)) else v)
+             for k, v in s.items() if not isinstance(v, (list, dict))} |
+            {"buy_signals": s.get("buy_signals", []),
+             "sell_signals": s.get("sell_signals", [])}
+        )
+
     with st.spinner("Volám AI analýzu..."):
         _claude = cached_claude_analysis(
             ticker,
-            _json.dumps({k: (float(v) if isinstance(v, (int, float)) else v)
-                         for k, v in signals.items()
-                         if not isinstance(v, (list, dict))} |
-                        {"buy_signals": signals.get("buy_signals", []),
-                         "sell_signals": signals.get("sell_signals", [])}),
+            _sig_to_json(_mh.get("short")),
+            _sig_to_json(_mh.get("medium")),
+            _sig_to_json(_mh.get("long")),
             _json.dumps([{"title": n.get("title",""), "summary": n.get("summary","")} for n in news[:10]]),
             _json.dumps({k: (float(v) if isinstance(v, float) else v) for k, v in ai_sent.items()}),
-            st.session_state.get("inv_horizon", "Střednědobý (3–12 měs.)"),
         )
 
-    # ── Souhrnná karta ───────────────────────────────────────────────────────
-    _trend = ("Bullish" if signals["ema20"] > signals["ema50"] > signals["ema200"]
-              else "Bearish" if signals["ema20"] < signals["ema50"] < signals["ema200"]
+    # ── Multi-horizont souhrnná karta ────────────────────────────────────────
+    _HINT_LABEL = {"koupit": "KOUPIT", "prodat": "PRODAT", "čekat": "ČEKAT", "sledovat": "SLEDOVAT"}
+    _HINT_COLOR = {"koupit": "#22c55e", "prodat": "#ef4444", "čekat": "#f59e0b", "sledovat": "#60a5fa"}
+    _ai_prov = _claude.get("provider", "AI") if _claude.get("ok") else ""
+
+    def _horizon_badge(key: str, label: str) -> str:
+        """HTML badge pro jeden horizont v horním řádku."""
+        h = _claude.get(key, {}) if _claude.get("ok") else {}
+        hint = h.get("action_hint", "")
+        conf = h.get("confidence", "")
+        sig  = _mh.get(key)
+        tech_action = (sig or {}).get("action", "HOLD") if not hint else ""
+        # Fallback na tech signál pokud AI nedostupná
+        if not hint:
+            hint = {"BUY": "koupit", "SELL": "prodat", "HOLD": "čekat"}.get(tech_action, "čekat")
+        clr = _HINT_COLOR.get(hint, "#94a3b8")
+        lbl = _HINT_LABEL.get(hint, hint.upper())
+        conf_html = f'<div style="color:#64748b;font-size:0.68rem;margin-top:2px">{conf}</div>' if conf else ""
+        return (
+            f'<div style="background:{clr}18;border:2px solid {clr};border-radius:10px;'
+            f'padding:10px 8px;text-align:center">'
+            f'<div style="color:#94a3b8;font-size:0.68rem;margin-bottom:4px">{label}</div>'
+            f'<div style="color:{clr};font-size:1.15rem;font-weight:800">{lbl}</div>'
+            f'{conf_html}</div>'
+        )
+
+    st.markdown(f"""
+<style>
+.horizon-grid {{
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}}
+</style>
+<div class="horizon-grid">
+  {_horizon_badge("short",  "Krátkodobý (< 3 měs.)")}
+  {_horizon_badge("medium", "Střednědobý (6m – 2r)")}
+  {_horizon_badge("long",   "Dlouhodobý (3+ roky)")}
+</div>
+""", unsafe_allow_html=True)
+
+    # Přepínač detailu horizontu
+    _sel_hz = st.segmented_control(
+        "Detail horizontu",
+        ["Krátkodobý", "Střednědobý", "Dlouhodobý"],
+        default="Krátkodobý",
+        key=f"hz_detail_{ticker}",
+    )
+    _hz_key = {"Krátkodobý": "short", "Střednědobý": "medium", "Dlouhodobý": "long"}.get(_sel_hz or "Krátkodobý", "short")
+    _hz_sig = _mh.get(_hz_key) or signals  # fallback na 6mo signály
+
+    _hz_data = _claude.get(_hz_key, {}) if _claude.get("ok") else {}
+    _hz_summ = _hz_data.get("summary", "")
+    _hz_hint = _hz_data.get("action_hint", "")
+    _hz_conf = _hz_data.get("confidence", "")
+    _hz_events = _hz_data.get("events", [])
+    _hz_risks  = _hz_data.get("risk_factors", [])
+    _hz_opp    = _hz_data.get("opportunity", "")
+
+    # Technické hodnoty z vybraného horizontu
+    _trend = ("Bullish" if _hz_sig["ema20"] > _hz_sig["ema50"] > _hz_sig["ema200"]
+              else "Bearish" if _hz_sig["ema20"] < _hz_sig["ema50"] < _hz_sig["ema200"]
               else "Smíšený")
-    _rsi   = signals["rsi"]
+    _rsi   = _hz_sig["rsi"]
     _rsi_lbl = "Oversold" if _rsi < 30 else ("Overbought" if _rsi > 70 else "Neutrální")
     _rsi_c   = "#22c55e" if _rsi < 30 else ("#ef4444" if _rsi > 70 else "#94a3b8")
     _trend_c = "#22c55e" if _trend == "Bullish" else ("#ef4444" if _trend == "Bearish" else "#94a3b8")
-    _macd_c  = "#22c55e" if signals["macd"] > signals["macd_signal"] else "#ef4444"
-    _macd_lbl = "Bullish" if signals["macd"] > signals["macd_signal"] else "Bearish"
+    _macd_c  = "#22c55e" if _hz_sig["macd"] > _hz_sig["macd_signal"] else "#ef4444"
+    _macd_lbl = "Bullish" if _hz_sig["macd"] > _hz_sig["macd_signal"] else "Bearish"
     _sent_c  = "#22c55e" if ai_sent["score"] > 0.15 else ("#ef4444" if ai_sent["score"] < -0.15 else "#94a3b8")
     _sent_lbl = {"positive": "Pozitivní", "negative": "Negativní", "neutral": "Neutrální"}.get(ai_sent.get("dominant","neutral"), "Neutrální")
-    _sig_c   = {"BUY": "#22c55e", "SELL": "#ef4444", "HOLD": "#94a3b8"}[action]
-    _sig_lbl = {"BUY": "KOUPIT", "SELL": "PRODAT", "HOLD": "DRŽET"}[action]
-
-    _ai_hint = _claude.get("action_hint", "") if _claude.get("ok") else ""
-    _ai_conf = _claude.get("confidence", "") if _claude.get("ok") else ""
-    _ai_summ = _claude.get("summary", "") if _claude.get("ok") else ""
-    _ai_prov = _claude.get("provider", "AI") if _claude.get("ok") else ""
-    _hint_c  = {"koupit": "#22c55e", "prodat": "#ef4444"}.get(_ai_hint, "#94a3b8")
+    _hz_action = _hz_sig.get("action", "HOLD")
+    _sig_c   = {"BUY": "#22c55e", "SELL": "#ef4444", "HOLD": "#94a3b8"}[_hz_action]
+    _sig_lbl = {"BUY": "KOUPIT", "SELL": "PRODAT", "HOLD": "DRŽET"}[_hz_action]
 
     score, score_label = _score_label(
-        len(signals["buy_signals"]), len(signals["sell_signals"]), action
+        len(_hz_sig.get("buy_signals", [])), len(_hz_sig.get("sell_signals", [])), _hz_action
     )
     score_html = _score_bar_html(score)
 
-    _buy_html = "".join(f'<div style="color:#22c55e;font-size:0.82rem;padding:2px 0">+ {s}</div>' for s in signals["buy_signals"]) or '<div style="color:#555;font-size:0.82rem">Žádné</div>'
-    _sell_html = "".join(f'<div style="color:#ef4444;font-size:0.82rem;padding:2px 0">− {s}</div>' for s in signals["sell_signals"]) or '<div style="color:#555;font-size:0.82rem">Žádné</div>'
+    _buy_html  = "".join(f'<div style="color:#22c55e;font-size:0.82rem;padding:2px 0">+ {s}</div>' for s in _hz_sig.get("buy_signals", [])) or '<div style="color:#555;font-size:0.82rem">Žádné</div>'
+    _sell_html = "".join(f'<div style="color:#ef4444;font-size:0.82rem;padding:2px 0">− {s}</div>' for s in _hz_sig.get("sell_signals", [])) or '<div style="color:#555;font-size:0.82rem">Žádné</div>'
+    _hint_c = _HINT_COLOR.get(_hz_hint, "#94a3b8")
     _ai_row = (f'<div style="color:#94a3b8;font-size:0.78rem;margin-top:4px">AI: '
-               f'<span style="color:{_hint_c};font-weight:600;text-transform:uppercase">{_ai_hint}</span>'
-               f' · jistota: {_ai_conf} · <span style="color:#60a5fa">{_ai_prov}</span></div>') if _ai_hint else ""
+               f'<span style="color:{_hint_c};font-weight:600;text-transform:uppercase">{_hz_hint}</span>'
+               f' · jistota: {_hz_conf} · <span style="color:#60a5fa">{_ai_prov}</span></div>') if _hz_hint else ""
 
     st.markdown(f"""
 <style>
@@ -1085,7 +1161,7 @@ elif page == "Detail akcie":
     <div style="background:{_sig_c}22;border:2px solid {_sig_c};border-radius:8px;
                 padding:5px 16px;font-size:1.2rem;font-weight:700;color:{_sig_c}">{_sig_lbl}</div>
     <div style="flex:1;min-width:120px">{score_html}
-      <div style="color:#94a3b8;font-size:0.78rem;margin-top:2px">{score_label} · {len(signals['buy_signals'])} buy / {len(signals['sell_signals'])} sell</div>
+      <div style="color:#94a3b8;font-size:0.78rem;margin-top:2px">{score_label} · {len(_hz_sig.get('buy_signals',[]))} buy / {len(_hz_sig.get('sell_signals',[]))} sell</div>
       {_ai_row}
     </div>
   </div>
@@ -1104,7 +1180,7 @@ elif page == "Detail akcie":
     <div class="summary-cell">
       <div class="summary-label">MACD</div>
       <div class="summary-value" style="color:{_macd_c}">{_macd_lbl}</div>
-      <div class="summary-sub">{signals['macd']:.3f}</div>
+      <div class="summary-sub">{_hz_sig['macd']:.3f}</div>
     </div>
     <div class="summary-cell">
       <div class="summary-label">Sentiment</div>
@@ -1113,7 +1189,7 @@ elif page == "Detail akcie":
     </div>
   </div>
   <!-- AI shrnutí -->
-  {f'<div style="border-top:1px solid #334155;padding-top:10px;margin-top:4px;color:#cbd5e1;font-size:0.85rem"><span style="color:#60a5fa;font-size:0.72rem;font-weight:600">{_ai_prov.upper()} · </span>{_ai_summ}</div>' if _ai_summ else ""}
+  {f'<div style="border-top:1px solid #334155;padding-top:10px;margin-top:4px;color:#cbd5e1;font-size:0.85rem"><span style="color:#60a5fa;font-size:0.72rem;font-weight:600">{_ai_prov.upper()} · </span>{_hz_summ}</div>' if _hz_summ else ""}
   <!-- Signály detail -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;border-top:1px solid #334155;padding-top:10px">
     <div><div style="color:#64748b;font-size:0.72rem;margin-bottom:4px">BUY signály</div>{_buy_html}</div>
@@ -1294,32 +1370,28 @@ když **alespoň 3 indikátory souhlasí** — proto je konzervativní a nevydá
 
     st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
 
-    # ── AI analýza – detailní (summary je již v kartě nahoře) ────────────────
+    # ── AI analýza – události a rizika pro vybraný horizont ──────────────────
     if _claude.get("ok"):
-        ca1, ca2 = st.columns(2)
-        with ca1:
-            events = _claude.get("events", [])
-            if events:
-                st.markdown("**Klíčové tržní události**")
-                for ev in events:
-                    st.info(f"📌 {ev}")
-        with ca2:
-            risks = _claude.get("risk_factors", [])
-            if risks:
-                st.markdown("**Rizikové faktory**")
-                for r in risks:
-                    st.warning(f"⚠️ {r}")
-        opp = _claude.get("opportunity", "")
-        if opp:
-            hint       = _claude.get("action_hint", "")
-            conf       = _claude.get("confidence", "")
-            hint_color = {"koupit": "#22c55e", "prodat": "#ef4444"}.get(hint, "#888")
+        if _hz_events or _hz_risks:
+            ca1, ca2 = st.columns(2)
+            with ca1:
+                if _hz_events:
+                    st.markdown("**Klíčové tržní události**")
+                    for ev in _hz_events:
+                        st.info(f"📌 {ev}")
+            with ca2:
+                if _hz_risks:
+                    st.markdown("**Rizikové faktory**")
+                    for r in _hz_risks:
+                        st.warning(f"⚠️ {r}")
+        if _hz_opp:
+            hint_color = _HINT_COLOR.get(_hz_hint, "#888")
             st.markdown(
                 f'<div style="background:#0f172a;border:1px solid #334155;border-radius:6px;'
                 f'padding:12px 16px;margin-top:4px">'
-                f'<span style="color:{hint_color};font-weight:bold;text-transform:uppercase">{hint}</span>'
-                f'<span style="color:#94a3b8;font-size:0.8rem"> · jistota: {conf}</span><br>'
-                f'<span style="color:#cbd5e1">{opp}</span>'
+                f'<span style="color:{hint_color};font-weight:bold;text-transform:uppercase">{_hz_hint}</span>'
+                f'<span style="color:#94a3b8;font-size:0.8rem"> · jistota: {_hz_conf}</span><br>'
+                f'<span style="color:#cbd5e1">{_hz_opp}</span>'
                 f'</div>',
                 unsafe_allow_html=True,
             )

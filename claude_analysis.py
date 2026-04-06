@@ -116,54 +116,63 @@ def _parse_json(text: str) -> dict:
 
 # ── Hlavní analýza ────────────────────────────────────────────────────────────
 
+def _sig_summary(sig: dict | None) -> str:
+    """Zkrácený textový souhrn signálů pro prompt."""
+    if not sig:
+        return "Nedostupné"
+    action = sig.get("action", "HOLD")
+    rsi    = sig.get("rsi", 50)
+    ema_trend = (
+        "rostoucí (Bullish)"
+        if sig.get("ema20", 0) > sig.get("ema50", 0) > sig.get("ema200", 0)
+        else "klesající (Bearish)"
+        if sig.get("ema20", 0) < sig.get("ema50", 0) < sig.get("ema200", 0)
+        else "smíšený"
+    )
+    buys  = sig.get("buy_signals", [])
+    sells = sig.get("sell_signals", [])
+    vol   = sig.get("volume_anomaly", {})
+    vol_s = f" | Nezvyklý objem {vol.get('ratio',1):.1f}x ({vol.get('direction','')})" if vol.get("is_anomaly") else ""
+    return (
+        f"Signál: {action} (BUY: {len(buys)}, SELL: {len(sells)}) | "
+        f"RSI: {rsi:.1f} | EMA: {ema_trend}{vol_s}\n"
+        f"  BUY důvody: {', '.join(buys) if buys else 'žádné'}\n"
+        f"  SELL důvody: {', '.join(sells) if sells else 'žádné'}"
+    )
+
+
 def analyze_stock_with_claude(
     ticker: str,
-    signals: dict,
+    short_signals: dict,
+    medium_signals: dict | None,
+    long_signals: dict | None,
     news: list[dict],
     ai_sentiment: dict,
     macro: dict | None = None,
-    horizon: str = "Střednědobý (3–12 měs.)",
 ) -> dict:
     """
-    AI analýza akcie – shrnutí + detekce tržních událostí.
-    Vrátí: {summary, events, risk_factors, opportunity, confidence, action_hint, provider}
-    Funguje s Claude, Gemini nebo Groq – podle dostupného API klíče.
+    Multi-horizont AI analýza akcie.
+    Vrátí: {ok, short, medium, long, provider}
+    Každý horizont má: {action_hint, confidence, summary, events, risk_factors, opportunity}
     """
-    action = signals.get("action", "HOLD")
-    rsi = signals.get("rsi", 50)
-    ema_trend = (
-        "rostoucí" if signals.get("ema20", 0) > signals.get("ema50", 0) > signals.get("ema200", 0)
-        else "klesající" if signals.get("ema20", 0) < signals.get("ema50", 0) < signals.get("ema200", 0)
-        else "smíšený"
-    )
-
-    buy_signals  = signals.get("buy_signals", [])
-    sell_signals = signals.get("sell_signals", [])
-
     headlines = [n.get("title", "") for n in news[:10] if n.get("title")]
     headlines_str = "\n".join(f"- {h}" for h in headlines) if headlines else "Žádné zprávy."
-
     sentiment_score = ai_sentiment.get("score", 0)
     sentiment_label = ai_sentiment.get("dominant", "neutral")
     n_pos = ai_sentiment.get("positive", 0)
     n_neg = ai_sentiment.get("negative", 0)
 
-    vol_info = signals.get("volume_anomaly", {})
-    vol_str = ""
-    if vol_info.get("is_anomaly"):
-        vol_str = f"POZOR: Nezvyklý objem obchodování – {vol_info.get('ratio', 1):.1f}x průměr!"
-
-    prompt = f"""Jsi analytik finančních trhů. Analyzuj tuto situaci pro akcii {ticker}.
+    prompt = f"""Jsi senior analytik finančních trhů. Analyzuj akcii {ticker} ze TŘÍ časových horizontů.
 DŮLEŽITÉ: Celá odpověď včetně všech polí JSON musí být výhradně v češtině. Žádná anglická slova.
-INVESTIČNÍ HORIZONT INVESTORA: {horizon} – přizpůsob doporučení tomuto horizontu.
 
-TECHNICKÁ ANALÝZA:
-- Signál: {action} (BUY signálů: {len(buy_signals)}, SELL signálů: {len(sell_signals)})
-- RSI: {rsi:.1f} (pod 30 = přeprodaná, nad 70 = překoupená)
-- Trend (EMA): {ema_trend}
-- BUY důvody: {', '.join(buy_signals) if buy_signals else 'žádné'}
-- SELL důvody: {', '.join(sell_signals) if sell_signals else 'žádné'}
-{vol_str}
+KRÁTKODOBÉ technické signály (data za 3 měsíce – RSI, MACD, Bollinger, Stochastic):
+{_sig_summary(short_signals)}
+
+STŘEDNĚDOBÉ technické signály (data za 1 rok – EMA 50/200 trendy dominují):
+{_sig_summary(medium_signals)}
+
+DLOUHODOBÉ technické signály (data za 2 roky – EMA 200 a makro trend):
+{_sig_summary(long_signals)}
 
 SENTIMENT ZPRÁV (FinBERT AI):
 - Skóre: {sentiment_score:+.2f} (-1=velmi negativní, +1=velmi pozitivní)
@@ -172,14 +181,30 @@ SENTIMENT ZPRÁV (FinBERT AI):
 AKTUÁLNÍ ZPRÁVY:
 {headlines_str}
 
-Odpověz PŘESNĚ v tomto JSON formátu (bez markdown backticks). VEŠKERÝ TEXT MUSÍ BÝT V ČEŠTINĚ:
+Odpověz PŘESNĚ v tomto JSON formátu (bez markdown backticks). VŠE MUSÍ BÝT V ČEŠTINĚ:
 {{
-  "summary": "2-3 věty shrnující celkovou situaci pro investora – co se děje a proč",
-  "events": ["konkrétní tržní událost česky 1", "konkrétní tržní událost česky 2"],
-  "risk_factors": ["riziko česky 1", "riziko česky 2"],
-  "opportunity": "Jedna věta o příležitosti nebo varování pro investora česky",
-  "confidence": "nízká|střední|vysoká",
-  "action_hint": "koupit|prodat|čekat|sledovat"
+  "short": {{
+    "action_hint": "koupit|prodat|čekat|sledovat",
+    "confidence": "nízká|střední|vysoká",
+    "summary": "2-3 věty pro krátkodobého obchodníka (týdny až 3 měsíce) – co dělat nyní a proč",
+    "events": ["konkrétní krátkodobá tržní událost 1", "událost 2"],
+    "risk_factors": ["krátkodobé riziko 1", "riziko 2"],
+    "opportunity": "Jedna věta o krátkodobé příležitosti nebo varování"
+  }},
+  "medium": {{
+    "action_hint": "koupit|prodat|čekat|sledovat",
+    "confidence": "nízká|střední|vysoká",
+    "summary": "2-3 věty pro střednědobého investora (6 měsíců až 2 roky) – trend a pozice",
+    "risk_factors": ["střednědobé riziko 1"],
+    "opportunity": "Jedna věta o střednědobé příležitosti"
+  }},
+  "long": {{
+    "action_hint": "koupit|prodat|čekat|sledovat",
+    "confidence": "nízká|střední|vysoká",
+    "summary": "2-3 věty pro dlouhodobého investora (3+ roky) – fundamentální a sektorová pozice firmy",
+    "risk_factors": ["dlouhodobé riziko 1"],
+    "opportunity": "Jedna věta o dlouhodobé příležitosti nebo hrozbě"
+  }}
 }}"""
 
     try:
