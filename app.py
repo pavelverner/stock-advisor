@@ -2618,9 +2618,10 @@ elif page == "Deník":
             )
             shares_j = st.number_input(
                 "Počet akcií",
-                min_value=0.001,
+                min_value=0.0001,
                 value=1.0,
-                step=0.001,
+                step=0.1,
+                format="%g",
                 key=f"shares_j_{j_ticker}",
             )
 
