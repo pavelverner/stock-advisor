@@ -976,6 +976,52 @@ def _render_radar_card(r: dict, highlight: bool = False):
 # STRANA 1 – Přehled portfolia
 # ═════════════════════════════════════════════════════════════════════════════
 if page == "Přehled portfolia":
+    # CSS platí jen na této stránce – jiné stránky tento blok nevygenerují
+    st.markdown("""
+<style>
+/* Filtr – price-grid styl (stejný jako Detail akcie) */
+[data-testid="stButton"] button {
+    background: #1e293b !important;
+    border: 1.5px solid #334155 !important;
+    border-radius: 10px !important;
+    padding: 10px 12px !important;
+    text-align: left !important;
+    height: auto !important;
+    min-height: 72px !important;
+    display: block !important;
+    white-space: pre-line !important;
+    box-shadow: none !important;
+    width: 100% !important;
+    line-height: 1 !important;
+}
+[data-testid="stButton"] button p {
+    white-space: pre-line !important;
+    font-size: 0.72rem !important;
+    color: #64748b !important;
+    margin: 0 !important;
+    line-height: 1.8 !important;
+    text-align: left !important;
+}
+[data-testid="stButton"] button p::first-line {
+    font-size: 1.2rem !important;
+    font-weight: 700 !important;
+    color: #f1f5f9 !important;
+}
+[data-testid="stButton"] button[kind="primary"] {
+    border: 2px solid #3b82f6 !important;
+    background: #1a2a3f !important;
+}
+[data-testid="stButton"] button:hover {
+    background: #253448 !important;
+    border-color: #475569 !important;
+}
+[data-testid="stButton"] button[kind="primary"]:hover {
+    background: #1e3254 !important;
+    border-color: #60a5fa !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
     st.title("Portfolio přehled")
     st.caption(f"Aktualizováno: {datetime.now().strftime('%d.%m.%Y %H:%M')}")
 
@@ -1152,23 +1198,23 @@ if page == "Přehled portfolia":
         st.session_state["pf_filter"] = "ALL"
     _pf_filter = st.session_state["pf_filter"]
 
-    # Filtr – st.button v 2×2 gridu; label obsahuje i počet
+    # Filtr – 2×2 grid, count na 1. řádku (velký), label na 2. řádku (malý)
     _fr1 = st.columns(2)
     with _fr1[0]:
-        if st.button(f"Vše  {len(results)}", key="pff_all", use_container_width=True,
+        if st.button(f"{len(results)}\nVše", key="pff_all", use_container_width=True,
                      type="primary" if _pf_filter == "ALL" else "secondary"):
             st.session_state["pf_filter"] = "ALL"; st.rerun()
     with _fr1[1]:
-        if st.button(f"Koupit  {buy_count}", key="pff_buy", use_container_width=True,
+        if st.button(f"{buy_count}\nKOUPIT", key="pff_buy", use_container_width=True,
                      type="primary" if _pf_filter == "BUY" else "secondary"):
             st.session_state["pf_filter"] = "BUY"; st.rerun()
     _fr2 = st.columns(2)
     with _fr2[0]:
-        if st.button(f"Prodat  {sell_count}", key="pff_sell", use_container_width=True,
+        if st.button(f"{sell_count}\nPRODAT", key="pff_sell", use_container_width=True,
                      type="primary" if _pf_filter == "SELL" else "secondary"):
             st.session_state["pf_filter"] = "SELL"; st.rerun()
     with _fr2[1]:
-        if st.button(f"Držet  {hold_count}", key="pff_hold", use_container_width=True,
+        if st.button(f"{hold_count}\nDŽET", key="pff_hold", use_container_width=True,
                      type="primary" if _pf_filter == "HOLD" else "secondary"):
             st.session_state["pf_filter"] = "HOLD"; st.rerun()
 
