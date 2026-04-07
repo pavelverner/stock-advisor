@@ -388,6 +388,8 @@ PORTFOLIO = {
     "Oracle":                   ("ORCL",    "USD", "tech"),
     "Baidu":                    ("BIDU",    "USD", "tech"),
     "Virgin Galactic":          ("SPCE",    "USD", "tech"),
+    "Parker Hannifin":          ("PH",      "USD", "defense"),
+    "NIO":                      ("NIO",     "USD", "tech"),
 }
 
 # ── Radar – akcie rozdělené podle sektoru (mapování na sektorové ETF z macro.py)
