@@ -230,15 +230,6 @@ details { margin: 0 !important; padding-bottom: 0 !important; }
         overflow: hidden !important;
     }
 
-    /* Makro zóny: gauge + makro ukazatele pod sebou na mobilu.
-       Sentinel je statický → CSS platí od prvního framu, žádný layout shift. */
-    div:has(.mkt-ctx-sentinel) + [data-testid="stHorizontalBlock"] {
-        flex-wrap: wrap !important;
-    }
-    div:has(.mkt-ctx-sentinel) + [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
-        min-width: 100% !important;
-        flex: none !important;
-    }
 }
 
 /* ── Filtr akcií – price-grid styl (klikatelné boxy) ── */
@@ -1043,9 +1034,15 @@ if page == "Přehled portfolia":
     _vix_chg  = _macro_mini.get("VIX", {}).get("chg")   if _macro_mini else None
     _fg_label_str, _fg_color = fg_label(_fg_score) if _fg_score is not None else ("N/A", "#888")
 
-    # Sentinel je statický HTML → CSS flex-wrap platí od prvního framu
-    st.markdown('<div class="mkt-ctx-sentinel"></div>', unsafe_allow_html=True)
-    _ctx_left, _ctx_right = st.columns([1, 1])
+    # Detekce mobilu přes User-Agent → layout v Pythonu, žádné CSS triky
+    _ua = st.context.headers.get("User-Agent", "")
+    _is_mobile = any(k in _ua for k in ("Mobile", "Android", "iPhone", "iPad"))
+
+    if _is_mobile:
+        _ctx_left = st.container()
+        _ctx_right = st.container()
+    else:
+        _ctx_left, _ctx_right = st.columns([1, 1])
 
     with _ctx_left:
         st.markdown("**Index strachu a chamtivosti**")
