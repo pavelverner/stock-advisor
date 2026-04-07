@@ -2699,7 +2699,7 @@ elif page == "Deník":
                         "  display:none !important;"
                         "}"
                         "</style>", unsafe_allow_html=True)
-            uploaded = st.file_uploader("⬆️  Importuj zálohu (CSV)", type="csv", label_visibility="visible")
+            uploaded = st.file_uploader("Nahrát zálohu (CSV)", type="csv", label_visibility="visible")
             if uploaded:
                 try:
                     n = import_from_csv(uploaded.read())
