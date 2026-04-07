@@ -2704,6 +2704,7 @@ elif page == "Deník":
                     mime="text/csv",
                     use_container_width=True,
                 )
+            st.markdown("<style>[data-testid='stFileUploaderDropzone']{text-align:center !important} [data-testid='stFileUploaderDropzone']>div{display:flex !important;flex-direction:column !important;align-items:center !important}</style>", unsafe_allow_html=True)
             uploaded = st.file_uploader("⬆️  Importuj zálohu (CSV)", type="csv", label_visibility="visible")
             if uploaded:
                 try:
