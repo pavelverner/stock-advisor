@@ -2689,36 +2689,24 @@ elif page == "Deník":
 
         st.divider()
         st.subheader("Import / Export")
-        st.markdown("""<style>
-/* Kompaktní file uploader – stejná výška jako download button */
-[data-testid="stFileUploader"] section { padding: 0 !important; border: none !important; }
-[data-testid="stFileUploader"] section > div { display: none !important; }
-[data-testid="stFileUploaderDropzoneInstructions"] { display: none !important; }
-[data-testid="stFileUploader"] [data-testid="stBaseButton-secondary"] {
-    width: 100% !important; border-radius: 8px !important;
-}
-</style>""", unsafe_allow_html=True)
-        col_imp, col_exp = st.columns(2)
-        with col_imp:
-            uploaded = st.file_uploader("Importuj zálohu (CSV)", type="csv", label_visibility="collapsed")
-            if uploaded:
-                try:
-                    n = import_from_csv(uploaded.read())
-                    st.success(f"Importováno {n} obchodů.")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Chyba importu: {e}")
-        with col_exp:
-            df_exp = get_trades()
-            if not df_exp.empty:
-                csv_bytes = df_exp.to_csv(index=False).encode("utf-8")
-                st.download_button(
-                    "Stáhnout zálohu (CSV)",
-                    data=csv_bytes,
-                    file_name=f"trades_{datetime.now().strftime('%Y%m%d')}.csv",
-                    mime="text/csv",
-                    use_container_width=True,
-                )
+        df_exp = get_trades()
+        if not df_exp.empty:
+            csv_bytes = df_exp.to_csv(index=False).encode("utf-8")
+            st.download_button(
+                "⬇️  Stáhnout zálohu (CSV)",
+                data=csv_bytes,
+                file_name=f"trades_{datetime.now().strftime('%Y%m%d')}.csv",
+                mime="text/csv",
+                use_container_width=True,
+            )
+        uploaded = st.file_uploader("⬆️  Importuj zálohu (CSV)", type="csv", label_visibility="visible")
+        if uploaded:
+            try:
+                n = import_from_csv(uploaded.read())
+                st.success(f"Importováno {n} obchodů.")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Chyba importu: {e}")
 
     # ── Tab 2: Historie ───────────────────────────────────────────────────────
     with tab_history:
