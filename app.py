@@ -2831,7 +2831,7 @@ elif page == "Deník":
                 open_pos = df_perf_s[df_perf_s["Status"] == "Otevřená"].dropna(subset=["P&L %"])
                 if not open_pos.empty:
                     st.divider()
-                    st.subheader("P&L otevřených pozic")
+                    st.subheader("P&L nakoupených akcií")
                     colors = ["#22c55e" if v >= 0 else "#ef4444" for v in open_pos["P&L %"]]
                     fig_pnl = go.Figure(go.Bar(
                         x=open_pos["Ticker"],
