@@ -2638,6 +2638,25 @@ elif page == "Deník":
             )
             lbl = "Koupeno" if action_j == "BUY" else "Prodáno"
             st.toast(f"{lbl}: {shares_j:g} × {j_ticker} @ {price_j:.2f} {j_currency}", icon="✅")
+            st.rerun()
+
+        # Náhled posledních záznamů přímo v záložce Přidat
+        _recent = get_trades()
+        if not _recent.empty:
+            st.divider()
+            st.caption("Poslední záznamy")
+            for _, _r in _recent.head(3).iterrows():
+                _a = _r["action"]
+                _clr = "#22c55e" if _a == "BUY" else "#ef4444"
+                _lbl = "KOUPENO" if _a == "BUY" else "PRODÁNO"
+                st.markdown(
+                    f'<div style="background:#1e293b;border-left:3px solid {_clr};border-radius:6px;'
+                    f'padding:8px 12px;margin:4px 0;font-size:0.82rem">'
+                    f'<span style="color:{_clr};font-weight:700">{_lbl}</span> '
+                    f'<strong>{_r["name"]}</strong> · {float(_r["shares"]):.3g} ks @ {float(_r["price"]):.2f}'
+                    f'<span style="color:#64748b;font-size:0.72rem;float:right">{str(_r["date"])[:10]}</span></div>',
+                    unsafe_allow_html=True,
+                )
 
         st.divider()
         st.subheader("Import / Export")
