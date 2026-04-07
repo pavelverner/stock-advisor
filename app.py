@@ -2725,38 +2725,38 @@ elif page == "Deník":
                 df_perf = get_performance(df_raw)
 
             for _, row in df_perf.iterrows():
-                action_r = row["Akce"]
-                pnl      = row["P&L %"]
-                card_css = "card-buy" if action_r == "BUY" else "card-sell"
-                badge_css= "badge-buy" if action_r == "BUY" else "badge-sell"
-                badge_lbl= "KOUPENO"  if action_r == "BUY" else "PRODÁNO"
+                action_r  = row["Akce"]
+                pnl       = row["P&L %"]
+                clr       = "#22c55e" if action_r == "BUY" else "#ef4444"
+                badge_lbl = "KOUPENO" if action_r == "BUY" else "PRODÁNO"
 
                 pnl_html = ""
                 if pnl is not None:
                     pnl_color = "#22c55e" if pnl >= 0 else "#ef4444"
                     pnl_abs   = row["P&L Kč/USD"]
-                    pnl_html  = (
-                        f' &nbsp;|&nbsp; P&L: '
-                        f'<span style="color:{pnl_color};font-weight:700">'
-                        f'{pnl:+.1f}% ({pnl_abs:+.0f})</span>'
-                    )
+                    pnl_html  = (f'<div style="color:{pnl_color};font-weight:700;font-size:0.85rem">'
+                                 f'P&L: {pnl:+.1f}% ({pnl_abs:+.0f})</div>')
 
-                cur_html = f" → aktuálně {row['Aktuální']:.2f}" if row["Aktuální"] else ""
-                note_html = f'<br><small style="color:#888">{row["Poznámka"]}</small>' if row["Poznámka"] else ""
-                reasons_html = f'<br><small style="color:#aaa">{row["Důvody"]}</small>' if row["Důvody"] else ""
+                cur_html  = (f'<div style="color:#94a3b8;font-size:0.78rem">Aktuálně: {row["Aktuální"]:.2f}</div>'
+                             if row["Aktuální"] else "")
+                note_html = (f'<div style="color:#888;font-size:0.75rem">{row["Poznámka"]}</div>'
+                             if row["Poznámka"] else "")
 
                 c_left, c_del = st.columns([10, 1])
                 with c_left:
                     st.markdown(
-                        f'<div class="{card_css}" style="margin:4px 0">'
-                        f'<span class="{badge_css}">{badge_lbl}</span> &nbsp;'
-                        f'<strong>{row["Název"]}</strong> '
-                        f'<span style="color:#888;font-size:0.82rem">{row["Ticker"]}</span>'
-                        f' &nbsp; vstup: <b>{row["Vstup"]:.2f}</b> × {row["Počet"]:.3g}'
-                        f' = <b>{row["Investováno"]:.0f}</b>'
-                        f'{cur_html}{pnl_html}'
-                        f'<br><small style="color:#666">{row["Datum"]}</small>'
-                        f'{note_html}{reasons_html}'
+                        f'<div style="background:#1e293b;border-left:3px solid {clr};border-radius:8px;'
+                        f'padding:10px 12px;margin:4px 0;word-break:break-word;overflow-wrap:break-word">'
+                        f'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">'
+                        f'<span style="background:{clr}22;color:{clr};border:1px solid {clr};border-radius:4px;'
+                        f'padding:1px 6px;font-size:0.7rem;font-weight:700">{badge_lbl}</span>'
+                        f'<strong style="font-size:0.9rem">{row["Název"]}</strong>'
+                        f'<span style="color:#64748b;font-size:0.78rem">{row["Ticker"]}</span>'
+                        f'<span style="color:#64748b;font-size:0.72rem;margin-left:auto">{row["Datum"]}</span>'
+                        f'</div>'
+                        f'<div style="color:#94a3b8;font-size:0.82rem">Vstup: <b style="color:#f1f5f9">{row["Vstup"]:.2f}</b>'
+                        f' × {row["Počet"]:.3g} = <b style="color:#f1f5f9">{row["Investováno"]:.0f}</b></div>'
+                        f'{cur_html}{pnl_html}{note_html}'
                         f'</div>',
                         unsafe_allow_html=True,
                     )
