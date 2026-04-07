@@ -1012,6 +1012,22 @@ if page == "Přehled portfolia":
     font-weight: 700 !important;
     color: #f1f5f9 !important;
 }
+/* Mobil – zmenšit tlačítka na půl */
+@media (max-width: 768px) {
+    [data-testid="stButton"] button {
+        padding: 5px 3px !important;
+        min-height: 52px !important;
+        font-size: 0.6rem !important;
+    }
+    [data-testid="stButton"] button p {
+        font-size: 0.6rem !important;
+        line-height: 1.5 !important;
+    }
+    [data-testid="stButton"] button p::first-line {
+        font-size: 0.95rem !important;
+    }
+}
+
 /* Aktivní (Vše / Držet) – modrý */
 [data-testid="stButton"] button[kind="primary"] {
     border: 2px solid #3b82f6 !important;
