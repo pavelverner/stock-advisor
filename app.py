@@ -2682,10 +2682,11 @@ elif page == "Deník":
                 csv_bytes = df_exp.to_csv(index=False).encode("utf-8")
                 st.markdown("⬇️  Stáhnout zálohu (CSV)")
                 st.download_button(
-                    "Stáhnout",
+                    "⬇️  Stáhnout",
                     data=csv_bytes,
                     file_name=f"trades_{datetime.now().strftime('%Y%m%d')}.csv",
                     mime="text/csv",
+                    use_container_width=False,
                 )
             st.markdown("<style>"
                         "[data-testid='stFileUploaderDropzone']{"
