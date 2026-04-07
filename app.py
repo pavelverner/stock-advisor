@@ -2692,25 +2692,26 @@ elif page == "Deník":
 
         st.divider()
         st.subheader("Import / Export")
-        df_exp = get_trades()
-        if not df_exp.empty:
-            csv_bytes = df_exp.to_csv(index=False).encode("utf-8")
-            st.download_button(
-                "⬇️  Stáhnout zálohu (CSV)",
-                data=csv_bytes,
-                file_name=f"trades_{datetime.now().strftime('%Y%m%d')}.csv",
-                mime="text/csv",
-                use_container_width=True,
-            )
-        st.markdown("<style>[data-testid='stFileUploaderDropzone'] { text-align: center !important; } [data-testid='stFileUploader'] label { width: 100%; text-align: center !important; display: block; }</style>", unsafe_allow_html=True)
-        uploaded = st.file_uploader("⬆️  Importuj zálohu (CSV)", type="csv", label_visibility="visible")
-        if uploaded:
-            try:
-                n = import_from_csv(uploaded.read())
-                st.success(f"Importováno {n} obchodů.")
-                st.rerun()
-            except Exception as e:
-                st.error(f"Chyba importu: {e}")
+        _ie1, _ie2, _ie3 = st.columns([1, 2, 1])
+        with _ie2:
+            df_exp = get_trades()
+            if not df_exp.empty:
+                csv_bytes = df_exp.to_csv(index=False).encode("utf-8")
+                st.download_button(
+                    "⬇️  Stáhnout zálohu (CSV)",
+                    data=csv_bytes,
+                    file_name=f"trades_{datetime.now().strftime('%Y%m%d')}.csv",
+                    mime="text/csv",
+                    use_container_width=True,
+                )
+            uploaded = st.file_uploader("⬆️  Importuj zálohu (CSV)", type="csv", label_visibility="visible")
+            if uploaded:
+                try:
+                    n = import_from_csv(uploaded.read())
+                    st.success(f"Importováno {n} obchodů.")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Chyba importu: {e}")
 
     # ── Tab 2: Historie ───────────────────────────────────────────────────────
     with tab_history:
