@@ -2681,11 +2681,13 @@ elif page == "Deník":
             df_exp = get_trades()
             if not df_exp.empty:
                 csv_bytes = df_exp.to_csv(index=False).encode("utf-8")
-                st.markdown("<span style='margin-bottom:2px;display:block'>⬇️  Stáhnout zálohu (CSV)</span>", unsafe_allow_html=True)
                 st.markdown("<style>"
                             "[data-testid='stDownloadButton']{margin-top:0 !important;}"
                             "[data-testid='stDownloadButton'] button{width:160px !important;}"
-                            "</style>", unsafe_allow_html=True)
+                            ".ie-dl-label{margin:0 0 2px 0 !important; line-height:1.4}"
+                            ".ie-dl-label + div{margin-top:0 !important}"
+                            "</style>"
+                            "<p class='ie-dl-label'>⬇️  Stáhnout zálohu (CSV)</p>", unsafe_allow_html=True)
                 st.download_button(
                     "Stáhnout",
                     data=csv_bytes,
