@@ -1238,7 +1238,7 @@ if page == "Přehled portfolia":
                      type="primary" if _pf_filter == "SELL" else "secondary"):
             st.session_state["pf_filter"] = "SELL"; st.rerun()
     with _fc[3]:
-        if st.button(f"{hold_count}\nDŘET", key="pff_hold", use_container_width=True,
+        if st.button(f"{hold_count}\nDRŽET", key="pff_hold", use_container_width=True,
                      type="primary" if _pf_filter == "HOLD" else "secondary"):
             st.session_state["pf_filter"] = "HOLD"; st.rerun()
 
