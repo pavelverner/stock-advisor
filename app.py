@@ -1489,55 +1489,56 @@ elif page == "Detail akcie":
         _c1 = _hz_meta["short"]["clr"]
         _c2 = _hz_meta["medium"]["clr"]
         _c3 = _hz_meta["long"]["clr"]
+        # CSS – button vypadá přesně jako původní HTML badge
         st.markdown(f"""<style>
 [data-testid="stMarkdown"]:has(#hz-filter-sentinel) + [data-testid="stHorizontalBlock"] {{
-    gap: 6px !important;
+    gap: 8px !important;
 }}
 [data-testid="stMarkdown"]:has(#hz-filter-sentinel) + [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {{
     padding: 0 !important; min-width: 0 !important;
 }}
+/* Základ – match badge container */
 [data-testid="stMarkdown"]:has(#hz-filter-sentinel) + [data-testid="stHorizontalBlock"] button {{
-    border-radius: 10px !important; padding: 10px 4px !important; min-height: 72px !important;
+    border-radius: 10px !important; padding: 10px 8px !important; min-height: 70px !important;
     text-align: center !important; width: 100% !important; white-space: pre-line !important;
     box-sizing: border-box !important; height: auto !important; display: block !important;
     box-shadow: none !important;
 }}
+/* p – match action label (velký, tučný, barevný) */
 [data-testid="stMarkdown"]:has(#hz-filter-sentinel) + [data-testid="stHorizontalBlock"] button p {{
-    white-space: pre-line !important; font-size: 0.8rem !important; font-weight: 700 !important;
-    text-align: center !important; line-height: 1.5 !important; margin: 0 !important;
+    white-space: pre-line !important; font-size: 1.15rem !important; font-weight: 800 !important;
+    text-align: center !important; line-height: 1.4 !important; margin: 4px 0 0 !important;
 }}
+/* ::first-line – match title (malý, šedý) */
 [data-testid="stMarkdown"]:has(#hz-filter-sentinel) + [data-testid="stHorizontalBlock"] button p::first-line {{
-    font-size: 0.6rem !important; font-weight: 400 !important; color: #94a3b8 !important;
+    font-size: 0.68rem !important; font-weight: 400 !important; color: #94a3b8 !important;
 }}
+/* Sloupec 1 – Krátkodobý */
 [data-testid="stMarkdown"]:has(#hz-filter-sentinel) + [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(1) button {{
     background: {_c1}18 !important; border: 2px solid {_c1} !important;
 }}
 [data-testid="stMarkdown"]:has(#hz-filter-sentinel) + [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(1) button p {{ color: {_c1} !important; }}
-[data-testid="stMarkdown"]:has(#hz-filter-sentinel) + [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(1) button[kind="primary"] {{
-    background: {_c1}30 !important; border-width: 2.5px !important;
-}}
+[data-testid="stMarkdown"]:has(#hz-filter-sentinel) + [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(1) button[kind="primary"] {{ background: {_c1}38 !important; border-width: 3px !important; }}
+/* Sloupec 2 – Střednědobý */
 [data-testid="stMarkdown"]:has(#hz-filter-sentinel) + [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(2) button {{
     background: {_c2}18 !important; border: 2px solid {_c2} !important;
 }}
 [data-testid="stMarkdown"]:has(#hz-filter-sentinel) + [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(2) button p {{ color: {_c2} !important; }}
-[data-testid="stMarkdown"]:has(#hz-filter-sentinel) + [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(2) button[kind="primary"] {{
-    background: {_c2}30 !important; border-width: 2.5px !important;
-}}
+[data-testid="stMarkdown"]:has(#hz-filter-sentinel) + [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(2) button[kind="primary"] {{ background: {_c2}38 !important; border-width: 3px !important; }}
+/* Sloupec 3 – Dlouhodobý */
 [data-testid="stMarkdown"]:has(#hz-filter-sentinel) + [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(3) button {{
     background: {_c3}18 !important; border: 2px solid {_c3} !important;
 }}
 [data-testid="stMarkdown"]:has(#hz-filter-sentinel) + [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(3) button p {{ color: {_c3} !important; }}
-[data-testid="stMarkdown"]:has(#hz-filter-sentinel) + [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(3) button[kind="primary"] {{
-    background: {_c3}30 !important; border-width: 2.5px !important;
-}}
+[data-testid="stMarkdown"]:has(#hz-filter-sentinel) + [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(3) button[kind="primary"] {{ background: {_c3}38 !important; border-width: 3px !important; }}
 </style>
 <div id="hz-filter-sentinel"></div>""", unsafe_allow_html=True)
 
-        # 3 klikatelné boxy horizontu (nahrazují HTML grid + segmented_control)
+        # 3 klikatelné boxy – text: "title subtitle\nLBL" → ::first-line = title (malý), zbytek = label (velký)
         _hcols = st.columns(3)
         for _idx, (_hk, _ht, _hs) in enumerate(_hz_defs):
             _m = _hz_meta[_hk]
-            _btn_txt = f"{_ht} {_hs}\n{_m['lbl']}" + (f"\n{_m['conf']}" if _m["conf"] else "")
+            _btn_txt = f"{_ht} {_hs}\n{_m['lbl']}"
             with _hcols[_idx]:
                 if st.button(_btn_txt, key=f"hz_btn_{_hk}_{ticker}", use_container_width=True,
                              type="primary" if _hz_key == _hk else "secondary"):
