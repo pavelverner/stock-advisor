@@ -2651,7 +2651,21 @@ elif page == "Deník":
             )
             lbl = "Koupeno" if action_j == "BUY" else "Prodáno"
             st.toast(f"{lbl}: {shares_j:g} × {j_ticker} @ {price_j:.2f} {j_currency}", icon="✅")
+            _portfolio_tickers = {t for _, (t, _, _) in PORTFOLIO.items()}
+            if action_j == "BUY" and j_ticker not in _portfolio_tickers:
+                st.session_state["notify_add_portfolio"] = j_ticker
             st.rerun()
+
+        if st.session_state.get("notify_add_portfolio"):
+            _nticker = st.session_state["notify_add_portfolio"]
+            st.warning(
+                f"**{_nticker}** není ve tvém portfoliu — nezobrazí se v Přehledu portfolia. "
+                f"Přidej ji do souboru `app.py` do sekce `PORTFOLIO`.",
+                icon="⚠️",
+            )
+            if st.button("Rozumím", key="dismiss_portfolio_notify"):
+                del st.session_state["notify_add_portfolio"]
+                st.rerun()
 
         # Náhled posledních záznamů přímo v záložce Přidat
         _recent = get_trades()
