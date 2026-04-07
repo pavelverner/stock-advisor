@@ -2766,9 +2766,11 @@ elif page == "Deník":
                     f'</div>',
                     unsafe_allow_html=True,
                 )
+                st.markdown("<div style='margin-top:2px'></div>", unsafe_allow_html=True)
                 if st.button("🗑 Smazat", key=f"del_{row['id']}", help="Smazat záznam"):
                     delete_trade(int(row["id"]))
                     st.rerun()
+                st.markdown("<div style='margin-bottom:8px'></div>", unsafe_allow_html=True)
 
     # ── Tab 3: Výkonnost ──────────────────────────────────────────────────────
     with tab_stats:
