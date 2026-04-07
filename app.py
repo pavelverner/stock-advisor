@@ -2699,11 +2699,12 @@ elif page == "Deník":
                         "[data-testid='stFileUploaderDropzoneInstructions']{"
                         "  display:none !important;"
                         "}"
-                        "[data-testid='stFileUploaderDropzone'] button > span:first-child{"
-                        "  visibility:hidden !important; font-size:0 !important;"
+                        "[data-testid='stFileUploaderDropzone'] button{"
+                        "  font-size:0 !important; color:transparent !important;"
                         "}"
-                        "[data-testid='stFileUploaderDropzone'] button > span:first-child::after{"
-                        "  content:'Nahrát' !important; visibility:visible !important; font-size:14px !important;"
+                        "[data-testid='stFileUploaderDropzone'] button::after{"
+                        "  content:'Nahrát' !important; font-size:14px !important;"
+                        "  color:inherit !important;"
                         "}"
                         "</style>", unsafe_allow_html=True)
             uploaded = st.file_uploader("Nahrát zálohu (CSV)", type="csv", label_visibility="collapsed")
