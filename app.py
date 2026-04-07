@@ -2515,7 +2515,20 @@ elif page == "Deník":
     except Exception:
         _using_pg = bool(os.environ.get("DATABASE_URL", ""))
     if _using_pg:
-        st.success("Úložiště: **PostgreSQL** (data přežijí restarty)", icon="🗄️")
+        # Otestuj skutečné připojení
+        try:
+            import psycopg2
+            _pg_url = ""
+            try:
+                _pg_url = st.secrets.get("DATABASE_URL", "")
+            except Exception:
+                _pg_url = os.environ.get("DATABASE_URL", "")
+            _test_con = psycopg2.connect(_pg_url, sslmode="require", connect_timeout=5)
+            _test_con.close()
+            st.success("Úložiště: **PostgreSQL** — připojení OK, data přežijí restarty", icon="🗄️")
+        except Exception as _pg_err:
+            st.error(f"DATABASE_URL nalezen, ale připojení selhalo: `{_pg_err}`", icon="❌")
+            st.info("Zkontroluj CONNECTION STRING v Secrets — musí být ve formátu `postgresql://user:heslo@host:5432/db`")
     elif _using_sheets:
         st.success("Úložiště: **Google Sheets** (data přežijí restarty)", icon="📊")
     else:
