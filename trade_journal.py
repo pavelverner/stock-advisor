@@ -70,16 +70,31 @@ def _use_sheets() -> bool:
 
 def _pg_conn():
     import psycopg2
-    import psycopg2.extras
-    url = _get_secret("DATABASE_URL")
-    con = psycopg2.connect(url)
-    return con
+    import psycopg2.pool
+    import streamlit as st
+
+    @st.cache_resource
+    def _pool(url: str):
+        return psycopg2.pool.SimpleConnectionPool(1, 5, url)
+
+    pool = _pool(_get_secret("DATABASE_URL"))
+    con  = pool.getconn()
+    con.autocommit = False
+    return con, pool
+
+
+def _pg_put(con, pool):
+    """Vrátí spojení zpět do poolu."""
+    try:
+        pool.putconn(con)
+    except Exception:
+        pass
 
 
 def _pg_init():
-    with _pg_conn() as con:
+    con, pool = _pg_conn()
+    try:
         with con.cursor() as cur:
-            # SERIAL PRIMARY KEY pro PostgreSQL
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS trades (
                     id         SERIAL PRIMARY KEY,
@@ -96,13 +111,18 @@ def _pg_init():
                 )
             """)
         con.commit()
+    finally:
+        _pg_put(con, pool)
 
 
 def _pg_get_all() -> pd.DataFrame:
     try:
         _pg_init()
-        with _pg_conn() as con:
+        con, pool = _pg_conn()
+        try:
             df = pd.read_sql("SELECT * FROM trades ORDER BY date DESC", con)
+        finally:
+            _pg_put(con, pool)
         return df
     except Exception as e:
         _log(f"PG read error: {e}")
@@ -112,7 +132,8 @@ def _pg_get_all() -> pd.DataFrame:
 def _pg_append(row: dict) -> int:
     try:
         _pg_init()
-        with _pg_conn() as con:
+        con, pool = _pg_conn()
+        try:
             with con.cursor() as cur:
                 cur.execute(
                     """INSERT INTO trades (date, ticker, name, action, price, shares, total,
@@ -124,6 +145,8 @@ def _pg_append(row: dict) -> int:
                 )
                 new_id = cur.fetchone()[0]
             con.commit()
+        finally:
+            _pg_put(con, pool)
         return new_id
     except Exception as e:
         _log(f"PG append error: {e}")
@@ -132,10 +155,13 @@ def _pg_append(row: dict) -> int:
 
 def _pg_delete(trade_id: int):
     try:
-        with _pg_conn() as con:
+        con, pool = _pg_conn()
+        try:
             with con.cursor() as cur:
                 cur.execute("DELETE FROM trades WHERE id = %s", (trade_id,))
             con.commit()
+        finally:
+            _pg_put(con, pool)
     except Exception as e:
         _log(f"PG delete error: {e}")
 
