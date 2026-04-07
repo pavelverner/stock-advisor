@@ -979,45 +979,69 @@ if page == "Přehled portfolia":
     # CSS platí jen na této stránce – jiné stránky tento blok nevygenerují
     st.markdown("""
 <style>
-/* Filtr – price-grid styl (stejný jako Detail akcie) */
+/* Filtr – price-grid styl, centrovaný, vejde se na mobil */
 [data-testid="stButton"] button {
     background: #1e293b !important;
     border: 1.5px solid #334155 !important;
     border-radius: 10px !important;
-    padding: 10px 12px !important;
-    text-align: left !important;
+    padding: 10px 8px !important;
+    text-align: center !important;
     height: auto !important;
     min-height: 72px !important;
     display: block !important;
     white-space: pre-line !important;
     box-shadow: none !important;
     width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
     line-height: 1 !important;
 }
 [data-testid="stButton"] button p {
     white-space: pre-line !important;
     font-size: 0.72rem !important;
-    color: #64748b !important;
+    color: #94a3b8 !important;
     margin: 0 !important;
     line-height: 1.8 !important;
-    text-align: left !important;
+    text-align: center !important;
+    overflow: hidden !important;
+    word-break: break-word !important;
 }
 [data-testid="stButton"] button p::first-line {
     font-size: 1.2rem !important;
     font-weight: 700 !important;
     color: #f1f5f9 !important;
 }
+/* Aktivní (Vše / Držet) – modrý */
 [data-testid="stButton"] button[kind="primary"] {
     border: 2px solid #3b82f6 !important;
     background: #1a2a3f !important;
 }
-[data-testid="stButton"] button:hover {
-    background: #253448 !important;
-    border-color: #475569 !important;
+
+/* KOUPIT – 2. sloupec 1. řady s tlačítky → zelená */
+[data-testid="stHorizontalBlock"]:has([data-testid="stButton"]) > [data-testid="stColumn"]:last-child [data-testid="stButton"] button {
+    background: #051a0d !important;
+    border-color: #166534 !important;
 }
-[data-testid="stButton"] button[kind="primary"]:hover {
-    background: #1e3254 !important;
-    border-color: #60a5fa !important;
+[data-testid="stHorizontalBlock"]:has([data-testid="stButton"]) > [data-testid="stColumn"]:last-child [data-testid="stButton"] button p {
+    color: #22c55e !important;
+}
+[data-testid="stHorizontalBlock"]:has([data-testid="stButton"]) > [data-testid="stColumn"]:last-child [data-testid="stButton"] button[kind="primary"] {
+    background: #0a2e18 !important;
+    border-color: #22c55e !important;
+}
+
+/* PRODAT – 1. sloupec 2. řady (která navazuje na řadu s tlačítky) → červená */
+[data-testid="stHorizontalBlock"]:has([data-testid="stButton"]) + [data-testid="stHorizontalBlock"]:has([data-testid="stButton"]) > [data-testid="stColumn"]:first-child [data-testid="stButton"] button {
+    background: #1a0505 !important;
+    border-color: #7f1d1d !important;
+}
+[data-testid="stHorizontalBlock"]:has([data-testid="stButton"]) + [data-testid="stHorizontalBlock"]:has([data-testid="stButton"]) > [data-testid="stColumn"]:first-child [data-testid="stButton"] button p {
+    color: #ef4444 !important;
+}
+[data-testid="stHorizontalBlock"]:has([data-testid="stButton"]) + [data-testid="stHorizontalBlock"]:has([data-testid="stButton"]) > [data-testid="stColumn"]:first-child [data-testid="stButton"] button[kind="primary"] {
+    background: #2e0a0a !important;
+    border-color: #ef4444 !important;
 }
 </style>
 """, unsafe_allow_html=True)
