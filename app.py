@@ -2706,15 +2706,11 @@ elif page == "Deník":
                 )
             st.markdown("<style>"
                         "[data-testid='stFileUploaderDropzone']{"
-                        "  display:flex !important; flex-direction:column !important;"
-                        "  align-items:center !important; justify-content:center !important;"
-                        "  text-align:center !important;"
+                        "  border:none !important; background:transparent !important;"
+                        "  padding:0 !important;"
                         "}"
-                        "[data-testid='stFileUploaderDropzone'] *{"
-                        "  text-align:center !important;"
-                        "}"
-                        "[data-testid='stFileUploaderDropzone'] button{"
-                        "  align-self:center !important;"
+                        "[data-testid='stFileUploaderDropzoneInstructions']{"
+                        "  display:none !important;"
                         "}"
                         "</style>", unsafe_allow_html=True)
             uploaded = st.file_uploader("⬆️  Importuj zálohu (CSV)", type="csv", label_visibility="visible")
@@ -2754,28 +2750,25 @@ elif page == "Deník":
                 note_html = (f'<div style="color:#888;font-size:0.75rem">{row["Poznámka"]}</div>'
                              if row["Poznámka"] else "")
 
-                c_left, c_del = st.columns([10, 1])
-                with c_left:
-                    st.markdown(
-                        f'<div style="background:#1e293b;border-left:3px solid {clr};border-radius:8px;'
-                        f'padding:10px 12px;margin:4px 0;word-break:break-word;overflow-wrap:break-word">'
-                        f'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">'
-                        f'<span style="background:{clr}22;color:{clr};border:1px solid {clr};border-radius:4px;'
-                        f'padding:1px 6px;font-size:0.7rem;font-weight:700">{badge_lbl}</span>'
-                        f'<strong style="font-size:0.9rem">{row["Název"]}</strong>'
-                        f'<span style="color:#64748b;font-size:0.78rem">{row["Ticker"]}</span>'
-                        f'<span style="color:#64748b;font-size:0.72rem;margin-left:auto">{row["Datum"]}</span>'
-                        f'</div>'
-                        f'<div style="color:#94a3b8;font-size:0.82rem">Vstup: <b style="color:#f1f5f9">{row["Vstup"]:.2f}</b>'
-                        f' × {row["Počet"]:.3g} = <b style="color:#f1f5f9">{row["Investováno"]:.0f}</b></div>'
-                        f'{cur_html}{pnl_html}{note_html}'
-                        f'</div>',
-                        unsafe_allow_html=True,
-                    )
-                with c_del:
-                    if st.button("🗑", key=f"del_{row['id']}", help="Smazat záznam"):
-                        delete_trade(int(row["id"]))
-                        st.rerun()
+                st.markdown(
+                    f'<div style="background:#1e293b;border-left:3px solid {clr};border-radius:8px;'
+                    f'padding:10px 12px;margin:4px 0 2px;word-break:break-word;overflow-wrap:break-word">'
+                    f'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">'
+                    f'<span style="background:{clr}22;color:{clr};border:1px solid {clr};border-radius:4px;'
+                    f'padding:1px 6px;font-size:0.7rem;font-weight:700">{badge_lbl}</span>'
+                    f'<strong style="font-size:0.9rem">{row["Název"]}</strong>'
+                    f'<span style="color:#64748b;font-size:0.78rem">{row["Ticker"]}</span>'
+                    f'<span style="color:#64748b;font-size:0.72rem;margin-left:auto">{row["Datum"]}</span>'
+                    f'</div>'
+                    f'<div style="color:#94a3b8;font-size:0.82rem">Vstup: <b style="color:#f1f5f9">{row["Vstup"]:.2f}</b>'
+                    f' × {row["Počet"]:.3g} = <b style="color:#f1f5f9">{row["Investováno"]:.0f}</b></div>'
+                    f'{cur_html}{pnl_html}{note_html}'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
+                if st.button("🗑 Smazat", key=f"del_{row['id']}", help="Smazat záznam"):
+                    delete_trade(int(row["id"]))
+                    st.rerun()
 
     # ── Tab 3: Výkonnost ──────────────────────────────────────────────────────
     with tab_stats:
