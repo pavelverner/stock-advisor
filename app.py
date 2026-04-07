@@ -2782,23 +2782,43 @@ elif page == "Deník":
                 stats     = get_stats(df_perf_s)
 
             if stats:
-                s1, s2, s3, s4 = st.columns(4)
-                s1.metric("Celkem obchodů",   stats.get("total_trades", 0))
-                s2.metric("Otevřené pozice",  stats.get("open_positions", 0))
-                win_rate = stats.get("win_rate", 0)
-                s3.metric("Win rate", f"{win_rate:.0f}%",
-                          "Nad 50% = signály fungují" if win_rate >= 50 else "Pod 50% = signály zatím netáhnou")
+                win_rate  = stats.get("win_rate", 0)
                 total_pnl = stats.get("total_pnl_abs", 0)
                 total_pct = stats.get("total_pnl_pct", 0)
-                s4.metric("Celkový P&L",
-                          f"{total_pnl:+.0f}",
-                          f"{total_pct:+.1f}% z investovaného")
+                pnl_clr   = "#22c55e" if total_pnl >= 0 else "#ef4444"
+                wr_clr    = "#22c55e" if win_rate >= 50 else "#ef4444"
+                best  = stats.get("best_trade", 0)
+                worst = stats.get("worst_trade", 0)
+                avg   = stats.get("avg_pnl", 0)
 
-                st.divider()
-                b1, b2, b3 = st.columns(3)
-                b1.metric("Nejlepší obchod", f"{stats.get('best_trade', 0):+.1f}%")
-                b2.metric("Nejhorší obchod", f"{stats.get('worst_trade', 0):+.1f}%")
-                b3.metric("Průměrný P&L",    f"{stats.get('avg_pnl', 0):+.1f}%")
+                def _stat_box(label, value, sub="", clr="#f1f5f9"):
+                    sub_html = f'<div style="color:#64748b;font-size:0.68rem;margin-top:2px">{sub}</div>' if sub else ""
+                    return (f'<div style="background:#1e293b;border:1px solid #334155;border-radius:10px;'
+                            f'padding:12px 8px;text-align:center">'
+                            f'<div style="color:#94a3b8;font-size:0.68rem;margin-bottom:4px">{label}</div>'
+                            f'<div style="color:{clr};font-size:1.2rem;font-weight:700">{value}</div>'
+                            f'{sub_html}</div>')
+
+                st.markdown(f"""<style>
+.stats-grid4 {{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:8px; }}
+.stats-grid3 {{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:8px; }}
+@media(max-width:640px) {{
+  .stats-grid4 {{ grid-template-columns:repeat(2,1fr); }}
+  .stats-grid3 {{ grid-template-columns:repeat(3,1fr); }}
+}}
+</style>
+<div class="stats-grid4">
+  {_stat_box("Celkem obchodů", stats.get("total_trades", 0))}
+  {_stat_box("Otevřené pozice", stats.get("open_positions", 0))}
+  {_stat_box("Win rate", f"{win_rate:.0f}%", "≥50% = funguje", wr_clr)}
+  {_stat_box("Celkový P&L", f"{total_pnl:+.0f}", f"{total_pct:+.1f}% investovaného", pnl_clr)}
+</div>
+<div class="stats-grid3">
+  {_stat_box("Nejlepší obchod", f"{best:+.1f}%", clr="#22c55e" if best>=0 else "#ef4444")}
+  {_stat_box("Nejhorší obchod", f"{worst:+.1f}%", clr="#22c55e" if worst>=0 else "#ef4444")}
+  {_stat_box("Průměrný P&L",   f"{avg:+.1f}%",   clr="#22c55e" if avg>=0   else "#ef4444")}
+</div>
+""", unsafe_allow_html=True)
 
                 # Graf P&L jednotlivých obchodů
                 open_pos = df_perf_s[df_perf_s["Status"] == "Otevřená"].dropna(subset=["P&L %"])
