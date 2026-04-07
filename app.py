@@ -260,6 +260,19 @@ details { margin: 0 !important; padding-bottom: 0 !important; }
 .pf-fbox-sell-active { background: #2e0a0a; border-color: #ef4444; }
 .pf-fbox-hold-active { background: #1a1a2e; border-color: #555555; }
 
+/* Na mobilu 4 boxy → 2×2 grid */
+@media (max-width: 640px) {
+    div:has(.pf-filter-sentinel) + [data-testid="stHorizontalBlock"] {
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+    }
+    div:has(.pf-filter-sentinel) + [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
+        min-width: calc(50% - 4px) !important;
+        max-width: calc(50% - 4px) !important;
+        flex: none !important;
+    }
+}
+
 /* Sloupce – relativní pozicování pro překrytí průhledným tlačítkem */
 div:has(.pf-filter-sentinel) + [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
     position: relative !important;
