@@ -2809,7 +2809,8 @@ elif page == "Deník":
                             f'{sub_html}</div>')
 
                 st.markdown(f"""<style>
-.stats-grid3 {{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:8px; }}
+.stats-grid3 {{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:8px; align-items:stretch; }}
+.stats-grid3 > div {{ min-height:80px; display:flex; flex-direction:column; justify-content:center; }}
 @media(max-width:640px) {{
   .stats-grid3 {{ grid-template-columns:repeat(2,1fr); }}
 }}
