@@ -466,8 +466,13 @@ def get_stats(perf_df: pd.DataFrame) -> dict:
     if open_pos.empty and sold_pos.empty:
         return {"total_trades": len(perf_df), "open_positions": 0, "realized_pnl_abs": 0.0}
 
+    buy_count  = int((perf_df["Akce"] == "BUY").sum())
+    sell_count = int((perf_df["Akce"] == "SELL").sum())
+
     return {
         "total_trades":     len(perf_df),
+        "buy_count":        buy_count,
+        "sell_count":       sell_count,
         "open_positions":   total,
         "win_rate":         winners / total * 100 if total else 0,
         "winners":          int(winners),

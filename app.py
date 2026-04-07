@@ -2816,7 +2816,7 @@ elif page == "Deník":
 }}
 </style>
 <div class="stats-grid3">
-  {_stat_box("Celkem obchodů", stats.get("total_trades", 0))}
+  {_stat_box("Celkem obchodů", stats.get("total_trades", 0), f"Nákupy: {stats.get('buy_count',0)} · Prodeje: {stats.get('sell_count',0)}")}
   {_stat_box("Win rate", f"{win_rate:.0f}%", "≥50% = funguje", wr_clr)}
   {_stat_box("Celkový P&L", f"{total_pnl:+.0f} Kč", f"{total_pct:+.1f}% investovaného", pnl_clr)}
 </div>
