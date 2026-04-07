@@ -232,51 +232,6 @@ details { margin: 0 !important; padding-bottom: 0 !important; }
 
 }
 
-/* ── Filtr akcií – price-grid styl (klikatelné boxy) ── */
-.pf-fbox {
-    background: #1e293b;
-    border-radius: 10px;
-    padding: 10px 12px;
-    min-height: 68px;
-    border: 1px solid transparent;
-    transition: background 0.12s, border-color 0.12s;
-    pointer-events: none;   /* klik zachytí transparentní button nad ním */
-}
-.pf-fbox:hover    { background: #253448; }
-.pf-fbox-lbl      { color: #64748b; font-size: 0.72rem; margin-bottom: 2px; }
-.pf-fbox-lbl-buy  { color: #22c55e; }
-.pf-fbox-lbl-sell { color: #ef4444; }
-.pf-fbox-lbl-hold { color: #888; }
-.pf-fbox-cnt      { font-size: 1.15rem; font-weight: 700; color: #f1f5f9; }
-.pf-fbox-all-active  { background: #1e2d42; border-color: #3b82f6; }
-.pf-fbox-buy-active  { background: #0a2e18; border-color: #22c55e; }
-.pf-fbox-sell-active { background: #2e0a0a; border-color: #ef4444; }
-.pf-fbox-hold-active { background: #1a1a2e; border-color: #555555; }
-
-/* Průhledný button overlay – cílíme přes :has(.pf-fbox) na konkrétní column */
-[data-testid="stColumn"]:has(.pf-fbox) {
-    position: relative !important;
-    overflow: visible !important;
-}
-[data-testid="stColumn"]:has(.pf-fbox) [data-testid="stButton"] {
-    height: 0 !important;
-    overflow: visible !important;
-    margin: 0 !important;
-    padding: 0 !important;
-}
-[data-testid="stColumn"]:has(.pf-fbox) [data-testid="stButton"] button {
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    min-height: 68px !important;
-    height: 100% !important;
-    opacity: 0 !important;
-    cursor: pointer !important;
-    z-index: 10 !important;
-    border: none !important;
-    background: transparent !important;
-}
 
 /* ── Tablet ── */
 @media (max-width: 1024px) and (min-width: 769px) {
@@ -1197,36 +1152,23 @@ if page == "Přehled portfolia":
         st.session_state["pf_filter"] = "ALL"
     _pf_filter = st.session_state["pf_filter"]
 
-    # Filtr – 2 řady × 2 sloupce (přirozené 2×2 bez CSS magie)
-    # HTML box = vizuál, transparentní st.button = klik (žádný reload stránky)
-    _act_cls = {"ALL": "pf-fbox-all-active", "BUY": "pf-fbox-buy-active",
-                "SELL": "pf-fbox-sell-active", "HOLD": "pf-fbox-hold-active"}
-
-    def _fbox_md(fv, fl, fc, fn):
-        bx = f"pf-fbox{' ' + _act_cls[fv] if _pf_filter == fv else ''}"
-        lc = f"pf-fbox-lbl{' ' + fc if fc else ''}"
-        return (f'<div class="{bx}"><div class="{lc}">{fl}</div>'
-                f'<div class="pf-fbox-cnt">{fn}</div></div>')
-
-    _fr1, _fr2 = st.columns(2), st.columns(2)
+    # Filtr – st.button v 2×2 gridu; label obsahuje i počet
+    _fr1 = st.columns(2)
     with _fr1[0]:
-        st.markdown(_fbox_md("ALL", "Vše", "", len(results)), unsafe_allow_html=True)
-        if st.button("Vše", key="pff_all", use_container_width=True,
+        if st.button(f"Vše  {len(results)}", key="pff_all", use_container_width=True,
                      type="primary" if _pf_filter == "ALL" else "secondary"):
             st.session_state["pf_filter"] = "ALL"; st.rerun()
     with _fr1[1]:
-        st.markdown(_fbox_md("BUY", "KOUPIT", "pf-fbox-lbl-buy", buy_count), unsafe_allow_html=True)
-        if st.button("KOUPIT", key="pff_buy", use_container_width=True,
+        if st.button(f"Koupit  {buy_count}", key="pff_buy", use_container_width=True,
                      type="primary" if _pf_filter == "BUY" else "secondary"):
             st.session_state["pf_filter"] = "BUY"; st.rerun()
+    _fr2 = st.columns(2)
     with _fr2[0]:
-        st.markdown(_fbox_md("SELL", "PRODAT", "pf-fbox-lbl-sell", sell_count), unsafe_allow_html=True)
-        if st.button("PRODAT", key="pff_sell", use_container_width=True,
+        if st.button(f"Prodat  {sell_count}", key="pff_sell", use_container_width=True,
                      type="primary" if _pf_filter == "SELL" else "secondary"):
             st.session_state["pf_filter"] = "SELL"; st.rerun()
     with _fr2[1]:
-        st.markdown(_fbox_md("HOLD", "DRŽET", "pf-fbox-lbl-hold", hold_count), unsafe_allow_html=True)
-        if st.button("DRŽET", key="pff_hold", use_container_width=True,
+        if st.button(f"Držet  {hold_count}", key="pff_hold", use_container_width=True,
                      type="primary" if _pf_filter == "HOLD" else "secondary"):
             st.session_state["pf_filter"] = "HOLD"; st.rerun()
 
