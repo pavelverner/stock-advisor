@@ -2692,7 +2692,7 @@ elif page == "Deník":
 
         st.divider()
         st.subheader("Import / Export")
-        _ie2, _ie3 = st.columns([2, 1])
+        _ie2, _ie3 = st.columns([1, 4])
         with _ie2:
             df_exp = get_trades()
             if not df_exp.empty:
@@ -2704,7 +2704,7 @@ elif page == "Deník":
                     mime="text/csv",
                     use_container_width=True,
                 )
-            st.markdown("<style>[data-testid='stFileUploaderDropzone']{text-align:left !important} [data-testid='stFileUploaderDropzone']>div{display:flex !important;flex-direction:column !important;align-items:flex-start !important}</style>", unsafe_allow_html=True)
+            st.markdown("<style>[data-testid='stFileUploaderDropzone']{text-align:center !important} [data-testid='stFileUploaderDropzone']>div{display:flex !important;flex-direction:column !important;align-items:center !important;justify-content:center !important}</style>", unsafe_allow_html=True)
             uploaded = st.file_uploader("⬆️  Importuj zálohu (CSV)", type="csv", label_visibility="visible")
             if uploaded:
                 try:
