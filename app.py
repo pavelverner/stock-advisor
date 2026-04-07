@@ -2690,24 +2690,15 @@ elif page == "Deník":
                     icon=":material/download:",
                     use_container_width=False,
                 )
-            st.markdown("⬆️  Nahrát zálohu (CSV)")
             st.markdown("<style>"
                         "[data-testid='stFileUploaderDropzone']{"
-                        "  border:none !important; background:transparent !important;"
-                        "  padding:0 !important;"
+                        "  border:none !important; background:transparent !important; padding:0 !important;"
                         "}"
-                        "[data-testid='stFileUploaderDropzoneInstructions']{"
-                        "  display:none !important;"
-                        "}"
-                        "[data-testid='stFileUploaderDropzone'] button{"
-                        "  font-size:0 !important; color:transparent !important;"
-                        "}"
-                        "[data-testid='stFileUploaderDropzone'] button::after{"
-                        "  content:'Nahrát' !important; font-size:14px !important;"
-                        "  color:inherit !important;"
-                        "}"
+                        "[data-testid='stFileUploaderDropzoneInstructions']{display:none !important;}"
+                        "[data-testid='stFileUploader'] > label{margin-bottom:2px !important;}"
+                        "[data-testid='stFileUploader'] section{margin-top:0 !important;}"
                         "</style>", unsafe_allow_html=True)
-            uploaded = st.file_uploader("Nahrát zálohu (CSV)", type="csv", label_visibility="collapsed")
+            uploaded = st.file_uploader("⬆️  Nahrát zálohu (CSV)", type="csv", label_visibility="visible")
             if uploaded:
                 try:
                     n = import_from_csv(uploaded.read())
