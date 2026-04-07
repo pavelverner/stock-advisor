@@ -2731,7 +2731,7 @@ elif page == "Deník":
                 badge_lbl = "KOUPENO" if action_r == "BUY" else "PRODÁNO"
 
                 pnl_html = ""
-                if pnl is not None:
+                if pd.notna(pnl):
                     pnl_color = "#22c55e" if pnl >= 0 else "#ef4444"
                     pnl_abs   = row["P&L Kč/USD"]
                     pnl_html  = (f'<div style="color:{pnl_color};font-weight:700;font-size:0.85rem">'
