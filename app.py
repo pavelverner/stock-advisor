@@ -2681,14 +2681,14 @@ elif page == "Deník":
             df_exp = get_trades()
             if not df_exp.empty:
                 csv_bytes = df_exp.to_csv(index=False).encode("utf-8")
-                st.markdown("⬇️  Stáhnout zálohu (CSV)")
+                st.markdown("<span style='margin-bottom:2px;display:block'>⬇️  Stáhnout zálohu (CSV)</span>", unsafe_allow_html=True)
                 st.download_button(
                     "Stáhnout",
                     data=csv_bytes,
                     file_name=f"trades_{datetime.now().strftime('%Y%m%d')}.csv",
                     mime="text/csv",
                     icon=":material/download:",
-                    use_container_width=False,
+                    use_container_width=True,
                 )
             st.markdown("<style>"
                         "[data-testid='stFileUploaderDropzone']{"
@@ -2697,6 +2697,7 @@ elif page == "Deník":
                         "[data-testid='stFileUploaderDropzoneInstructions']{display:none !important;}"
                         "[data-testid='stFileUploader'] > label{margin-bottom:2px !important;}"
                         "[data-testid='stFileUploader'] section{margin-top:0 !important;}"
+                        "[data-testid='stFileUploader'] button{width:100% !important;}"
                         "</style>", unsafe_allow_html=True)
             uploaded = st.file_uploader("⬆️  Nahrát zálohu (CSV)", type="csv", label_visibility="visible")
             if uploaded:
