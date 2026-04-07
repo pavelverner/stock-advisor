@@ -241,6 +241,16 @@ details { margin: 0 !important; padding-bottom: 0 !important; }
 }
 
 /* ── Filtr akcií – price-grid styl (klikatelné boxy) ── */
+.pf-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin: 12px 0;
+}
+@media (max-width: 640px) {
+    .pf-filter-grid { grid-template-columns: repeat(2, 1fr); }
+}
+.pf-filter-grid a { text-decoration: none; display: block; }
 .pf-fbox {
     background: #1e293b;
     border-radius: 10px;
@@ -248,8 +258,9 @@ details { margin: 0 !important; padding-bottom: 0 !important; }
     min-height: 68px;
     border: 1px solid transparent;
     transition: background 0.12s, border-color 0.12s;
-    pointer-events: none;
+    cursor: pointer;
 }
+.pf-fbox:hover    { background: #253448; }
 .pf-fbox-lbl      { color: #64748b; font-size: 0.72rem; margin-bottom: 2px; }
 .pf-fbox-lbl-buy  { color: #22c55e; }
 .pf-fbox-lbl-sell { color: #ef4444; }
@@ -259,50 +270,6 @@ details { margin: 0 !important; padding-bottom: 0 !important; }
 .pf-fbox-buy-active  { background: #0a2e18; border-color: #22c55e; }
 .pf-fbox-sell-active { background: #2e0a0a; border-color: #ef4444; }
 .pf-fbox-hold-active { background: #1a1a2e; border-color: #555555; }
-
-/* Na mobilu 4 boxy → 2×2 grid */
-@media (max-width: 640px) {
-    div:has(.pf-filter-sentinel) + [data-testid="stHorizontalBlock"] {
-        flex-wrap: wrap !important;
-        gap: 8px !important;
-    }
-    div:has(.pf-filter-sentinel) + [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
-        min-width: calc(50% - 4px) !important;
-        max-width: calc(50% - 4px) !important;
-        flex: none !important;
-    }
-}
-
-/* Sloupce – relativní pozicování pro překrytí průhledným tlačítkem */
-div:has(.pf-filter-sentinel) + [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
-    position: relative !important;
-    overflow: visible !important;
-}
-/* Průhledné tlačítko překrývá celý box */
-div:has(.pf-filter-sentinel) + [data-testid="stHorizontalBlock"] [data-testid="stButton"] button {
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    min-height: 68px !important;
-    height: 100% !important;
-    opacity: 0 !important;
-    cursor: pointer !important;
-    z-index: 10 !important;
-    border: none !important;
-    background: transparent !important;
-}
-/* Wrapper tlačítka nesmí přidávat výšku */
-div:has(.pf-filter-sentinel) + [data-testid="stHorizontalBlock"] [data-testid="stButton"] {
-    height: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: visible !important;
-}
-div:has(.pf-filter-sentinel) + [data-testid="stHorizontalBlock"] div:has([data-testid="stButton"]) {
-    margin: 0 !important;
-    padding: 0 !important;
-}
 
 /* ── Tablet ── */
 @media (max-width: 1024px) and (min-width: 769px) {
@@ -1213,44 +1180,31 @@ if page == "Přehled portfolia":
     sell_count = sum(1 for r in results if r["action"] == "SELL")
     hold_count = sum(1 for r in results if r["action"] == "HOLD")
 
+    # Filtr z URL query param (anchor klik) nebo session_state
+    _url_filter = st.query_params.get("pf_filter", "")
+    if _url_filter in ("ALL", "BUY", "SELL", "HOLD"):
+        st.session_state["pf_filter"] = _url_filter
     if "pf_filter" not in st.session_state:
         st.session_state["pf_filter"] = "ALL"
     _pf_filter = st.session_state["pf_filter"]
 
-    st.markdown('<div class="pf-filter-sentinel"></div>', unsafe_allow_html=True)
-    _fa, _fb, _fs, _fh = st.columns(4)
-    with _fa:
-        _act = _pf_filter == "ALL"
-        st.markdown(f'<div class="pf-fbox{" pf-fbox-all-active" if _act else ""}">'
-                    f'<div class="pf-fbox-lbl">Vše</div>'
-                    f'<div class="pf-fbox-cnt">{len(results)}</div></div>', unsafe_allow_html=True)
-        if st.button("Vše", use_container_width=True,
-                     type="primary" if _act else "secondary", key="pff_all"):
-            st.session_state["pf_filter"] = "ALL"; st.rerun()
-    with _fb:
-        _act = _pf_filter == "BUY"
-        st.markdown(f'<div class="pf-fbox{" pf-fbox-buy-active" if _act else ""}">'
-                    f'<div class="pf-fbox-lbl pf-fbox-lbl-buy">KOUPIT</div>'
-                    f'<div class="pf-fbox-cnt">{buy_count}</div></div>', unsafe_allow_html=True)
-        if st.button("KOUPIT", use_container_width=True,
-                     type="primary" if _act else "secondary", key="pff_buy"):
-            st.session_state["pf_filter"] = "BUY"; st.rerun()
-    with _fs:
-        _act = _pf_filter == "SELL"
-        st.markdown(f'<div class="pf-fbox{" pf-fbox-sell-active" if _act else ""}">'
-                    f'<div class="pf-fbox-lbl pf-fbox-lbl-sell">PRODAT</div>'
-                    f'<div class="pf-fbox-cnt">{sell_count}</div></div>', unsafe_allow_html=True)
-        if st.button("PRODAT", use_container_width=True,
-                     type="primary" if _act else "secondary", key="pff_sell"):
-            st.session_state["pf_filter"] = "SELL"; st.rerun()
-    with _fh:
-        _act = _pf_filter == "HOLD"
-        st.markdown(f'<div class="pf-fbox{" pf-fbox-hold-active" if _act else ""}">'
-                    f'<div class="pf-fbox-lbl pf-fbox-lbl-hold">DRŽET</div>'
-                    f'<div class="pf-fbox-cnt">{hold_count}</div></div>', unsafe_allow_html=True)
-        if st.button("DRŽET", use_container_width=True,
-                     type="primary" if _act else "secondary", key="pff_hold"):
-            st.session_state["pf_filter"] = "HOLD"; st.rerun()
+    _act_cls = {"ALL": "pf-fbox-all-active", "BUY": "pf-fbox-buy-active",
+                "SELL": "pf-fbox-sell-active", "HOLD": "pf-fbox-hold-active"}
+    _fboxes = [
+        ("ALL",  "Vše",    "",               len(results)),
+        ("BUY",  "KOUPIT", "pf-fbox-lbl-buy",  buy_count),
+        ("SELL", "PRODAT", "pf-fbox-lbl-sell", sell_count),
+        ("HOLD", "DRŽET",  "pf-fbox-lbl-hold", hold_count),
+    ]
+    _grid = '<div class="pf-filter-grid">'
+    for _fv, _fl, _fc, _fn in _fboxes:
+        _bx = f"pf-fbox{' ' + _act_cls[_fv] if _pf_filter == _fv else ''}"
+        _lc = f"pf-fbox-lbl{' ' + _fc if _fc else ''}"
+        _grid += (f'<a href="?pf_filter={_fv}">'
+                  f'<div class="{_bx}"><div class="{_lc}">{_fl}</div>'
+                  f'<div class="pf-fbox-cnt">{_fn}</div></div></a>')
+    _grid += '</div>'
+    st.markdown(_grid, unsafe_allow_html=True)
 
     st.divider()
 
