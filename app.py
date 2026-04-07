@@ -1462,12 +1462,7 @@ elif page == "Detail akcie":
         _HINT_COLOR = {"koupit": "#22c55e", "prodat": "#ef4444", "čekat": "#f59e0b", "sledovat": "#60a5fa"}
         _ai_prov = _claude.get("provider", "AI") if _claude.get("ok") else ""
 
-        # Session state pro vybraný horizont
-        if f"hz_sel_{ticker}" not in st.session_state:
-            st.session_state[f"hz_sel_{ticker}"] = "short"
-        _hz_key = st.session_state[f"hz_sel_{ticker}"]
-
-        def _horizon_badge(key: str, title: str, subtitle: str = "", selected: bool = False) -> str:
+        def _horizon_badge(key: str, title: str, subtitle: str = "") -> str:
             h = _claude.get(key, {}) if _claude.get("ok") else {}
             hint = h.get("action_hint", "")
             conf = h.get("confidence", "")
@@ -1478,12 +1473,9 @@ elif page == "Detail akcie":
             lbl = _HINT_LABEL.get(hint, hint.upper())
             conf_html = f'<div style="color:#64748b;font-size:0.68rem;margin-top:2px">{conf}</div>' if conf else ""
             sub_html  = f'<div style="color:#475569;font-size:0.62rem;line-height:1.2">{subtitle}</div>' if subtitle else ""
-            border = f"3px solid {clr}" if selected else f"2px solid {clr}"
-            bg     = f"{clr}30" if selected else f"{clr}18"
-            shadow = f"box-shadow:0 0 8px {clr}55;" if selected else ""
             return (
-                f'<div style="background:{bg};border:{border};border-radius:10px;'
-                f'padding:10px 8px;text-align:center;{shadow}">'
+                f'<div style="background:{clr}18;border:2px solid {clr};border-radius:10px;'
+                f'padding:10px 8px;text-align:center">'
                 f'<div style="color:#94a3b8;font-size:0.68rem;line-height:1.3;margin-bottom:4px">'
                 f'{title}{sub_html}</div>'
                 f'<div style="color:{clr};font-size:1.15rem;font-weight:800">{lbl}</div>'
@@ -1492,39 +1484,23 @@ elif page == "Detail akcie":
 
         st.markdown(f"""
 <style>
-.horizon-grid {{
-  display: grid; grid-template-columns: repeat(3,1fr); gap: 8px;
-  margin-bottom: 0; position: relative;
-}}
-/* Průhledné tlačítko jako overlay přes boxy */
-[data-testid="stMarkdown"]:has(#hz-btn-sentinel) + [data-testid="stHorizontalBlock"] {{
-  margin-top: -82px !important; position: relative !important; z-index: 5 !important;
-  gap: 8px !important;
-}}
-[data-testid="stMarkdown"]:has(#hz-btn-sentinel) + [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {{
-  padding: 0 !important;
-}}
-[data-testid="stMarkdown"]:has(#hz-btn-sentinel) + [data-testid="stHorizontalBlock"] button {{
-  opacity: 0 !important; height: 82px !important; width: 100% !important;
-  display: block !important; cursor: pointer !important;
-  background: transparent !important; border: none !important; box-shadow: none !important;
-}}
+.horizon-grid {{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:12px; }}
 </style>
 <div class="horizon-grid">
-  {_horizon_badge("short",  "Krátkodobý", "< 3 měs.",   _hz_key == "short")}
-  {_horizon_badge("medium", "Střednědobý", "6m – 2 roky", _hz_key == "medium")}
-  {_horizon_badge("long",   "Dlouhodobý",  "3+ roky",    _hz_key == "long")}
+  {_horizon_badge("short",  "Krátkodobý", "< 3 měs.")}
+  {_horizon_badge("medium", "Střednědobý", "6m – 2 roky")}
+  {_horizon_badge("long",   "Dlouhodobý",  "3+ roky")}
 </div>
-<div id="hz-btn-sentinel"></div>
 """, unsafe_allow_html=True)
 
-        # Neviditelná tlačítka přes boxy – klik změní horizont
-        _hcols = st.columns(3)
-        for _hk, _ht in zip(["short", "medium", "long"], ["Krátkodobý", "Střednědobý", "Dlouhodobý"]):
-            with _hcols[["short","medium","long"].index(_hk)]:
-                if st.button(_ht, key=f"hz_ov_{_hk}_{ticker}", use_container_width=True):
-                    st.session_state[f"hz_sel_{ticker}"] = _hk
-                    st.rerun()
+        _sel_hz = st.segmented_control(
+            "Detail horizontu",
+            ["Krátkodobý", "Střednědobý", "Dlouhodobý"],
+            default="Krátkodobý",
+            key=f"hz_detail_{ticker}",
+            label_visibility="collapsed",
+        )
+        _hz_key = {"Krátkodobý": "short", "Střednědobý": "medium", "Dlouhodobý": "long"}.get(_sel_hz or "Krátkodobý", "short")
         _hz_sig = _mh.get(_hz_key) or signals  # fallback na 6mo signály
 
         _hz_data = _claude.get(_hz_key, {}) if _claude.get("ok") else {}
