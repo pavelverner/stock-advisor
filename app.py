@@ -723,6 +723,18 @@ with st.sidebar:
     st.caption("**Disclaimer:** Pouze informativní nástroj. Nejedná se o finanční poradenství.")
 
 # ── Cache funkce ──────────────────────────────────────────────────────────────
+@st.cache_data(ttl=3600, show_spinner=False)
+def get_usdczk() -> float:
+    try:
+        df = yf.download("USDCZK=X", period="5d", auto_adjust=True, progress=False)
+        if df.empty:
+            return 23.0
+        df.columns = [c[0] if isinstance(c, tuple) else c for c in df.columns]
+        return float(df["Close"].iloc[-1])
+    except Exception:
+        return 23.0
+
+
 @st.cache_data(ttl=900)
 def load_data(ticker: str, period: str):
     df = yf.download(ticker, period=period, auto_adjust=True, progress=False)
@@ -2776,11 +2788,14 @@ elif page == "Deník":
                 stats     = get_stats(df_perf_s)
 
             if stats:
-                win_rate  = stats.get("win_rate", 0)
-                total_pnl = stats.get("total_pnl_abs", 0)
-                total_pct = stats.get("total_pnl_pct", 0)
-                pnl_clr   = "#22c55e" if total_pnl >= 0 else "#ef4444"
-                wr_clr    = "#22c55e" if win_rate >= 50 else "#ef4444"
+                _fx        = get_usdczk()
+                win_rate   = stats.get("win_rate", 0)
+                total_pnl  = stats.get("total_pnl_abs", 0) * _fx
+                total_pct  = stats.get("total_pnl_pct", 0)
+                real_pnl   = stats.get("realized_pnl_abs", 0) * _fx
+                pnl_clr    = "#22c55e" if total_pnl >= 0 else "#ef4444"
+                real_clr   = "#22c55e" if real_pnl >= 0 else "#ef4444"
+                wr_clr     = "#22c55e" if win_rate >= 50 else "#ef4444"
                 best  = stats.get("best_trade", 0)
                 worst = stats.get("worst_trade", 0)
                 avg   = stats.get("avg_pnl", 0)
@@ -2794,8 +2809,8 @@ elif page == "Deník":
                             f'{sub_html}</div>')
 
                 st.markdown(f"""<style>
-.stats-grid4 {{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:8px; }}
-.stats-grid3 {{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:8px; }}
+.stats-grid4 {{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:8px; justify-items:stretch; }}
+.stats-grid3 {{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:8px; justify-items:stretch; }}
 @media(max-width:640px) {{
   .stats-grid4 {{ grid-template-columns:repeat(2,1fr); }}
   .stats-grid3 {{ grid-template-columns:repeat(3,1fr); }}
@@ -2805,13 +2820,10 @@ elif page == "Deník":
   {_stat_box("Celkem obchodů", stats.get("total_trades", 0))}
   {_stat_box("Otevřené pozice", stats.get("open_positions", 0))}
   {_stat_box("Win rate", f"{win_rate:.0f}%", "≥50% = funguje", wr_clr)}
-  {_stat_box("Nerealizovaný P&L", f"{total_pnl:+.0f}", f"{total_pct:+.1f}% investovaného", pnl_clr)}
+  {_stat_box("Nerealizovaný P&L", f"{total_pnl:+.0f} Kč", f"{total_pct:+.1f}% investovaného", pnl_clr)}
 </div>
 <div class="stats-grid4" style="margin-bottom:8px">
-  {(lambda rp, rc: _stat_box("Realizovaný zisk", f"{rp:+.0f}", "ze zavřených pozic", rc))(
-      stats.get("realized_pnl_abs", 0),
-      "#22c55e" if stats.get("realized_pnl_abs", 0) >= 0 else "#ef4444"
-  )}
+  {_stat_box("Realizovaný zisk", f"{real_pnl:+.0f} Kč", "ze zavřených pozic", real_clr)}
   {_stat_box("Nejlepší obchod", f"{best:+.1f}%", clr="#22c55e" if best>=0 else "#ef4444")}
   {_stat_box("Nejhorší obchod", f"{worst:+.1f}%", clr="#22c55e" if worst>=0 else "#ef4444")}
   {_stat_box("Průměrný P&L",   f"{avg:+.1f}%",   clr="#22c55e" if avg>=0   else "#ef4444")}
