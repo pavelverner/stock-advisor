@@ -397,10 +397,11 @@ def get_performance(df: pd.DataFrame) -> pd.DataFrame:
 
     rows = []
     for _, r in df.iterrows():
-        cur    = _current_price(r["ticker"])
-        entry  = float(r["price"])
-        shares = float(r["shares"])
-        action = r["action"]
+        cur      = _current_price(r["ticker"])
+        entry    = float(r["price"])
+        shares   = float(r["shares"])
+        action   = r["action"]
+        realized = None
 
         if action == "BUY" and cur is not None:
             pnl_pct = (cur - entry) / entry * 100
@@ -416,6 +417,9 @@ def get_performance(df: pd.DataFrame) -> pd.DataFrame:
                 pnl_abs = (cur - entry) * shares
             else:
                 pnl_pct = pnl_abs = None
+            # Realizovaný zisk = sell_price − průměrná nákupní cena
+            avg_buy = _avg_buy_price(df, r["ticker"], str(r["date"]))
+            realized = (entry - avg_buy) * shares if avg_buy is not None else None
             status = "Prodáno"
 
         try:
@@ -435,6 +439,7 @@ def get_performance(df: pd.DataFrame) -> pd.DataFrame:
             "Aktuální":    cur,
             "P&L %":       pnl_pct,
             "P&L Kč/USD":  pnl_abs,
+            "Realizováno": realized if action == "SELL" else None,
             "Status":      status,
             "Poznámka":    r.get("note", ""),
             "Důvody":      " · ".join(reasons[:2]) if reasons else "",
@@ -448,8 +453,7 @@ def get_stats(perf_df: pd.DataFrame) -> dict:
         return {}
 
     open_pos = perf_df[perf_df["Status"] == "Otevřená"]
-    if open_pos.empty:
-        return {"total_trades": len(perf_df), "open_positions": 0}
+    sold_pos = perf_df[perf_df["Status"] == "Prodáno"]
 
     pnl      = open_pos["P&L %"].dropna()
     abs_pnl  = open_pos["P&L Kč/USD"].dropna()
@@ -457,16 +461,22 @@ def get_stats(perf_df: pd.DataFrame) -> dict:
     winners  = (pnl > 0).sum()
     total    = len(pnl)
 
+    realized_abs = float(sold_pos["Realizováno"].dropna().sum()) if "Realizováno" in sold_pos.columns else 0.0
+
+    if open_pos.empty and sold_pos.empty:
+        return {"total_trades": len(perf_df), "open_positions": 0, "realized_pnl_abs": 0.0}
+
     return {
-        "total_trades":   len(perf_df),
-        "open_positions": total,
-        "win_rate":       winners / total * 100 if total else 0,
-        "winners":        int(winners),
-        "losers":         int((pnl < 0).sum()),
-        "total_pnl_abs":  float(abs_pnl.sum()),
-        "total_invested": float(invested),
-        "total_pnl_pct":  float(abs_pnl.sum() / invested * 100) if invested else 0,
-        "best_trade":     float(pnl.max()) if not pnl.empty else 0,
-        "worst_trade":    float(pnl.min()) if not pnl.empty else 0,
-        "avg_pnl":        float(pnl.mean()) if not pnl.empty else 0,
+        "total_trades":     len(perf_df),
+        "open_positions":   total,
+        "win_rate":         winners / total * 100 if total else 0,
+        "winners":          int(winners),
+        "losers":           int((pnl < 0).sum()),
+        "total_pnl_abs":    float(abs_pnl.sum()),
+        "total_invested":   float(invested),
+        "total_pnl_pct":    float(abs_pnl.sum() / invested * 100) if invested else 0,
+        "best_trade":       float(pnl.max()) if not pnl.empty else 0,
+        "worst_trade":      float(pnl.min()) if not pnl.empty else 0,
+        "avg_pnl":          float(pnl.mean()) if not pnl.empty else 0,
+        "realized_pnl_abs": realized_abs,
     }

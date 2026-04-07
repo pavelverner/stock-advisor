@@ -2805,9 +2805,13 @@ elif page == "Deník":
   {_stat_box("Celkem obchodů", stats.get("total_trades", 0))}
   {_stat_box("Otevřené pozice", stats.get("open_positions", 0))}
   {_stat_box("Win rate", f"{win_rate:.0f}%", "≥50% = funguje", wr_clr)}
-  {_stat_box("Celkový P&L", f"{total_pnl:+.0f}", f"{total_pct:+.1f}% investovaného", pnl_clr)}
+  {_stat_box("Nerealizovaný P&L", f"{total_pnl:+.0f}", f"{total_pct:+.1f}% investovaného", pnl_clr)}
 </div>
-<div class="stats-grid3">
+<div class="stats-grid4" style="margin-bottom:8px">
+  {(lambda rp, rc: _stat_box("Realizovaný zisk", f"{rp:+.0f}", "ze zavřených pozic", rc))(
+      stats.get("realized_pnl_abs", 0),
+      "#22c55e" if stats.get("realized_pnl_abs", 0) >= 0 else "#ef4444"
+  )}
   {_stat_box("Nejlepší obchod", f"{best:+.1f}%", clr="#22c55e" if best>=0 else "#ef4444")}
   {_stat_box("Nejhorší obchod", f"{worst:+.1f}%", clr="#22c55e" if worst>=0 else "#ef4444")}
   {_stat_box("Průměrný P&L",   f"{avg:+.1f}%",   clr="#22c55e" if avg>=0   else "#ef4444")}
