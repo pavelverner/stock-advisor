@@ -2523,7 +2523,7 @@ elif page == "Deník":
                 _pg_url = st.secrets.get("DATABASE_URL", "")
             except Exception:
                 _pg_url = os.environ.get("DATABASE_URL", "")
-            _test_con = psycopg2.connect(_pg_url, sslmode="require", connect_timeout=5)
+            _test_con = psycopg2.connect(_pg_url, connect_timeout=5)
             _test_con.close()
             st.success("Úložiště: **PostgreSQL** — připojení OK, data přežijí restarty", icon="🗄️")
         except Exception as _pg_err:

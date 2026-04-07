@@ -72,7 +72,7 @@ def _pg_conn():
     import psycopg2
     import psycopg2.extras
     url = _get_secret("DATABASE_URL")
-    con = psycopg2.connect(url, sslmode="require")
+    con = psycopg2.connect(url)
     return con
 
 
