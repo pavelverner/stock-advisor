@@ -377,9 +377,23 @@ def _current_price(ticker: str) -> float | None:
         return None
 
 
+def _avg_buy_price(df: pd.DataFrame, ticker: str, before_date: str) -> float | None:
+    """Průměrná nákupní cena pro daný ticker před datem prodeje (vážená počtem akcií)."""
+    buys = df[(df["ticker"] == ticker) & (df["action"] == "BUY") & (df["date"] <= before_date)]
+    if buys.empty:
+        return None
+    total_shares = buys["shares"].astype(float).sum()
+    if total_shares == 0:
+        return None
+    return float((buys["price"].astype(float) * buys["shares"].astype(float)).sum() / total_shares)
+
+
 def get_performance(df: pd.DataFrame) -> pd.DataFrame:
     if df.empty:
         return df
+
+    # Seřadit podle data pro správný výpočet průměrné nákupní ceny
+    df = df.sort_values("date").reset_index(drop=True)
 
     rows = []
     for _, r in df.iterrows():
@@ -396,9 +410,15 @@ def get_performance(df: pd.DataFrame) -> pd.DataFrame:
             pnl_pct = pnl_abs = None
             status  = "Data N/A"
         else:
-            pnl_pct = pnl_abs = None
-            cur     = None
-            status  = "Prodej"
+            # SELL – P&L vůči průměrné nákupní ceně
+            avg_buy = _avg_buy_price(df, r["ticker"], str(r["date"]))
+            if avg_buy is not None:
+                pnl_pct = (entry - avg_buy) / avg_buy * 100
+                pnl_abs = (entry - avg_buy) * shares
+            else:
+                pnl_pct = pnl_abs = None
+            cur    = entry  # zobrazit prodejní cenu jako "aktuální"
+            status = "Prodáno"
 
         try:
             reasons = json.loads(r.get("reasons") or "[]")
