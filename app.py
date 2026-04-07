@@ -2637,22 +2637,19 @@ elif page == "Deník":
             )
             action_j = "BUY" if action_j.startswith("🟢") else "SELL"
 
-            jc1, jc2 = st.columns(2)
-            with jc1:
-                price_j = st.number_input(
-                    f"Cena za akcii ({j_currency})",
-                    min_value=0.01,
-                    value=round(_fetched_price, 2) if _fetched_price else 1.0,
-                    step=0.01,
-                    help="Předvyplněno automaticky — uprav pokud byla tvá reálná cena jiná.",
-                )
-            with jc2:
-                shares_j = st.number_input(
-                    "Počet akcií",
-                    min_value=0.001,
-                    value=1.0,
-                    step=0.001,
-                )
+            price_j = st.number_input(
+                f"Cena ({j_currency})",
+                min_value=0.01,
+                value=round(_fetched_price, 2) if _fetched_price else 1.0,
+                step=0.01,
+                help="Předvyplněno automaticky — uprav pokud byla tvá reálná cena jiná.",
+            )
+            shares_j = st.number_input(
+                "Počet akcií",
+                min_value=0.001,
+                value=1.0,
+                step=0.001,
+            )
 
             # Živý náhled celkové hodnoty
             total_preview = price_j * shares_j
@@ -2682,8 +2679,7 @@ elif page == "Deník":
                 date=trade_date_j.strftime("%Y-%m-%d %H:%M"),
             )
             lbl = "Koupeno" if action_j == "BUY" else "Prodáno"
-            st.success(f"{lbl}: {shares_j:g} × {j_ticker} @ {price_j:.2f} {j_currency} = {total_preview:,.2f} {j_currency} ({trade_date_j.strftime('%d.%m.%Y')})")
-            st.rerun()
+            st.toast(f"{lbl}: {shares_j:g} × {j_ticker} @ {price_j:.2f} {j_currency}", icon="✅")
 
         st.divider()
         st.subheader("Import / Export")
