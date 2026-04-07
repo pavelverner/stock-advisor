@@ -229,6 +229,83 @@ details { margin: 0 !important; padding-bottom: 0 !important; }
         min-width: 0 !important;
         overflow: hidden !important;
     }
+
+    /* Makro zóny: gauge + makro ukazatele pod sebou na mobilu */
+    [data-testid="stHorizontalBlock"]:has([data-testid="stPlotlyChart"]) {
+        flex-wrap: wrap !important;
+    }
+    [data-testid="stHorizontalBlock"]:has([data-testid="stPlotlyChart"]) > [data-testid="stColumn"] {
+        min-width: 100% !important;
+        flex: none !important;
+    }
+}
+
+/* ── Filtr akcií – sumarizační boxy (klikatelné) ── */
+div:has(> .pf-filter-sentinel) + [data-testid="stHorizontalBlock"] [data-testid="stButton"] button,
+div:has(> .pf-filter-sentinel) + [data-testid="stHorizontalBlock"] [data-testid="stButton"] button:hover {
+    background: #16213e !important;
+    border: 1px solid #334155 !important;
+    border-radius: 10px !important;
+    padding: 14px 8px !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 72px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 0.8rem !important;
+    font-weight: 600 !important;
+    color: #94a3b8 !important;
+    line-height: 1.5 !important;
+    box-shadow: none !important;
+    white-space: pre-line !important;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
+    transition: border-color 0.15s, background 0.15s !important;
+}
+/* Počet (první řádek) větší */
+div:has(> .pf-filter-sentinel) + [data-testid="stHorizontalBlock"] [data-testid="stButton"] button p:first-child,
+div:has(> .pf-filter-sentinel) + [data-testid="stHorizontalBlock"] [data-testid="stButton"] button > span:first-child {
+    font-size: 1.4rem !important;
+    font-weight: 700 !important;
+    color: #f1f5f9 !important;
+}
+/* Aktivní (primary) = modrý okraj */
+div:has(> .pf-filter-sentinel) + [data-testid="stHorizontalBlock"] [data-testid="stButton"] button[kind="primary"] {
+    border: 2px solid #3b82f6 !important;
+    background: #1e2d42 !important;
+    color: #f1f5f9 !important;
+}
+/* Barva okraje dle akce – 2. sloupec KOUPIT = zelená */
+div:has(> .pf-filter-sentinel) + [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(2) button {
+    border-color: #22c55e !important;
+    color: #22c55e !important;
+}
+div:has(> .pf-filter-sentinel) + [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(2) button[kind="primary"] {
+    background: #0a2e18 !important;
+    border-color: #22c55e !important;
+    color: #f1f5f9 !important;
+}
+/* 3. sloupec PRODAT = červená */
+div:has(> .pf-filter-sentinel) + [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(3) button {
+    border-color: #ef4444 !important;
+    color: #ef4444 !important;
+}
+div:has(> .pf-filter-sentinel) + [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(3) button[kind="primary"] {
+    background: #2e0a0a !important;
+    border-color: #ef4444 !important;
+    color: #f1f5f9 !important;
+}
+/* 4. sloupec DRŽET = šedá */
+div:has(> .pf-filter-sentinel) + [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(4) button {
+    border-color: #555 !important;
+    color: #888 !important;
+}
+div:has(> .pf-filter-sentinel) + [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(4) button[kind="primary"] {
+    background: #1a1a2e !important;
+    border-color: #888 !important;
+    color: #f1f5f9 !important;
 }
 
 /* ── Tablet ── */
@@ -1152,21 +1229,22 @@ if page == "Přehled portfolia":
         st.session_state["pf_filter"] = "ALL"
     _pf_filter = st.session_state["pf_filter"]
 
+    st.markdown('<div class="pf-filter-sentinel"></div>', unsafe_allow_html=True)
     _fa, _fb, _fs, _fh = st.columns(4)
     with _fa:
-        if st.button(f"Vše  {len(results)}", use_container_width=True,
+        if st.button(f"{len(results)}\nVše", use_container_width=True,
                      type="primary" if _pf_filter == "ALL" else "secondary", key="pff_all"):
             st.session_state["pf_filter"] = "ALL"; st.rerun()
     with _fb:
-        if st.button(f"KOUPIT  {buy_count}", use_container_width=True,
+        if st.button(f"{buy_count}\nKOUPIT", use_container_width=True,
                      type="primary" if _pf_filter == "BUY" else "secondary", key="pff_buy"):
             st.session_state["pf_filter"] = "BUY"; st.rerun()
     with _fs:
-        if st.button(f"PRODAT  {sell_count}", use_container_width=True,
+        if st.button(f"{sell_count}\nPRODAT", use_container_width=True,
                      type="primary" if _pf_filter == "SELL" else "secondary", key="pff_sell"):
             st.session_state["pf_filter"] = "SELL"; st.rerun()
     with _fh:
-        if st.button(f"DRŽET  {hold_count}", use_container_width=True,
+        if st.button(f"{hold_count}\nDRŽET", use_container_width=True,
                      type="primary" if _pf_filter == "HOLD" else "secondary", key="pff_hold"):
             st.session_state["pf_filter"] = "HOLD"; st.rerun()
 
