@@ -1462,54 +1462,87 @@ elif page == "Detail akcie":
         _HINT_COLOR = {"koupit": "#22c55e", "prodat": "#ef4444", "čekat": "#f59e0b", "sledovat": "#60a5fa"}
         _ai_prov = _claude.get("provider", "AI") if _claude.get("ok") else ""
 
-        def _horizon_badge(key: str, title: str, subtitle: str = "") -> str:
-            """HTML badge pro jeden horizont v horním řádku."""
-            h = _claude.get(key, {}) if _claude.get("ok") else {}
-            hint = h.get("action_hint", "")
-            conf = h.get("confidence", "")
-            sig  = _mh.get(key)
-            tech_action = (sig or {}).get("action", "HOLD") if not hint else ""
-            # Fallback na tech signál pokud AI nedostupná
-            if not hint:
-                hint = {"BUY": "koupit", "SELL": "prodat", "HOLD": "čekat"}.get(tech_action, "čekat")
-            clr = _HINT_COLOR.get(hint, "#94a3b8")
-            lbl = _HINT_LABEL.get(hint, hint.upper())
-            conf_html = f'<div style="color:#64748b;font-size:0.68rem;margin-top:2px">{conf}</div>' if conf else ""
-            sub_html = f'<div style="color:#475569;font-size:0.62rem;line-height:1.2">{subtitle}</div>' if subtitle else ""
-            return (
-                f'<div style="background:{clr}18;border:2px solid {clr};border-radius:10px;'
-                f'padding:10px 8px;text-align:center">'
-                f'<div style="color:#94a3b8;font-size:0.68rem;line-height:1.3;margin-bottom:4px">'
-                f'{title}{sub_html}</div>'
-                f'<div style="color:{clr};font-size:1.15rem;font-weight:800">{lbl}</div>'
-                f'{conf_html}</div>'
-            )
+        # Vypočítej hint a barvu pro každý horizont
+        _hz_defs = [("short", "Krátkodobý", "< 3 měs."), ("medium", "Střednědobý", "6m–2r"), ("long", "Dlouhodobý", "3+ roky")]
+        _hz_meta = {}
+        for _hk, _ht, _hs in _hz_defs:
+            _h = _claude.get(_hk, {}) if _claude.get("ok") else {}
+            _hint = _h.get("action_hint", "")
+            _conf = _h.get("confidence", "")
+            _sig  = _mh.get(_hk)
+            if not _hint:
+                _ta = (_sig or {}).get("action", "HOLD")
+                _hint = {"BUY": "koupit", "SELL": "prodat", "HOLD": "čekat"}.get(_ta, "čekat")
+            _hz_meta[_hk] = {
+                "hint": _hint, "conf": _conf,
+                "clr": _HINT_COLOR.get(_hint, "#94a3b8"),
+                "lbl": _HINT_LABEL.get(_hint, _hint.upper()),
+                "title": _ht, "sub": _hs,
+            }
 
-        st.markdown(f"""
-    <style>
-    .horizon-grid {{
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-      margin-bottom: 12px;
-    }}
-    </style>
-    <div class="horizon-grid">
-      {_horizon_badge("short",  "Krátkodobý", "< 3 měs.")}
-      {_horizon_badge("medium", "Střednědobý", "6m – 2 roky")}
-      {_horizon_badge("long",   "Dlouhodobý",  "3+ roky")}
-    </div>
-    """, unsafe_allow_html=True)
+        # Session state – zvolený horizont (default: short)
+        if f"hz_sel_{ticker}" not in st.session_state:
+            st.session_state[f"hz_sel_{ticker}"] = "short"
+        _hz_key = st.session_state[f"hz_sel_{ticker}"]
 
-        # Přepínač detailu horizontu
-        _sel_hz = st.segmented_control(
-            "Detail horizontu",
-            ["Krátkodobý", "Střednědobý", "Dlouhodobý"],
-            default="Krátkodobý",
-            key=f"hz_detail_{ticker}",
-            label_visibility="collapsed",
-        )
-        _hz_key = {"Krátkodobý": "short", "Střednědobý": "medium", "Dlouhodobý": "long"}.get(_sel_hz or "Krátkodobý", "short")
+        # Dynamické CSS – barvy dle akce + styl price-grid boxů
+        _c1 = _hz_meta["short"]["clr"]
+        _c2 = _hz_meta["medium"]["clr"]
+        _c3 = _hz_meta["long"]["clr"]
+        st.markdown(f"""<style>
+[data-testid="stMarkdown"]:has(#hz-filter-sentinel) + [data-testid="stHorizontalBlock"] {{
+    gap: 6px !important;
+}}
+[data-testid="stMarkdown"]:has(#hz-filter-sentinel) + [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {{
+    padding: 0 !important; min-width: 0 !important;
+}}
+[data-testid="stMarkdown"]:has(#hz-filter-sentinel) + [data-testid="stHorizontalBlock"] button {{
+    border-radius: 10px !important; padding: 10px 4px !important; min-height: 72px !important;
+    text-align: center !important; width: 100% !important; white-space: pre-line !important;
+    box-sizing: border-box !important; height: auto !important; display: block !important;
+    box-shadow: none !important;
+}}
+[data-testid="stMarkdown"]:has(#hz-filter-sentinel) + [data-testid="stHorizontalBlock"] button p {{
+    white-space: pre-line !important; font-size: 0.8rem !important; font-weight: 700 !important;
+    text-align: center !important; line-height: 1.5 !important; margin: 0 !important;
+}}
+[data-testid="stMarkdown"]:has(#hz-filter-sentinel) + [data-testid="stHorizontalBlock"] button p::first-line {{
+    font-size: 0.6rem !important; font-weight: 400 !important; color: #94a3b8 !important;
+}}
+[data-testid="stMarkdown"]:has(#hz-filter-sentinel) + [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(1) button {{
+    background: {_c1}18 !important; border: 2px solid {_c1} !important;
+}}
+[data-testid="stMarkdown"]:has(#hz-filter-sentinel) + [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(1) button p {{ color: {_c1} !important; }}
+[data-testid="stMarkdown"]:has(#hz-filter-sentinel) + [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(1) button[kind="primary"] {{
+    background: {_c1}30 !important; border-width: 2.5px !important;
+}}
+[data-testid="stMarkdown"]:has(#hz-filter-sentinel) + [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(2) button {{
+    background: {_c2}18 !important; border: 2px solid {_c2} !important;
+}}
+[data-testid="stMarkdown"]:has(#hz-filter-sentinel) + [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(2) button p {{ color: {_c2} !important; }}
+[data-testid="stMarkdown"]:has(#hz-filter-sentinel) + [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(2) button[kind="primary"] {{
+    background: {_c2}30 !important; border-width: 2.5px !important;
+}}
+[data-testid="stMarkdown"]:has(#hz-filter-sentinel) + [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(3) button {{
+    background: {_c3}18 !important; border: 2px solid {_c3} !important;
+}}
+[data-testid="stMarkdown"]:has(#hz-filter-sentinel) + [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(3) button p {{ color: {_c3} !important; }}
+[data-testid="stMarkdown"]:has(#hz-filter-sentinel) + [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(3) button[kind="primary"] {{
+    background: {_c3}30 !important; border-width: 2.5px !important;
+}}
+</style>
+<div id="hz-filter-sentinel"></div>""", unsafe_allow_html=True)
+
+        # 3 klikatelné boxy horizontu (nahrazují HTML grid + segmented_control)
+        _hcols = st.columns(3)
+        for _idx, (_hk, _ht, _hs) in enumerate(_hz_defs):
+            _m = _hz_meta[_hk]
+            _btn_txt = f"{_ht} {_hs}\n{_m['lbl']}" + (f"\n{_m['conf']}" if _m["conf"] else "")
+            with _hcols[_idx]:
+                if st.button(_btn_txt, key=f"hz_btn_{_hk}_{ticker}", use_container_width=True,
+                             type="primary" if _hz_key == _hk else "secondary"):
+                    st.session_state[f"hz_sel_{ticker}"] = _hk
+                    st.rerun()
         _hz_sig = _mh.get(_hz_key) or signals  # fallback na 6mo signály
 
         _hz_data = _claude.get(_hz_key, {}) if _claude.get("ok") else {}
