@@ -410,14 +410,12 @@ def get_performance(df: pd.DataFrame) -> pd.DataFrame:
             pnl_pct = pnl_abs = None
             status  = "Data N/A"
         else:
-            # SELL – P&L vůči průměrné nákupní ceně
-            avg_buy = _avg_buy_price(df, r["ticker"], str(r["date"]))
-            if avg_buy is not None:
-                pnl_pct = (entry - avg_buy) / avg_buy * 100
-                pnl_abs = (entry - avg_buy) * shares
+            # SELL – P&L = jak se akcie pohnula od prodeje (cur vs. prodejní cena)
+            if cur is not None:
+                pnl_pct = (cur - entry) / entry * 100
+                pnl_abs = (cur - entry) * shares
             else:
                 pnl_pct = pnl_abs = None
-            cur    = entry  # zobrazit prodejní cenu jako "aktuální"
             status = "Prodáno"
 
         try:
