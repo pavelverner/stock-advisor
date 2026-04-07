@@ -1095,9 +1095,10 @@ if page == "Přehled portfolia":
                                   "thickness": 0.85, "value": _fg_score},
                 },
             ))
+            _gauge_h = 280 if _is_mobile else 500
             _fig_gauge.update_layout(
-                height=280, template="plotly_dark",
-                margin=dict(l=10, r=10, t=50, b=5),
+                height=_gauge_h, template="plotly_dark",
+                margin=dict(l=10, r=10, t=60, b=10),
             )
             st.plotly_chart(_fig_gauge, use_container_width=True, config={"displayModeBar": False, "scrollZoom": False})
             if _fg_score <= 25:
