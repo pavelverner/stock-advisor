@@ -798,7 +798,7 @@ def cached_multi_horizon(ticker: str) -> dict:
     return result
 
 
-@st.cache_data(ttl=1800)
+@st.cache_data(ttl=1800, show_spinner=False)
 def cached_claude_analysis(ticker: str, short_json: str, medium_json: str, long_json: str, news_json: str, sentiment_json: str) -> dict:
     import json
     return analyze_stock_with_claude(
