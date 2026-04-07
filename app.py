@@ -2613,6 +2613,7 @@ elif page == "Deník":
                 min_value=0.01,
                 value=round(_fetched_price, 2) if _fetched_price else 1.0,
                 step=0.01,
+                key=f"price_j_{j_ticker}_{trade_date_j}",
                 help="Předvyplněno automaticky — uprav pokud byla tvá reálná cena jiná.",
             )
             shares_j = st.number_input(
@@ -2620,6 +2621,7 @@ elif page == "Deník":
                 min_value=0.001,
                 value=1.0,
                 step=0.001,
+                key=f"shares_j_{j_ticker}",
             )
 
             # Živý náhled celkové hodnoty
@@ -2687,6 +2689,15 @@ elif page == "Deník":
 
         st.divider()
         st.subheader("Import / Export")
+        st.markdown("""<style>
+/* Kompaktní file uploader – stejná výška jako download button */
+[data-testid="stFileUploader"] section { padding: 0 !important; border: none !important; }
+[data-testid="stFileUploader"] section > div { display: none !important; }
+[data-testid="stFileUploaderDropzoneInstructions"] { display: none !important; }
+[data-testid="stFileUploader"] [data-testid="stBaseButton-secondary"] {
+    width: 100% !important; border-radius: 8px !important;
+}
+</style>""", unsafe_allow_html=True)
         col_imp, col_exp = st.columns(2)
         with col_imp:
             uploaded = st.file_uploader("Importuj zálohu (CSV)", type="csv", label_visibility="collapsed")
