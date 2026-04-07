@@ -979,15 +979,24 @@ if page == "Přehled portfolia":
     # CSS platí jen na této stránce – jiné stránky tento blok nevygenerují
     st.markdown("""
 <style>
-/* Filtr – price-grid styl, centrovaný, vejde se na mobil */
+/* Filtr řada – zrušit mezery mezi sloupci, aby se vešly na mobil */
+[data-testid="stHorizontalBlock"]:has([data-testid="stButton"]) {
+    gap: 4px !important;
+}
+[data-testid="stHorizontalBlock"]:has([data-testid="stButton"]) > [data-testid="stColumn"] {
+    padding: 0 !important;
+    min-width: 0 !important;
+    flex: 1 1 0 !important;
+}
+/* Základ všech filtrových tlačítek */
 [data-testid="stButton"] button {
     background: #1e293b !important;
     border: 1.5px solid #334155 !important;
-    border-radius: 10px !important;
-    padding: 10px 8px !important;
+    border-radius: 8px !important;
+    padding: 6px 2px !important;
     text-align: center !important;
     height: auto !important;
-    min-height: 72px !important;
+    min-height: 58px !important;
     display: block !important;
     white-space: pre-line !important;
     box-shadow: none !important;
@@ -999,66 +1008,42 @@ if page == "Přehled portfolia":
 }
 [data-testid="stButton"] button p {
     white-space: pre-line !important;
-    font-size: 0.72rem !important;
+    font-size: 0.62rem !important;
     color: #94a3b8 !important;
     margin: 0 !important;
-    line-height: 1.8 !important;
+    line-height: 1.6 !important;
     text-align: center !important;
     overflow: hidden !important;
     word-break: break-word !important;
 }
 [data-testid="stButton"] button p::first-line {
-    font-size: 1.2rem !important;
+    font-size: 1.1rem !important;
     font-weight: 700 !important;
     color: #f1f5f9 !important;
 }
-/* Mobil – zmenšit tlačítka na půl */
-@media (max-width: 768px) {
-    [data-testid="stButton"] button {
-        padding: 5px 3px !important;
-        min-height: 52px !important;
-        font-size: 0.6rem !important;
-    }
-    [data-testid="stButton"] button p {
-        font-size: 0.6rem !important;
-        line-height: 1.5 !important;
-    }
-    [data-testid="stButton"] button p::first-line {
-        font-size: 0.95rem !important;
-    }
-}
-
-/* Aktivní (Vše / Držet) – modrý */
+/* Aktivní – modrý */
 [data-testid="stButton"] button[kind="primary"] {
     border: 2px solid #3b82f6 !important;
     background: #1a2a3f !important;
 }
-
-/* KOUPIT – 2. sloupec 1. řady s tlačítky → zelená */
-[data-testid="stHorizontalBlock"]:has([data-testid="stButton"]) > [data-testid="stColumn"]:last-child [data-testid="stButton"] button {
-    background: #051a0d !important;
-    border-color: #166534 !important;
+/* KOUPIT – 2. sloupec → zelená */
+[data-testid="stHorizontalBlock"]:has([data-testid="stButton"]) > [data-testid="stColumn"]:nth-child(2) [data-testid="stButton"] button {
+    background: #051a0d !important; border-color: #166534 !important;
 }
-[data-testid="stHorizontalBlock"]:has([data-testid="stButton"]) > [data-testid="stColumn"]:last-child [data-testid="stButton"] button p {
-    color: #22c55e !important;
+[data-testid="stHorizontalBlock"]:has([data-testid="stButton"]) > [data-testid="stColumn"]:nth-child(2) [data-testid="stButton"] button p { color: #22c55e !important; }
+[data-testid="stHorizontalBlock"]:has([data-testid="stButton"]) > [data-testid="stColumn"]:nth-child(2) [data-testid="stButton"] button[kind="primary"] { background: #0a2e18 !important; border-color: #22c55e !important; }
+/* PRODAT – 3. sloupec → červená */
+[data-testid="stHorizontalBlock"]:has([data-testid="stButton"]) > [data-testid="stColumn"]:nth-child(3) [data-testid="stButton"] button {
+    background: #1a0505 !important; border-color: #7f1d1d !important;
 }
-[data-testid="stHorizontalBlock"]:has([data-testid="stButton"]) > [data-testid="stColumn"]:last-child [data-testid="stButton"] button[kind="primary"] {
-    background: #0a2e18 !important;
-    border-color: #22c55e !important;
+[data-testid="stHorizontalBlock"]:has([data-testid="stButton"]) > [data-testid="stColumn"]:nth-child(3) [data-testid="stButton"] button p { color: #ef4444 !important; }
+[data-testid="stHorizontalBlock"]:has([data-testid="stButton"]) > [data-testid="stColumn"]:nth-child(3) [data-testid="stButton"] button[kind="primary"] { background: #2e0a0a !important; border-color: #ef4444 !important; }
+/* DRŽET – 4. sloupec → šedá */
+[data-testid="stHorizontalBlock"]:has([data-testid="stButton"]) > [data-testid="stColumn"]:nth-child(4) [data-testid="stButton"] button {
+    background: #1c1c1c !important; border-color: #4b5563 !important;
 }
-
-/* PRODAT – 1. sloupec 2. řady (která navazuje na řadu s tlačítky) → červená */
-[data-testid="stHorizontalBlock"]:has([data-testid="stButton"]) + [data-testid="stHorizontalBlock"]:has([data-testid="stButton"]) > [data-testid="stColumn"]:first-child [data-testid="stButton"] button {
-    background: #1a0505 !important;
-    border-color: #7f1d1d !important;
-}
-[data-testid="stHorizontalBlock"]:has([data-testid="stButton"]) + [data-testid="stHorizontalBlock"]:has([data-testid="stButton"]) > [data-testid="stColumn"]:first-child [data-testid="stButton"] button p {
-    color: #ef4444 !important;
-}
-[data-testid="stHorizontalBlock"]:has([data-testid="stButton"]) + [data-testid="stHorizontalBlock"]:has([data-testid="stButton"]) > [data-testid="stColumn"]:first-child [data-testid="stButton"] button[kind="primary"] {
-    background: #2e0a0a !important;
-    border-color: #ef4444 !important;
-}
+[data-testid="stHorizontalBlock"]:has([data-testid="stButton"]) > [data-testid="stColumn"]:nth-child(4) [data-testid="stButton"] button p { color: #9ca3af !important; }
+[data-testid="stHorizontalBlock"]:has([data-testid="stButton"]) > [data-testid="stColumn"]:nth-child(4) [data-testid="stButton"] button[kind="primary"] { background: #374151 !important; border-color: #9ca3af !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -1238,23 +1223,22 @@ if page == "Přehled portfolia":
         st.session_state["pf_filter"] = "ALL"
     _pf_filter = st.session_state["pf_filter"]
 
-    # Filtr – 2×2 grid, count na 1. řádku (velký), label na 2. řádku (malý)
-    _fr1 = st.columns(2)
-    with _fr1[0]:
-        if st.button(f"{len(results)}\nVše", key="pff_all", use_container_width=True,
+    # Filtr – 4 sloupce v jednom řádku (VŠE | KOUPIT | PRODAT | DRŽET)
+    _fc = st.columns(4)
+    with _fc[0]:
+        if st.button(f"{len(results)}\nVŠE", key="pff_all", use_container_width=True,
                      type="primary" if _pf_filter == "ALL" else "secondary"):
             st.session_state["pf_filter"] = "ALL"; st.rerun()
-    with _fr1[1]:
+    with _fc[1]:
         if st.button(f"{buy_count}\nKOUPIT", key="pff_buy", use_container_width=True,
                      type="primary" if _pf_filter == "BUY" else "secondary"):
             st.session_state["pf_filter"] = "BUY"; st.rerun()
-    _fr2 = st.columns(2)
-    with _fr2[0]:
+    with _fc[2]:
         if st.button(f"{sell_count}\nPRODAT", key="pff_sell", use_container_width=True,
                      type="primary" if _pf_filter == "SELL" else "secondary"):
             st.session_state["pf_filter"] = "SELL"; st.rerun()
-    with _fr2[1]:
-        if st.button(f"{hold_count}\nDŽET", key="pff_hold", use_container_width=True,
+    with _fc[3]:
+        if st.button(f"{hold_count}\nDŘET", key="pff_hold", use_container_width=True,
                      type="primary" if _pf_filter == "HOLD" else "secondary"):
             st.session_state["pf_filter"] = "HOLD"; st.rerun()
 
