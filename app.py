@@ -2459,8 +2459,6 @@ elif page == "Deník":
             st.caption(f"Načteno: **{_fetched_price:.2f} {j_currency}** ({_price_label})")
 
         st.markdown("<style>"
-                    "[data-testid='stForm'] [data-testid='stRadio'] label:first-of-type span:last-child{color:#22c55e !important;font-weight:600}"
-                    "[data-testid='stForm'] [data-testid='stRadio'] label:last-of-type span:last-child{color:#ef4444 !important;font-weight:600}"
                     "[data-testid='stForm'] [data-testid='stRadio'] label:first-of-type input:checked + div{background:#22c55e !important;border-color:#22c55e !important;}"
                     "[data-testid='stForm'] [data-testid='stRadio'] label:last-of-type input:checked + div{background:#ef4444 !important;border-color:#ef4444 !important;}"
                     "</style>", unsafe_allow_html=True)
