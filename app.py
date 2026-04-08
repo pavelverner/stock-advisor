@@ -1394,6 +1394,24 @@ elif page == "Detail akcie":
     ticker   = detail_ticker
     currency = detail_currency
 
+    # ── Výběr akcie přímo na stránce ─────────────────────────────────────────
+    _all_stocks_det = dict(PORTFOLIO)
+    _all_stocks_det.update(RADAR_STOCKS)
+    _all_stocks_det["Vlastní ticker..."] = ("CUSTOM", "", "")
+    _stock_names_det = list(_all_stocks_det.keys())
+    _cur_idx = 0
+    for _i, _n in enumerate(_stock_names_det):
+        if _all_stocks_det[_n][0] == ticker:
+            _cur_idx = _i
+            break
+    _chosen = st.selectbox("Vyber akcii", _stock_names_det, index=_cur_idx, key="detail_stock_inline")
+    if _chosen == "Vlastní ticker...":
+        _custom_inline = st.text_input("Ticker (např. AAPL)", key="detail_custom_inline").upper().strip()
+        ticker   = _custom_inline or ticker
+        currency = "USD"
+    else:
+        ticker, currency, _ = _all_stocks_det[_chosen]
+
     _det_tabs = st.tabs(["📊 Analýza", "📈 Backtest"])
     with _det_tabs[0]:
 
