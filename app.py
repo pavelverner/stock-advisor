@@ -1214,26 +1214,66 @@ if page == "Přehled portfolia":
             f'</div>'
         )
 
+        act_color  = {"BUY": "#22c55e", "SELL": "#ef4444", "HOLD": "#94a3b8"}[action]
+        act_label  = {"BUY": "KOUPIT",  "SELL": "PRODAT",  "HOLD": "DRŽET"}[action]
+        _pnl_metric = ""
+        if _pnl_card:
+            _pc = "#22c55e" if _pnl_card["pct"] >= 0 else "#ef4444"
+            _pabs = _pnl_card["abs"] * get_usdczk() if pd.notna(_pnl_card["abs"]) else 0
+            _pnl_metric = (
+                f'<div style="background:#0f172a;border-radius:8px;padding:8px;text-align:center">'
+                f'<div style="color:#64748b;font-size:0.65rem;margin-bottom:2px">P&L</div>'
+                f'<div style="color:{_pc};font-size:0.88rem;font-weight:700">{_pnl_card["pct"]:+.1f}%</div>'
+                f'<div style="color:{_pc};font-size:0.68rem">{_pabs:+.0f} Kč</div>'
+                f'</div>'
+            )
+        _reasons_block = ""
+        if reasons:
+            _reasons_block = (
+                f'<div style="border-top:1px solid #1e293b;padding-top:8px;margin-top:8px">'
+                + "".join(
+                    f'<div style="color:{"#86efac" if action=="BUY" else "#fca5a5"};font-size:0.78rem;padding:1px 0">'
+                    f'{"+" if action=="BUY" else "−"} {s}</div>'
+                    for s in reasons
+                )
+                + '</div>'
+            )
+
         st.markdown(
             f'<a href="?page=1&ticker={r["ticker"]}" target="_self" style="text-decoration:none;color:inherit;display:block">'
             f'<div class="{card_css}" style="cursor:pointer;display:block">'
-            f'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">'
-            f'<div style="flex:1;min-width:0">'
-            f'<div style="font-size:1.0rem;font-weight:700;color:#f1f5f9">'
-            f'{r["name"]} <span style="color:#555;font-size:0.78rem;font-weight:400">{r["ticker"]}</span>'
-            f'<span style="color:{score_color};font-weight:700;font-size:0.78rem;margin-left:6px">{score}/10</span>'
+            # ── Řádek 1: Badge + název + cena ──
+            f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
+            f'<div style="background:{act_color}22;border:1.5px solid {act_color};border-radius:6px;'
+            f'padding:3px 10px;font-size:0.8rem;font-weight:700;color:{act_color};white-space:nowrap">{act_label}</div>'
+            f'<div style="flex:1;min-width:0;overflow:hidden">'
+            f'<div style="font-size:0.95rem;font-weight:700;color:#f1f5f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
+            f'{r["name"]} <span style="color:#555;font-size:0.75rem;font-weight:400">{r["ticker"]}</span></div>'
+            f'<div style="color:{score_color};font-size:0.72rem">{score}/10 · {score_label}</div>'
             f'</div>'
-            f'<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">'
-            f'<span class="pf-pill" style="color:{rsi_color}">RSI {r["rsi"]:.0f}</span>'
-            f'<span class="pf-pill" style="color:{trend_color}">{r["ema_trend"]}</span>'
-            f'<span class="pf-pill" style="color:#94a3b8">{r["sector"]}</span>'
-            f'{_pnl_card_html}'
-            f'</div></div>'
             f'<div style="text-align:right;white-space:nowrap;flex-shrink:0">'
-            f'<div class="pf-price">{r["price"]:.2f} <span style="font-size:0.75rem;color:#666">{r["currency"]}</span></div>'
-            f'<div class="pf-change" style="color:{chg_color}">{arrow} {r["chg_pct"]:+.1f}%</div>'
+            f'<div style="font-size:1.0rem;font-weight:700">{r["price"]:.2f} <span style="font-size:0.72rem;color:#555">{r["currency"]}</span></div>'
+            f'<div style="color:{chg_color};font-size:0.8rem">{arrow} {r["chg_pct"]:+.1f}%</div>'
             f'</div></div>'
-            f'{reasons_html}'
+            # ── Řádek 2: Metriky ──
+            f'<div style="display:grid;grid-template-columns:1fr 1fr 1fr{" 1fr" if _pnl_metric else ""};gap:6px;margin-bottom:2px">'
+            f'<div style="background:#0f172a;border-radius:8px;padding:8px;text-align:center">'
+            f'<div style="color:#64748b;font-size:0.65rem;margin-bottom:2px">RSI</div>'
+            f'<div style="color:{rsi_color};font-size:0.88rem;font-weight:700">{r["rsi"]:.0f}</div>'
+            f'</div>'
+            f'<div style="background:#0f172a;border-radius:8px;padding:8px;text-align:center">'
+            f'<div style="color:#64748b;font-size:0.65rem;margin-bottom:2px">Trend</div>'
+            f'<div style="color:{trend_color};font-size:0.88rem;font-weight:700">{r["ema_trend"]}</div>'
+            f'</div>'
+            f'<div style="background:#0f172a;border-radius:8px;padding:8px;text-align:center">'
+            f'<div style="color:#64748b;font-size:0.65rem;margin-bottom:2px">Sektor</div>'
+            f'<div style="color:#94a3b8;font-size:0.72rem;font-weight:600">{r["sector"].split()[0]}</div>'
+            f'</div>'
+            f'{_pnl_metric}'
+            f'</div>'
+            # ── Řádek 3: Důvody ──
+            f'{_reasons_block}'
+            # ── Řádek 4: Horizonty ──
             f'{hz_row}'
             f'</div></a>',
             unsafe_allow_html=True
