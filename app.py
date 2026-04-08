@@ -1165,7 +1165,7 @@ if page == "Přehled portfolia":
         # Reálné signály pro všechny 3 horizonty
         _mh = cached_multi_horizon(r["ticker"])
         hz_row = (
-            f'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:6px">'
+            f'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:12px;width:100%">'
             f'{_pf_hz_badge(_mh.get("short"),  "Krátkodobý", "< 3 měs.")}'
             f'{_pf_hz_badge(_mh.get("medium"), "Střednědobý", "6m – 2r")}'
             f'{_pf_hz_badge(_mh.get("long"),   "Dlouhodobý",  "3+ roky")}'
