@@ -1156,7 +1156,9 @@ if page == "Přehled portfolia":
         if name not in ranges:
             return ""
         lo, hi = ranges[name]
-        pct = max(0, min(100, int((val - lo) / (hi - lo) * 100)))
+        if val is None or (isinstance(val, float) and (val != val)):  # NaN check
+            return ""
+        pct = max(0, min(100, int((val - lo) / (hi - lo) * 100))) if hi != lo else 0
         _, zcolor = _macro_zone(name, val)
         return (f'<div style="background:#1e293b;border-radius:3px;height:5px;width:100%;margin-top:4px;position:relative">'
                 f'<div style="position:absolute;left:33%;top:0;bottom:0;width:1px;background:#334155"></div>'
