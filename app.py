@@ -239,6 +239,17 @@ details { margin: 0 !important; padding-bottom: 0 !important; }
     .card-buy, .card-sell, .card-hold, .card-radar { font-size: 0.92rem !important; }
 }
 
+/* ── Desktop – ohraničení šířky obsahu ── */
+@media (min-width: 769px) {
+    .block-container {
+        max-width: 1080px !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
+    /* Stat boxy v Deníku – větší čísla */
+    .stats-grid6 .stat-box-val { font-size: 1.35rem !important; }
+}
+
 /* ── Portfolio karta – nový layout ── */
 .pf-card {
     border-radius: 10px;
@@ -1145,6 +1156,9 @@ if page == "Přehled portfolia":
         _pnl_map = {}
 
     # ── Karty akcií ───────────────────────────────────────────────────────────
+    _pf_ua = st.context.headers.get("User-Agent", "")
+    _pf_mobile = any(k in _pf_ua for k in ("Mobile", "Android", "iPhone", "iPad"))
+
     def action_order(r):
         return {"BUY": 0, "SELL": 1, "HOLD": 2}[r["action"]]
 
@@ -1171,54 +1185,23 @@ if page == "Přehled portfolia":
                 f'<div style="color:{clr};font-size:0.72rem;font-weight:700">{lbl}</div>'
                 f'</div>')
 
-    for r in sorted_results:
-        action = r["action"]
-        card_css = {"BUY": "pf-card pf-card-buy", "SELL": "pf-card pf-card-sell", "HOLD": "pf-card pf-card-hold"}[action]
-        badge    = {"BUY": "badge-buy", "SELL": "badge-sell", "HOLD": "badge-hold"}[action]
-        label    = _ACT_LBL[action]
-        arrow    = "▲" if r["chg_pct"] >= 0 else "▼"
-        chg_color = "#22c55e" if r["chg_pct"] >= 0 else "#ef4444"
+    def _render_pf_card(r):
+        action      = r["action"]
+        card_css    = {"BUY": "pf-card pf-card-buy", "SELL": "pf-card pf-card-sell", "HOLD": "pf-card pf-card-hold"}[action]
+        act_color   = {"BUY": "#22c55e", "SELL": "#ef4444", "HOLD": "#94a3b8"}[action]
+        act_label   = {"BUY": "KOUPIT",  "SELL": "PRODAT",  "HOLD": "DRŽET"}[action]
+        arrow       = "▲" if r["chg_pct"] >= 0 else "▼"
+        chg_color   = "#22c55e" if r["chg_pct"] >= 0 else "#ef4444"
         trend_color = {"Bullish": "#22c55e", "Bearish": "#ef4444", "Smíšený": "#888"}[r["ema_trend"]]
-        rsi_color = "#22c55e" if r["rsi"] < 35 else "#ef4444" if r["rsi"] > 65 else "#94a3b8"
-
+        rsi_color   = "#22c55e" if r["rsi"] < 35 else "#ef4444" if r["rsi"] > 65 else "#94a3b8"
         score, score_label = _score_label(r["buy_n"], r["sell_n"], action)
         score_color = "#22c55e" if score > 0 else "#ef4444" if score < 0 else "#888"
+        reasons     = (r["buy_reasons"] if action == "BUY" else r["sell_reasons"] if action == "SELL" else [])[:3]
 
-        reasons = (r["buy_reasons"] if action == "BUY" else r["sell_reasons"] if action == "SELL" else [])[:3]
-        reason_color = "#86efac" if action == "BUY" else "#fca5a5"
-        reasons_html = ""
-        if reasons:
-            reasons_html = (
-                f'<div class="pf-reasons">'
-                + " &nbsp;·&nbsp; ".join(f'<span style="color:{reason_color}">{s}</span>' for s in reasons)
-                + '</div>'
-            )
-
-        # P&L z Deníku
         _pnl_card = _pnl_map.get(r["ticker"])
-        _pnl_card_html = ""
-        if _pnl_card:
-            _pc = "#22c55e" if _pnl_card["pct"] >= 0 else "#ef4444"
-            _pabs = _pnl_card["abs"] * get_usdczk() if pd.notna(_pnl_card["abs"]) else 0
-            _pnl_card_html = (
-                f'<span class="pf-pill" style="color:{_pc}">P&L {_pnl_card["pct"]:+.1f}% ({_pabs:+.0f} Kč)</span>'
-            )
-
-        # Reálné signály pro všechny 3 horizonty
-        _mh = cached_multi_horizon(r["ticker"])
-        hz_row = (
-            f'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:10px">'
-            f'{_pf_hz_badge(_mh.get("short"),  "Krátkodobý", "< 3 měs.")}'
-            f'{_pf_hz_badge(_mh.get("medium"), "Střednědobý", "6m – 2r")}'
-            f'{_pf_hz_badge(_mh.get("long"),   "Dlouhodobý",  "3+ roky")}'
-            f'</div>'
-        )
-
-        act_color  = {"BUY": "#22c55e", "SELL": "#ef4444", "HOLD": "#94a3b8"}[action]
-        act_label  = {"BUY": "KOUPIT",  "SELL": "PRODAT",  "HOLD": "DRŽET"}[action]
         _pnl_metric = ""
         if _pnl_card:
-            _pc = "#22c55e" if _pnl_card["pct"] >= 0 else "#ef4444"
+            _pc   = "#22c55e" if _pnl_card["pct"] >= 0 else "#ef4444"
             _pabs = _pnl_card["abs"] * get_usdczk() if pd.notna(_pnl_card["abs"]) else 0
             _pnl_metric = (
                 f'<div style="background:#0f172a;border-radius:8px;padding:8px;text-align:center">'
@@ -1232,17 +1215,22 @@ if page == "Přehled portfolia":
             _reasons_block = (
                 f'<div style="border-top:1px solid #1e293b;padding-top:8px;margin-top:8px">'
                 + "".join(
-                    f'<div style="color:{"#86efac" if action=="BUY" else "#fca5a5"};font-size:0.78rem;padding:1px 0">'
-                    f'· {s}</div>'
+                    f'<div style="color:{"#86efac" if action=="BUY" else "#fca5a5"};font-size:0.78rem;padding:1px 0">· {s}</div>'
                     for s in reasons
                 )
                 + '</div>'
             )
-
+        _mh = cached_multi_horizon(r["ticker"])
+        hz_row = (
+            f'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:10px">'
+            f'{_pf_hz_badge(_mh.get("short"),  "Krátkodobý", "< 3 měs.")}'
+            f'{_pf_hz_badge(_mh.get("medium"), "Střednědobý", "6m – 2r")}'
+            f'{_pf_hz_badge(_mh.get("long"),   "Dlouhodobý",  "3+ roky")}'
+            f'</div>'
+        )
         st.markdown(
             f'<a href="?page=1&ticker={r["ticker"]}" target="_self" style="text-decoration:none;color:inherit;display:block">'
             f'<div class="{card_css}" style="cursor:pointer;display:block">'
-            # ── Řádek 1: Badge + název + cena ──
             f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
             f'<div style="background:{act_color}22;border:1.5px solid {act_color};border-radius:6px;'
             f'padding:3px 10px;font-size:0.8rem;font-weight:700;color:{act_color};white-space:nowrap">{act_label}</div>'
@@ -1255,7 +1243,6 @@ if page == "Přehled portfolia":
             f'<div style="font-size:1.0rem;font-weight:700">{r["price"]:.2f} <span style="font-size:0.72rem;color:#555">{r["currency"]}</span></div>'
             f'<div style="color:{chg_color};font-size:0.8rem">{arrow} {r["chg_pct"]:+.1f}%</div>'
             f'</div></div>'
-            # ── Řádek 2: Metriky ──
             f'<div style="display:grid;grid-template-columns:1fr 1fr 1fr{" 1fr" if _pnl_metric else ""};gap:6px;margin-bottom:2px">'
             f'<div style="background:#0f172a;border-radius:8px;padding:8px;text-align:center">'
             f'<div style="color:#64748b;font-size:0.65rem;margin-bottom:2px">RSI</div>'
@@ -1271,13 +1258,22 @@ if page == "Přehled portfolia":
             f'</div>'
             f'{_pnl_metric}'
             f'</div>'
-            # ── Řádek 3: Důvody ──
-            f'{_reasons_block}'
-            # ── Řádek 4: Horizonty ──
-            f'{hz_row}'
+            f'{_reasons_block}{hz_row}'
             f'</div></a>',
             unsafe_allow_html=True
         )
+
+    if _pf_mobile:
+        for r in sorted_results:
+            _render_pf_card(r)
+    else:
+        for i in range(0, len(sorted_results), 2):
+            _cols = st.columns(2)
+            with _cols[0]:
+                _render_pf_card(sorted_results[i])
+            with _cols[1]:
+                if i + 1 < len(sorted_results):
+                    _render_pf_card(sorted_results[i + 1])
 
     with st.expander("Grafy portfolia (RSI + denní změna)", expanded=False):
         rsi_names  = [r["name"].split()[0] for r in results]
@@ -2180,9 +2176,20 @@ elif page == "Příležitosti":
         _all_buy_sorted = sorted(_double, key=lambda x: -_opportunity_score(x)) + sorted(_other, key=lambda x: -_opportunity_score(x))
 
         st.markdown('<div style="color:#64748b;font-size:0.7rem;font-weight:600;margin:16px 0 8px;letter-spacing:.05em">TOP PŘÍLEŽITOSTI</div>', unsafe_allow_html=True)
+        _opp_ua = st.context.headers.get("User-Agent", "")
+        _opp_mobile = any(k in _opp_ua for k in ("Mobile", "Android", "iPhone", "iPad"))
         if _top5:
-            for _r in _top5:
-                _render_radar_card(_r, highlight=_r in _double)
+            if _opp_mobile:
+                for _r in _top5:
+                    _render_radar_card(_r, highlight=_r in _double)
+            else:
+                for _oi in range(0, len(_top5), 2):
+                    _ocols = st.columns(2)
+                    with _ocols[0]:
+                        _render_radar_card(_top5[_oi], highlight=_top5[_oi] in _double)
+                    with _ocols[1]:
+                        if _oi + 1 < len(_top5):
+                            _render_radar_card(_top5[_oi + 1], highlight=_top5[_oi + 1] in _double)
         else:
             st.info("Žádné BUY signály. Trh je v klidném pásmu — čekej na příležitost.")
 
