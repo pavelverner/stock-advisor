@@ -1276,16 +1276,29 @@ if page == "Přehled portfolia":
                 margin=dict(l=10, r=10, t=60, b=10),
             )
             st.plotly_chart(_fig_gauge, use_container_width=True, config={"displayModeBar": False, "scrollZoom": False})
-            # Hodnoty před týdnem / měsícem – stejný styl jako v záložce Makro
-            _hist_cols = st.columns(2)
-            with _hist_cols[0]:
-                if _fg_prev_week is not None:
-                    _pw_delta = _fg_score - _fg_prev_week
-                    _hist_cols[0].metric("Před týdnem", f"{_fg_prev_week:.0f}", f"{_pw_delta:+.1f}")
-            with _hist_cols[1]:
-                if _fg_prev_month is not None:
-                    _pm_delta = _fg_score - _fg_prev_month
-                    _hist_cols[1].metric("Před měs.", f"{_fg_prev_month:.0f}", f"{_pm_delta:+.1f}")
+            # Hodnoty před týdnem / měsícem
+            _pw_html = _pm_html = ""
+            if _fg_prev_week is not None:
+                _pw_delta = _fg_score - _fg_prev_week
+                _pw_clr = "#22c55e" if _pw_delta >= 0 else "#ef4444"
+                _pw_arr = "▲" if _pw_delta >= 0 else "▼"
+                _pw_html = (f'<div style="flex:1;min-width:0">'
+                            f'<div style="color:#94a3b8;font-size:0.72rem;white-space:nowrap">Před týdnem</div>'
+                            f'<div style="font-size:1.4rem;font-weight:700">{_fg_prev_week:.0f}</div>'
+                            f'<div style="color:{_pw_clr};font-size:0.8rem">{_pw_arr} {_pw_delta:+.1f}</div>'
+                            f'</div>')
+            if _fg_prev_month is not None:
+                _pm_delta = _fg_score - _fg_prev_month
+                _pm_clr = "#22c55e" if _pm_delta >= 0 else "#ef4444"
+                _pm_arr = "▲" if _pm_delta >= 0 else "▼"
+                _pm_html = (f'<div style="flex:1;min-width:0">'
+                            f'<div style="color:#94a3b8;font-size:0.72rem;white-space:nowrap">Před měsícem</div>'
+                            f'<div style="font-size:1.4rem;font-weight:700">{_fg_prev_month:.0f}</div>'
+                            f'<div style="color:{_pm_clr};font-size:0.8rem">{_pm_arr} {_pm_delta:+.1f}</div>'
+                            f'</div>')
+            if _pw_html or _pm_html:
+                st.markdown(f'<div style="display:flex;gap:24px;padding:4px 0">{_pw_html}{_pm_html}</div>',
+                            unsafe_allow_html=True)
             if _fg_score <= 25:
                 st.error("Extrémní strach – trh v panice. Historicky dobrá příležitost pro long-term nákup.")
             elif _fg_score <= 45:
