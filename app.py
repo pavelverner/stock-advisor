@@ -1535,6 +1535,20 @@ elif page == "Detail akcie":
         _sent_lbl   = {"positive": "Pozitivní", "negative": "Negativní", "neutral": "Neutrální"}.get(ai_sent.get("dominant", "neutral"), "Neutrální")
         _hero_b = len(_hero_sig.get("buy_signals", []))
         _hero_s = len(_hero_sig.get("sell_signals", []))
+        _sent_pct = int((ai_sent["score"] + 1) / 2 * 100)
+        _hero_sent_html = (
+            f'<div style="display:flex;align-items:center;gap:6px;margin-top:1px">'
+            f'<span style="color:#64748b;font-size:0.72rem">Sentiment:</span>'
+            f'<span style="color:{_sent_c};font-size:0.75rem;font-weight:600">{_sent_lbl}</span>'
+            f'<span style="color:#64748b;font-size:0.65rem">&#8722;1</span>'
+            f'<div style="position:relative;width:52px;height:4px;background:#334155;border-radius:2px;flex-shrink:0">'
+            f'<div style="position:absolute;left:{_sent_pct}%;top:50%;transform:translate(-50%,-50%);'
+            f'width:8px;height:8px;border-radius:50%;background:{_sent_c};border:1px solid #1e293b"></div>'
+            f'</div>'
+            f'<span style="color:#64748b;font-size:0.65rem">+1</span>'
+            f'<span style="color:{_sent_c};font-size:0.72rem">{ai_sent["score"]:+.2f}</span>'
+            f'</div>'
+        )
         _hero_summ_html = (
             f'<div style="color:#cbd5e1;font-size:0.87rem;line-height:1.5;'
             f'margin-top:10px;border-top:1px solid #334155;padding-top:10px">{_hero_summ}</div>'
@@ -1550,8 +1564,8 @@ elif page == "Detail akcie":
             f'<div style="color:#64748b;font-size:0.78rem">{_hero_b} buy / {_hero_s} sell</div>'
             + (f'<div style="color:#94a3b8;font-size:0.78rem"><span style="color:{_hero_hc};font-weight:700;text-transform:uppercase">{_hero_hint}</span>'
                + (f' · jistota: {_hero_conf}' if _hero_conf else '') + '</div>' if _hero_hint else '')
-            + f'<div style="color:{_sent_c};font-size:0.78rem">Sentiment: {_sent_lbl} <span style="color:#64748b">skóre {ai_sent["score"]:+.2f}</span></div>'
-            '</div></div>'
+            + _hero_sent_html
+            + '</div></div>'
             f'{_hero_summ_html}'
             '</div>',
             unsafe_allow_html=True
