@@ -2072,15 +2072,11 @@ když **alespoň 3 indikátory souhlasí** — proto je konzervativní a nevydá
 # STRANA 3 – Radar & Trh
 # ═════════════════════════════════════════════════════════════════════════════
 elif page == "Příležitosti":
-    tab_radar, tab_korelace = st.tabs([
-        "Radar příležitostí",
-        "Korelace portfolia",
-    ])
+    tab_radar, tab_korelace = st.tabs(["Radar příležitostí", "Korelace portfolia"])
 
     # ── Tab: Radar příležitostí ───────────────────────────────────────────────
     with tab_radar:
-        st.title("Radar – nové příležitosti")
-        st.caption(f"{len(RADAR_STOCKS_FULL)} akcií ze všech sektorů (včetně portfolia). Signál = ≥3 shodné technické indikátory.")
+        st.title("Příležitosti")
 
         # Horizontový filtr
         _radar_hz = st.segmented_control(
@@ -2093,153 +2089,152 @@ elif page == "Příležitosti":
         _radar_period_map = {"Krátkodobý": "3mo", "Střednědobý": "6mo", "Dlouhodobý": "2y"}
         _radar_period = _radar_period_map.get(_radar_hz or "Střednědobý", "6mo")
 
-        with st.expander("Jak radar funguje?"):
-            st.markdown("""
-Radar prohledává ~50 akcií pokrývající všechny hlavní sektory (energie, tech, finance, zdravotnictví...).
-
-**Logika:**
-1. Pro každou akcii spočítá 5 technických indikátorů (RSI, MACD, Bollinger Bands, Stochastic, EMA)
-2. Pokud ≥3 indikátory najednou říkají BUY nebo SELL → signál
-3. Výsledky jsou seřazeny podle sektoru a jeho aktuálního výkonu
-
-**Proč „sektor roste, ale akcie ne"?** Sektorový ETF (např. XLE = energie) je průměr desítek firem.
-Konkrétní akcie může zaostávat za sektorem z jiných důvodů (špatné výsledky, management...).
-Technické indikátory to zachytí — akcie v silném sektoru BEZ BUY signálu je spíše slabý člen sektoru.
-
-**Jak to číst:** Hledej akcie kde zároveň:
-- Sektor je v zelených číslech (roste)
-- Akcie má BUY signál od ≥3 indikátorů
-→ to je tzv. **double confirmation** — silná příležitost.
-            """)
-
-        # ── Načtení sektorové výkonnosti ─────────────────────────────────────
-        with st.spinner("Načítám sektorová data..."):
+        # ── Data ─────────────────────────────────────────────────────────────
+        with st.spinner("Načítám data..."):
             sector_perf_raw = fetch_sectors(_radar_period)
+            _fg_opp = fetch_fear_greed()
         sector_perf = {s["name"]: s["chg_period"] for s in sector_perf_raw}
 
-        # ── Sektorový přehled – kompaktní flex grid ───────────────────────────
-        st.subheader("Výkon sektorů (kontext pro signály)")
-        sector_items = "".join(
-            f'<div style="background:#1a1a2e;border-radius:8px;padding:6px 10px;'
-            f'display:flex;justify-content:space-between;align-items:center;gap:8px;min-width:0">'
-            f'<span style="font-size:0.78rem;color:#94a3b8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{s["name"]}</span>'
-            f'<span style="font-size:0.9rem;font-weight:700;white-space:nowrap;color:{"#22c55e" if s["chg_period"] >= 0 else "#ef4444"}">'
-            f'{s["chg_period"]:+.1f}%</span>'
-            f'</div>'
-            for s in sector_perf_raw
-        )
-        st.markdown(
-            f'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px;margin-bottom:8px">'
-            f'{sector_items}</div>',
-            unsafe_allow_html=True,
-        )
-
-        st.divider()
-
-        # ── Scan akcií – vždy celý RADAR_STOCKS_FULL, filtr až na výsledky ────
-        with st.spinner(f"Skenuji {len(RADAR_STOCKS_FULL)} akcií... (výsledky se cachují na 1h)"):
+        with st.spinner(f"Skenuji {len(RADAR_STOCKS_FULL)} akcií..."):
             all_radar_results = scan_stocks(RADAR_STOCKS_FULL, _radar_period)
-
-        # Přidej sektorový kontext a aplikuj sektorový filtr
         for r in all_radar_results:
             r["sector_chg"] = sector_perf.get(r["sector"], None)
 
-        results = [
-            r for r in all_radar_results
-            if not selected_sectors or r["sector"] in selected_sectors
-        ]
+        results = [r for r in all_radar_results if not selected_sectors or r["sector"] in selected_sectors]
 
-        # SELL signály zobrazujeme jen pro akcie v portfoliu – pro ostatní nemají smysl
-        strong = [
-            r for r in results
-            if r["action"] == "BUY"
-            or (r["action"] == "SELL" and r["ticker"] in PORTFOLIO_TICKERS)
-        ]
-        hold   = [r for r in results if r not in strong]
+        # ── SEKCE 1: Kontext trhu ─────────────────────────────────────────────
+        _fg_score = _fg_opp.get("score") if _fg_opp.get("ok") else None
+        _fg_lbl, _fg_clr = fg_label(_fg_score)
+        _fg_pct  = int((_fg_score or 50))
+        _sectors_green = sum(1 for s in sector_perf_raw if s["chg_period"] >= 0)
+        _sectors_red   = len(sector_perf_raw) - _sectors_green
+        _top_sectors   = sorted(sector_perf_raw, key=lambda x: -x["chg_period"])
+        _top3_html = "".join(
+            f'<span style="color:{"#22c55e" if s["chg_period"]>=0 else "#ef4444"};font-size:0.78rem;white-space:nowrap">'
+            f'{s["name"].split()[0]} {s["chg_period"]:+.1f}%</span>'
+            for s in _top_sectors[:3]
+        )
+        _bot3_html = "".join(
+            f'<span style="color:#ef4444;font-size:0.78rem;white-space:nowrap">'
+            f'{s["name"].split()[0]} {s["chg_period"]:+.1f}%</span>'
+            for s in _top_sectors[-3:]
+        )
 
-        # ── Double confirmation – silný sektor + BUY signál ───────────────────
-        double_conf = [
-            r for r in strong
-            if r["action"] == "BUY"
-            and r.get("sector_chg") is not None
-            and r["sector_chg"] > 1.0
-        ]
+        _top3_str = " · ".join(s["name"].split()[0] + f' {s["chg_period"]:+.1f}%' for s in _top_sectors[:3])
+        _bot3_str = " · ".join(s["name"].split()[0] + f' {s["chg_period"]:+.1f}%' for s in _top_sectors[-3:])
+        _fg_score_str = str(int(_fg_score)) if _fg_score is not None else "–"
 
-        if double_conf:
-            _dc_sorted = sorted(double_conf, key=lambda x: -_opportunity_score(x))
-            st.subheader(f"Double confirmation ({min(5, len(_dc_sorted))}/{len(_dc_sorted)})")
-            st.caption("Tyto akcie mají BUY signál A zároveň jejich sektor roste nad 1% — nejsilnější příležitosti.")
-            for r in _dc_sorted[:5]:
-                _render_radar_card(r, highlight=True)
-            st.divider()
+        st.markdown(
+            '<div style="background:#1e293b;border-radius:12px;padding:14px 16px;margin-bottom:12px">'
+            '<div style="color:#64748b;font-size:0.7rem;font-weight:600;margin-bottom:10px;letter-spacing:.05em">KONTEXT TRHU</div>'
+            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'
+            '<div>'
+            '<div style="color:#64748b;font-size:0.72rem;margin-bottom:4px">Index strachu &amp; chamtivosti</div>'
+            f'<div style="font-size:1.1rem;font-weight:700;color:{_fg_clr}">{_fg_lbl}</div>'
+            f'<div style="position:relative;height:6px;background:#334155;border-radius:3px;margin:6px 0;max-width:140px">'
+            f'<div style="position:absolute;left:{_fg_pct}%;top:50%;transform:translate(-50%,-50%);width:10px;height:10px;border-radius:50%;background:{_fg_clr}"></div>'
+            '</div>'
+            f'<div style="color:#64748b;font-size:0.72rem">{_fg_score_str} / 100</div>'
+            '</div>'
+            '<div>'
+            f'<div style="color:#64748b;font-size:0.72rem;margin-bottom:4px">Sektory ({_sectors_green} zelených / {_sectors_red} červených)</div>'
+            f'<div style="color:#22c55e;font-size:0.72rem;margin-bottom:3px">Nejsilnější: {_top3_str}</div>'
+            f'<div style="color:#ef4444;font-size:0.72rem">Nejslabší: {_bot3_str}</div>'
+            '</div>'
+            '</div></div>',
+            unsafe_allow_html=True
+        )
 
-        # ── Ostatní silné signály ─────────────────────────────────────────────
-        other_strong = [r for r in strong if r not in double_conf]
-        if other_strong:
-            _os_sorted = sorted(other_strong, key=lambda x: -_opportunity_score(x))
-            st.subheader(f"Ostatní BUY ({min(5, len(_os_sorted))}/{len(_os_sorted)})")
-            for r in _os_sorted[:5]:
-                _render_radar_card(r, highlight=False)
-        elif not double_conf:
-            st.info("Žádné silné signály. Trh je momentálně v klidném pásmu — čekej na příležitost.")
+        # ── SEKCE 2: Top příležitosti ─────────────────────────────────────────
+        _buy_all = [r for r in results if r["action"] == "BUY"]
+        _double  = [r for r in _buy_all if (r.get("sector_chg") or 0) > 1.0]
+        _other   = [r for r in _buy_all if r not in _double]
+        _top5    = sorted(_double, key=lambda x: -_opportunity_score(x))[:5] or sorted(_other, key=lambda x: -_opportunity_score(x))[:5]
+        _all_buy_sorted = sorted(_double, key=lambda x: -_opportunity_score(x)) + sorted(_other, key=lambda x: -_opportunity_score(x))
 
-        # ── Přehled podle sektoru – co sledovat ──────────────────────────────
-        st.divider()
-        st.subheader("Přehled podle sektoru")
-        sectors_with_stocks = {}
-        for r in sorted(hold + strong, key=lambda x: x["name"]):
-            s = r["sector"]
-            sectors_with_stocks.setdefault(s, []).append(r)
+        st.markdown('<div style="color:#64748b;font-size:0.7rem;font-weight:600;margin:16px 0 8px;letter-spacing:.05em">TOP PŘÍLEŽITOSTI</div>', unsafe_allow_html=True)
+        if _top5:
+            for _r in _top5:
+                _render_radar_card(_r, highlight=_r in _double)
+        else:
+            st.info("Žádné BUY signály. Trh je v klidném pásmu — čekej na příležitost.")
 
-        # Seřaď sektory od nejsilnějšího výkonu
-        def sector_sort_key(s):
-            return -(sector_perf.get(s, 0))
+        # ── SEKCE 3: Sledovat portfolio ───────────────────────────────────────
+        _sell_port  = [r for r in results if r["action"] == "SELL" and r["ticker"] in PORTFOLIO_TICKERS]
+        _watch_port = [r for r in results if r["action"] == "HOLD" and r["ticker"] in PORTFOLIO_TICKERS and r.get("rsi", 50) > 65]
+        _near_buy   = [r for r in results if r["action"] == "HOLD" and r.get("rsi", 50) < 38 and r["ticker"] not in PORTFOLIO_TICKERS]
 
-        for sector_name in sorted(sectors_with_stocks.keys(), key=sector_sort_key):
-            stocks_in_sector = sectors_with_stocks[sector_name]
-            sp = sector_perf.get(sector_name)
-            sp_str = f"{sp:+.1f}%" if sp is not None else "N/A"
-            sp_color = "#22c55e" if (sp or 0) >= 0 else "#ef4444"
-            buy_in  = sum(1 for r in stocks_in_sector if r["action"] == "BUY")
-            sell_in = sum(1 for r in stocks_in_sector if r["action"] == "SELL" and r["ticker"] in PORTFOLIO_TICKERS)
+        if _sell_port or _watch_port or _near_buy:
+            st.markdown('<div style="color:#64748b;font-size:0.7rem;font-weight:600;margin:16px 0 8px;letter-spacing:.05em">SLEDOVAT</div>', unsafe_allow_html=True)
 
-            label_parts = []
-            if buy_in:  label_parts.append(f"{buy_in} BUY")
-            if sell_in: label_parts.append(f"{sell_in} SELL")
-            signal_summary = " · ".join(label_parts) if label_parts else "vše HOLD"
+            for _r in _sell_port:
+                _render_radar_card(_r, highlight=False)
 
-            with st.expander(
-                f"{sector_name}  {sp_str}  ·  {signal_summary}  ({len(stocks_in_sector)})"
-            ):
-                for r in sorted(stocks_in_sector, key=lambda x: {"BUY": 0, "SELL": 1, "HOLD": 2}[x["action"]]):
-                    arrow = "▲" if r["chg_pct"] >= 0 else "▼"
-                    price_color = "#22c55e" if r["chg_pct"] >= 0 else "#ef4444"
-                    trend_color = {"Bullish": "#22c55e", "Bearish": "#ef4444", "Smíšený": "#888"}[r["ema_trend"]]
-                    # SELL skrýt pro akcie mimo portfolio
-                    display_action = r["action"] if (r["action"] != "SELL" or r["ticker"] in PORTFOLIO_TICKERS) else "HOLD"
-                    badge_css = {"BUY": "badge-buy", "SELL": "badge-sell", "HOLD": "badge-hold"}[display_action]
-                    badge_lbl = {"BUY": "KOUPIT", "SELL": "PRODAT", "HOLD": "DRŽET"}[display_action]
-                    card_css  = {"BUY": "card-buy", "SELL": "card-sell", "HOLD": "card-hold"}[display_action]
-                    reasons = (r["buy_reasons"] if r["action"] == "BUY" else r["sell_reasons"])[:2]
-                    reasons_html = " · ".join(reasons) if reasons else ""
-                    st.markdown(
-                        f'<div class="{card_css}" style="margin:3px 0;padding:10px">'
-                        f'<div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px">'
-                        f'<span class="{badge_css}" style="white-space:nowrap">{badge_lbl}</span>'
-                        f'<strong style="white-space:nowrap">{r["name"]}</strong>'
-                        f'<span style="color:#888;font-size:0.8rem;white-space:nowrap">{r["ticker"]}</span>'
-                        f'</div>'
-                        f'<div style="font-size:0.8rem;color:#94a3b8;margin-top:4px">'
-                        f'<span style="color:{price_color};white-space:nowrap">{r["price"]:.2f} {r["currency"]} {arrow}{r["chg_pct"]:+.1f}%</span>'
-                        f'<span style="color:#475569"> · </span>'
-                        f'<span style="white-space:nowrap">RSI: <b style="color:#e2e8f0">{r["rsi"]:.0f}</b></span>'
-                        f'<span style="color:#475569"> · </span>'
-                        f'<span style="color:{trend_color};white-space:nowrap">{r["ema_trend"]}</span>'
-                        f'</div>'
-                        + (f'<div style="margin-top:3px"><small style="color:#aaa">{reasons_html}</small></div>' if reasons_html else "")
-                        + '</div>',
-                        unsafe_allow_html=True,
-                    )
+            for _r in _watch_port:
+                _sc = "#ef4444"
+                st.markdown(
+                    f'<div style="background:#1e293b;border-left:3px solid {_sc};border-radius:8px;padding:10px 14px;margin:4px 0">'
+                    f'<div style="display:flex;align-items:center;gap:8px">'
+                    f'<span style="background:#ef444422;border:1px solid #ef4444;border-radius:5px;padding:2px 8px;font-size:0.75rem;font-weight:700;color:#ef4444">PŘEKOUPENO</span>'
+                    f'<strong>{_r["name"]}</strong><span style="color:#64748b;font-size:0.8rem">{_r["ticker"]}</span>'
+                    f'</div>'
+                    f'<div style="color:#94a3b8;font-size:0.78rem;margin-top:4px">RSI {_r["rsi"]:.0f} · {_r["ema_trend"]} · {_r["price"]:.2f} {_r["currency"]}</div>'
+                    f'</div>',
+                    unsafe_allow_html=True
+                )
+
+            for _r in _near_buy[:3]:
+                _wc = "#f59e0b"
+                st.markdown(
+                    f'<div style="background:#1e293b;border-left:3px solid {_wc};border-radius:8px;padding:10px 14px;margin:4px 0">'
+                    f'<div style="display:flex;align-items:center;gap:8px">'
+                    f'<span style="background:#f59e0b22;border:1px solid #f59e0b;border-radius:5px;padding:2px 8px;font-size:0.75rem;font-weight:700;color:#f59e0b">BLÍZKO BUY</span>'
+                    f'<strong>{_r["name"]}</strong><span style="color:#64748b;font-size:0.8rem">{_r["ticker"]}</span>'
+                    f'</div>'
+                    f'<div style="color:#94a3b8;font-size:0.78rem;margin-top:4px">RSI {_r["rsi"]:.0f} · {_r["ema_trend"]} · sektor {_r.get("sector_chg", 0):+.1f}%</div>'
+                    f'</div>',
+                    unsafe_allow_html=True
+                )
+
+        # ── SEKCE 4: Celý radar (schovaný) ───────────────────────────────────
+        with st.expander(f"Celý radar podle sektoru ({len(results)} akcií)", expanded=False):
+            sectors_with_stocks: dict = {}
+            for _r in sorted(results, key=lambda x: x["name"]):
+                sectors_with_stocks.setdefault(_r["sector"], []).append(_r)
+            for _sn in sorted(sectors_with_stocks, key=lambda s: -(sector_perf.get(s, 0))):
+                _ss = sectors_with_stocks[_sn]
+                _sp = sector_perf.get(_sn)
+                _sp_str = f"{_sp:+.1f}%" if _sp is not None else "N/A"
+                _bi = sum(1 for _r in _ss if _r["action"] == "BUY")
+                _si = sum(1 for _r in _ss if _r["action"] == "SELL" and _r["ticker"] in PORTFOLIO_TICKERS)
+                _sig = " · ".join(filter(None, [f"{_bi} BUY" if _bi else "", f"{_si} SELL" if _si else ""])) or "vše HOLD"
+                with st.expander(f"{_sn}  {_sp_str}  ·  {_sig}  ({len(_ss)})"):
+                    for _r in sorted(_ss, key=lambda x: {"BUY": 0, "SELL": 1, "HOLD": 2}[x["action"]]):
+                        _arr = "▲" if _r["chg_pct"] >= 0 else "▼"
+                        _pc  = "#22c55e" if _r["chg_pct"] >= 0 else "#ef4444"
+                        _tc  = {"Bullish": "#22c55e", "Bearish": "#ef4444", "Smíšený": "#888"}[_r["ema_trend"]]
+                        _da  = _r["action"] if (_r["action"] != "SELL" or _r["ticker"] in PORTFOLIO_TICKERS) else "HOLD"
+                        _bc  = {"BUY": "badge-buy", "SELL": "badge-sell", "HOLD": "badge-hold"}[_da]
+                        _bl  = {"BUY": "KOUPIT", "SELL": "PRODAT", "HOLD": "DRŽET"}[_da]
+                        _cc  = {"BUY": "card-buy", "SELL": "card-sell", "HOLD": "card-hold"}[_da]
+                        _rs  = (_r["buy_reasons"] if _r["action"] == "BUY" else _r["sell_reasons"])[:2]
+                        _rh  = " · ".join(_rs) if _rs else ""
+                        st.markdown(
+                            f'<div class="{_cc}" style="margin:3px 0;padding:10px">'
+                            f'<div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px">'
+                            f'<span class="{_bc}" style="white-space:nowrap">{_bl}</span>'
+                            f'<strong style="white-space:nowrap">{_r["name"]}</strong>'
+                            f'<span style="color:#888;font-size:0.8rem">{_r["ticker"]}</span>'
+                            f'</div>'
+                            f'<div style="font-size:0.8rem;color:#94a3b8;margin-top:4px">'
+                            f'<span style="color:{_pc}">{_r["price"]:.2f} {_r["currency"]} {_arr}{_r["chg_pct"]:+.1f}%</span>'
+                            f' · RSI <b>{_r["rsi"]:.0f}</b>'
+                            f' · <span style="color:{_tc}">{_r["ema_trend"]}</span>'
+                            f'</div>'
+                            + (f'<div style="margin-top:3px"><small style="color:#aaa">{_rh}</small></div>' if _rh else "")
+                            + '</div>',
+                            unsafe_allow_html=True,
+                        )
 
     # ── Tab: Korelace portfolia ───────────────────────────────────────────────
     with tab_korelace:
