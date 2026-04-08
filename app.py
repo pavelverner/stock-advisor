@@ -1165,8 +1165,7 @@ if page == "Přehled portfolia":
         # Reálné signály pro všechny 3 horizonty
         _mh = cached_multi_horizon(r["ticker"])
         hz_row = (
-            f'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;'
-            f'grid-column:1/-1;margin-bottom:10px;width:100%">'
+            f'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:10px">'
             f'{_pf_hz_badge(_mh.get("short"),  "Krátkodobý", "< 3 měs.")}'
             f'{_pf_hz_badge(_mh.get("medium"), "Střednědobý", "6m – 2r")}'
             f'{_pf_hz_badge(_mh.get("long"),   "Dlouhodobý",  "3+ roky")}'
@@ -1175,22 +1174,26 @@ if page == "Přehled portfolia":
 
         st.markdown(f"""
 <a href="?page=1&ticker={r['ticker']}" target="_self" style="text-decoration:none;color:inherit;display:block">
-<div class="{card_css}" style="cursor:pointer">
-  {hz_row}
-  <div class="pf-name" style="grid-column:1/3;grid-row:2">
-    {r['name']} <span style="color:#555;font-size:0.78rem;font-weight:400">{r['ticker']}</span>
-    <span style="color:{score_color};font-weight:700;font-size:0.78rem;white-space:nowrap;margin-left:6px">{score}/10</span>
-  </div>
-  <div class="pf-meta" style="grid-column:1/3;grid-row:3;margin-top:4px">
-    <span class="pf-pill" style="color:{rsi_color}">RSI {r['rsi']:.0f}</span>
-    <span class="pf-pill" style="color:{trend_color}">{r['ema_trend']}</span>
-    <span class="pf-pill" style="color:#94a3b8">{r['sector']}</span>
-  </div>
-  <div class="pf-price-block" style="grid-column:3;grid-row:2/4">
-    <div class="pf-price">{r['price']:.2f} <span style="font-size:0.75rem;color:#666">{r['currency']}</span></div>
-    <div class="pf-change" style="color:{chg_color}">{arrow} {r['chg_pct']:+.1f}%</div>
+<div class="{card_css}" style="cursor:pointer;display:block">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+    <div style="flex:1;min-width:0">
+      <div style="font-size:1.0rem;font-weight:700;color:#f1f5f9">
+        {r['name']} <span style="color:#555;font-size:0.78rem;font-weight:400">{r['ticker']}</span>
+        <span style="color:{score_color};font-weight:700;font-size:0.78rem;margin-left:6px">{score}/10</span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">
+        <span class="pf-pill" style="color:{rsi_color}">RSI {r['rsi']:.0f}</span>
+        <span class="pf-pill" style="color:{trend_color}">{r['ema_trend']}</span>
+        <span class="pf-pill" style="color:#94a3b8">{r['sector']}</span>
+      </div>
+    </div>
+    <div style="text-align:right;white-space:nowrap;flex-shrink:0">
+      <div class="pf-price">{r['price']:.2f} <span style="font-size:0.75rem;color:#666">{r['currency']}</span></div>
+      <div class="pf-change" style="color:{chg_color}">{arrow} {r['chg_pct']:+.1f}%</div>
+    </div>
   </div>
   {reasons_html}
+  {hz_row}
 </div>
 </a>
 """, unsafe_allow_html=True)
