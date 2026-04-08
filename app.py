@@ -1568,22 +1568,21 @@ elif page == "Detail akcie":
             hc    = _HINT_COLOR.get(hint, "#94a3b8")
             b_cnt = len(sig.get("buy_signals",  []))
             s_cnt = len(sig.get("sell_signals", []))
-            return f"""
-              <div style="background:#0f172a;border-radius:10px;padding:12px 10px;text-align:center">
-                <div style="background:{sc}22;border:1px solid {sc};border-radius:6px;
-                            padding:4px 0;font-size:0.88rem;font-weight:700;color:{sc};margin-bottom:10px">{sl}</div>
-                <div style="font-size:0.68rem;color:#64748b;margin-bottom:1px">RSI</div>
-                <div style="font-size:0.95rem;font-weight:700;color:{rc};margin-bottom:8px">{rsi:.1f}</div>
-                <div style="font-size:0.68rem;color:#64748b;margin-bottom:1px">Trend</div>
-                <div style="font-size:0.9rem;font-weight:600;color:{tc};margin-bottom:8px">{tr}</div>
-                <div style="font-size:0.68rem;color:#64748b;margin-bottom:1px">MACD</div>
-                <div style="font-size:0.9rem;font-weight:600;color:{mc};margin-bottom:8px">{ml}</div>
-                <div style="font-size:0.68rem;color:#64748b;margin-bottom:1px">Signály</div>
-                <div style="font-size:0.8rem;color:#94a3b8;margin-bottom:6px">
-                  <span style="color:#22c55e">{b_cnt}↑</span> / <span style="color:#ef4444">{s_cnt}↓</span>
-                </div>
-                {f'<div style="font-size:0.7rem;color:{hc};text-transform:uppercase;font-weight:600">{hint}</div>' if hint else ""}
-              </div>"""
+            hint_div = f'<div style="font-size:0.7rem;color:{hc};text-transform:uppercase;font-weight:600">{hint}</div>' if hint else ""
+            return (
+f'<div style="background:#0f172a;border-radius:10px;padding:12px 10px;text-align:center">'
+f'<div style="background:{sc}22;border:1px solid {sc};border-radius:6px;padding:4px 0;font-size:0.88rem;font-weight:700;color:{sc};margin-bottom:10px">{sl}</div>'
+f'<div style="font-size:0.68rem;color:#64748b;margin-bottom:1px">RSI</div>'
+f'<div style="font-size:0.95rem;font-weight:700;color:{rc};margin-bottom:8px">{rsi:.1f}</div>'
+f'<div style="font-size:0.68rem;color:#64748b;margin-bottom:1px">Trend</div>'
+f'<div style="font-size:0.9rem;font-weight:600;color:{tc};margin-bottom:8px">{tr}</div>'
+f'<div style="font-size:0.68rem;color:#64748b;margin-bottom:1px">MACD</div>'
+f'<div style="font-size:0.9rem;font-weight:600;color:{mc};margin-bottom:8px">{ml}</div>'
+f'<div style="font-size:0.68rem;color:#64748b;margin-bottom:1px">Signály</div>'
+f'<div style="font-size:0.8rem;color:#94a3b8;margin-bottom:6px"><span style="color:#22c55e">{b_cnt}&#8593;</span> / <span style="color:#ef4444">{s_cnt}&#8595;</span></div>'
+f'{hint_div}'
+f'</div>'
+            )
 
         _col_s = _hz_col("short")
         _col_m = _hz_col("medium")
