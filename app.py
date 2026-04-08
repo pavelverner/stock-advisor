@@ -1177,13 +1177,11 @@ if page == "Přehled portfolia":
 <a href="?page=1&ticker={r['ticker']}" target="_self" style="text-decoration:none;color:inherit;display:block">
 <div class="{card_css}" style="cursor:pointer">
   {hz_row}
-  <div class="pf-left" style="grid-row:2">
-    <span style="color:{score_color};font-weight:700;font-size:0.8rem;white-space:nowrap">{score}/10</span>
-  </div>
-  <div class="pf-name" style="grid-column:2;grid-row:2">
+  <div class="pf-name" style="grid-column:1/3;grid-row:2">
     {r['name']} <span style="color:#555;font-size:0.78rem;font-weight:400">{r['ticker']}</span>
+    <span style="color:{score_color};font-weight:700;font-size:0.78rem;white-space:nowrap;margin-left:6px">{score}/10</span>
   </div>
-  <div class="pf-meta" style="grid-column:2;grid-row:3;margin-top:4px">
+  <div class="pf-meta" style="grid-column:1/3;grid-row:3;margin-top:4px">
     <span class="pf-pill" style="color:{rsi_color}">RSI {r['rsi']:.0f}</span>
     <span class="pf-pill" style="color:{trend_color}">{r['ema_trend']}</span>
     <span class="pf-pill" style="color:#94a3b8">{r['sector']}</span>
