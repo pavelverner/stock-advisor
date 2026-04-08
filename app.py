@@ -1512,41 +1512,55 @@ elif page == "Detail akcie":
                 _json.dumps({k: (float(v) if isinstance(v, float) else v) for k, v in ai_sent.items()}),
             )
 
-        # ── Multi-horizont souhrnná karta ────────────────────────────────────────
+        # ── Konstanty pro AI hint ────────────────────────────────────
         _HINT_LABEL = {"koupit": "KOUPIT", "prodat": "PRODAT", "čekat": "ČEKAT", "sledovat": "SLEDOVAT"}
         _HINT_COLOR = {"koupit": "#22c55e", "prodat": "#ef4444", "čekat": "#f59e0b", "sledovat": "#60a5fa"}
         _ai_prov = _claude.get("provider", "AI") if _claude.get("ok") else ""
 
-        def _horizon_badge(key: str, title: str, subtitle: str = "") -> str:
-            h = _claude.get(key, {}) if _claude.get("ok") else {}
-            hint = h.get("action_hint", "")
-            conf = h.get("confidence", "")
-            sig  = _mh.get(key)
-            if not hint:
-                hint = {"BUY": "koupit", "SELL": "prodat", "HOLD": "čekat"}.get((sig or {}).get("action", "HOLD"), "čekat")
-            clr = _HINT_COLOR.get(hint, "#94a3b8")
-            lbl = _HINT_LABEL.get(hint, hint.upper())
-            conf_html = f'<div style="color:#64748b;font-size:0.68rem;margin-top:2px">{conf}</div>' if conf else ""
-            sub_html  = f'<div style="color:#475569;font-size:0.62rem;line-height:1.2">{subtitle}</div>' if subtitle else ""
-            return (
-                f'<div style="background:{clr}18;border:2px solid {clr};border-radius:10px;'
-                f'padding:10px 8px;text-align:center">'
-                f'<div style="color:#94a3b8;font-size:0.68rem;line-height:1.3;margin-bottom:4px">'
-                f'{title}{sub_html}</div>'
-                f'<div style="color:{clr};font-size:1.15rem;font-weight:800">{lbl}</div>'
-                f'{conf_html}</div>'
-            )
+        # ── Hero card: hlavní signál (krátkodobý + AI) ───────────────
+        _hero_sig   = _mh.get("short") or signals
+        _hero_act   = _hero_sig.get("action", "HOLD")
+        _hero_sc    = {"BUY": "#22c55e", "SELL": "#ef4444", "HOLD": "#94a3b8"}[_hero_act]
+        _hero_lbl   = {"BUY": "KOUPIT",  "SELL": "PRODAT",  "HOLD": "DRŽET"}[_hero_act]
+        _hero_cd    = _claude.get("short", {}) if _claude.get("ok") else {}
+        _hero_summ  = _hero_cd.get("summary", "")
+        _hero_hint  = _hero_cd.get("action_hint", "")
+        _hero_conf  = _hero_cd.get("confidence", "")
+        _hero_hc    = _HINT_COLOR.get(_hero_hint, "#94a3b8")
+        _hero_score, _hero_slbl = _score_label(
+            len(_hero_sig.get("buy_signals", [])), len(_hero_sig.get("sell_signals", [])), _hero_act
+        )
+        _hero_bar   = _score_bar_html(_hero_score)
+        _sent_c     = "#22c55e" if ai_sent["score"] > 0.15 else ("#ef4444" if ai_sent["score"] < -0.15 else "#94a3b8")
+        _sent_lbl   = {"positive": "Pozitivní", "negative": "Negativní", "neutral": "Neutrální"}.get(ai_sent.get("dominant", "neutral"), "Neutrální")
+        _hero_hint_html = (
+            f'<div style="color:#94a3b8;font-size:0.78rem;margin-top:2px">'
+            f'<span style="color:{_hero_hc};font-weight:700;text-transform:uppercase">{_hero_hint}</span>'
+            f' · jistota: {_hero_conf} · <span style="color:#60a5fa">{_ai_prov}</span></div>'
+        ) if _hero_hint else ""
+        _hero_summ_html = (
+            f'<div style="color:#cbd5e1;font-size:0.87rem;line-height:1.5;'
+            f'margin-top:10px;border-top:1px solid #334155;padding-top:10px">{_hero_summ}</div>'
+        ) if _hero_summ else ""
 
-        st.markdown(f"""
-<style>
-.horizon-grid {{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:12px; }}
-</style>
-<div class="horizon-grid">
-  {_horizon_badge("short",  "Krátkodobý", "< 3 měs.")}
-  {_horizon_badge("medium", "Střednědobý", "6m – 2 roky")}
-  {_horizon_badge("long",   "Dlouhodobý",  "3+ roky")}
-</div>
-""", unsafe_allow_html=True)
+        st.markdown(
+            '<div style="background:#1e293b;border-radius:12px;padding:16px;margin-bottom:12px">'
+            '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">'
+            f'<div style="background:{_hero_sc}22;border:2px solid {_hero_sc};border-radius:10px;'
+            f'padding:8px 24px;font-size:1.4rem;font-weight:800;color:{_hero_sc}">{_hero_lbl}</div>'
+            f'<div style="flex:1;min-width:140px">{_hero_bar}'
+            f'<div style="color:#94a3b8;font-size:0.8rem;margin-top:3px">'
+            f'{_hero_slbl} · {len(_hero_sig.get("buy_signals", []))} buy / {len(_hero_sig.get("sell_signals", []))} sell'
+            f'</div>{_hero_hint_html}</div>'
+            f'<div style="text-align:right;min-width:80px">'
+            f'<div style="color:#64748b;font-size:0.68rem">Sentiment</div>'
+            f'<div style="color:{_sent_c};font-size:0.9rem;font-weight:600">{_sent_lbl}</div>'
+            f'<div style="color:#64748b;font-size:0.72rem">{ai_sent["score"]:+.2f}</div>'
+            f'</div></div>'
+            f'{_hero_summ_html}'
+            '</div>',
+            unsafe_allow_html=True
+        )
 
         # ── Porovnávací tabulka 3 horizontů ─────────────────────────
         def _hz_col(hk):
@@ -1624,9 +1638,6 @@ f'</div>'
 """, unsafe_allow_html=True)
 
         # ── Stacked detaily pro každý horizont ──────────────────────
-        _sent_c   = "#22c55e" if ai_sent["score"] > 0.15 else ("#ef4444" if ai_sent["score"] < -0.15 else "#94a3b8")
-        _sent_lbl = {"positive": "Pozitivní", "negative": "Negativní", "neutral": "Neutrální"}.get(ai_sent.get("dominant", "neutral"), "Neutrální")
-
         for _hk, _hname, _hsub, _expanded in [
             ("short",  "Krátkodobý",  "< 3 měs.",  True),
             ("medium", "Střednědobý", "6m – 2 roky", False),
@@ -1689,78 +1700,7 @@ f'</div>'
 </div>
 """, unsafe_allow_html=True)
 
-        st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
-
-        # Indikátory
-        st.subheader("Technické indikátory")
-
-        rsi_v  = signals["rsi"]
-        bb_pos = (price_now - signals["bb_lower"]) / max(signals["bb_upper"] - signals["bb_lower"], 0.01) * 100
-        trend  = ("Bullish" if signals["ema20"] > signals["ema50"] > signals["ema200"]
-                  else "Bearish" if signals["ema20"] < signals["ema50"] < signals["ema200"]
-                  else "Smíšený")
-        rsi_delta  = "Oversold – levná" if rsi_v < 30 else ("Overbought – drahá" if rsi_v > 70 else "Neutrální")
-        bb_delta   = "Blízko dna" if bb_pos < 20 else ("Blízko vrcholu" if bb_pos > 80 else "Střed pásma")
-        stoch_delta = "Oversold" if signals["stoch_k"] < 20 else ("Overbought" if signals["stoch_k"] > 80 else "Neutrální")
-        rsi_color  = "#22c55e" if rsi_v < 30 else ("#ef4444" if rsi_v > 70 else "#94a3b8")
-        bb_color   = "#22c55e" if bb_pos < 20 else ("#ef4444" if bb_pos > 80 else "#94a3b8")
-        stoch_color = "#22c55e" if signals["stoch_k"] < 20 else ("#ef4444" if signals["stoch_k"] > 80 else "#94a3b8")
-        trend_color = "#22c55e" if trend == "Bullish" else ("#ef4444" if trend == "Bearish" else "#94a3b8")
-        macd_color  = "#22c55e" if signals["macd"] > signals["macd_signal"] else "#ef4444"
-
-        st.markdown(f"""
-    <div class="indicator-grid">
-      <div class="indicator-card" title="RSI (Relative Strength Index) měří přeprodanost/překoupenost. Pod 30 = levná → BUY. Nad 70 = drahá → SELL.">
-        <div class="indicator-label">RSI (14)</div>
-        <div class="indicator-value" style="color:{rsi_color}">{rsi_v:.1f}</div>
-        <div class="indicator-delta">{rsi_delta}</div>
-      </div>
-      <div class="indicator-card" title="MACD porovnává EMA 12 a EMA 26. Křížení signal linky nahoru = BUY, dolů = SELL.">
-        <div class="indicator-label">MACD</div>
-        <div class="indicator-value" style="color:{macd_color}">{signals['macd']:.3f}</div>
-        <div class="indicator-delta">Signal: {signals['macd_signal']:.3f}</div>
-      </div>
-      <div class="indicator-card" title="Pozice ceny v Bollinger Bands. 0% = spodní pásmo (levná), 100% = horní pásmo (drahá).">
-        <div class="indicator-label">Bollinger Bands</div>
-        <div class="indicator-value" style="color:{bb_color}">{bb_pos:.0f}%</div>
-        <div class="indicator-delta">{bb_delta}</div>
-      </div>
-      <div class="indicator-card" title="Stochastic porovnává cenu s cenovým rozsahem 14 dní. Pod 20 = přeprodaná, nad 80 = překoupená.">
-        <div class="indicator-label">Stochastic K/D</div>
-        <div class="indicator-value" style="color:{stoch_color}">{signals['stoch_k']:.0f} / {signals['stoch_d']:.0f}</div>
-        <div class="indicator-delta">{stoch_delta}</div>
-      </div>
-      <div class="indicator-card" title="EMA trend: Bullish = EMA20 > EMA50 > EMA200. Bearish = opačně. Golden Cross = EMA20 překříží EMA50 nahoru.">
-        <div class="indicator-label">Trend (EMA)</div>
-        <div class="indicator-value" style="color:{trend_color}">{trend}</div>
-        <div class="indicator-delta">EMA50: {signals['ema50']:.1f}</div>
-      </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-        # Rozbalovací legenda pro méně zkušené uživatele
-        with st.expander("Co znamenají tyto indikátory?"):
-            st.markdown("""
-    **Jak systém funguje:** Sleduje 5 indikátorů najednou. Signál KOUPIT nebo PRODAT se zobrazí teprve
-    když **alespoň 3 indikátory souhlasí** — proto je konzervativní a nevydává falešné alarmy při každém malém pohybu.
-
-    | Indikátor | Co měří | Kdy říká KOUPIT | Kdy říká PRODAT |
-    |---|---|---|---|
-    | **RSI** | Síla trendu, přeprodanost | Pod 30 (levná) | Nad 70 (drahá) |
-    | **MACD** | Momentum trendu | Křížení nahoru | Křížení dolů |
-    | **Bollinger Bands** | Pozice vůči průměru | Cena pod spodním pásmem | Cena nad horním pásmem |
-    | **Stochastic** | Přeprodanost za 14 dní | K/D pod 20 | K/D nad 80 |
-    | **EMA trend** | Směr krátkodobého vs. dlouhodobého trendu | 20 > 50 > 200 | 20 < 50 < 200 |
-    | **AI Sentiment** | Tón zpráv (FinBERT model) | Převažují pozitivní zprávy | Převažují negativní zprávy |
-
-    **Bullish** = rostoucí trend, **Bearish** = klesající trend, **Oversold** = přeprodaná (levná), **Overbought** = překoupená (drahá).
-
-    > Žádný indikátor není 100% spolehlivý. Vždy kombinuj s vlastním úsudkem a zprávami.
-            """)
-
-        st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
-
-        # Graf (skrytý by default)
+        # Graf & technické indikátory
         with st.expander("Graf & technická analýza", expanded=False):
             close = df["Close"]
             rsi_s = compute_rsi(close)
@@ -1808,6 +1748,47 @@ f'</div>'
             )
             fig.update_yaxes(range=[0, 100], row=2, col=1)
             st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "scrollZoom": False})
+
+            # Technické indikátory pod grafem
+            rsi_v  = signals["rsi"]
+            bb_pos = (price_now - signals["bb_lower"]) / max(signals["bb_upper"] - signals["bb_lower"], 0.01) * 100
+            _ind_trend  = ("Bullish" if signals["ema20"] > signals["ema50"] > signals["ema200"]
+                           else "Bearish" if signals["ema20"] < signals["ema50"] < signals["ema200"]
+                           else "Smíšený")
+            rsi_delta   = "Oversold – levná" if rsi_v < 30 else ("Overbought – drahá" if rsi_v > 70 else "Neutrální")
+            bb_delta    = "Blízko dna" if bb_pos < 20 else ("Blízko vrcholu" if bb_pos > 80 else "Střed pásma")
+            stoch_delta = "Oversold" if signals["stoch_k"] < 20 else ("Overbought" if signals["stoch_k"] > 80 else "Neutrální")
+            rsi_color   = "#22c55e" if rsi_v < 30 else ("#ef4444" if rsi_v > 70 else "#94a3b8")
+            bb_color    = "#22c55e" if bb_pos < 20 else ("#ef4444" if bb_pos > 80 else "#94a3b8")
+            stoch_color = "#22c55e" if signals["stoch_k"] < 20 else ("#ef4444" if signals["stoch_k"] > 80 else "#94a3b8")
+            trend_color = "#22c55e" if _ind_trend == "Bullish" else ("#ef4444" if _ind_trend == "Bearish" else "#94a3b8")
+            macd_color  = "#22c55e" if signals["macd"] > signals["macd_signal"] else "#ef4444"
+
+            st.markdown(f"""
+<div class="indicator-grid">
+<div class="indicator-card" title="RSI měří přeprodanost. Pod 30 = levná, nad 70 = drahá."><div class="indicator-label">RSI (14)</div><div class="indicator-value" style="color:{rsi_color}">{rsi_v:.1f}</div><div class="indicator-delta">{rsi_delta}</div></div>
+<div class="indicator-card" title="MACD: křížení signal linky nahoru = BUY, dolů = SELL."><div class="indicator-label">MACD</div><div class="indicator-value" style="color:{macd_color}">{signals['macd']:.3f}</div><div class="indicator-delta">Signal: {signals['macd_signal']:.3f}</div></div>
+<div class="indicator-card" title="Pozice ceny v Bollinger Bands. 0% = dno, 100% = vrchol."><div class="indicator-label">Bollinger Bands</div><div class="indicator-value" style="color:{bb_color}">{bb_pos:.0f}%</div><div class="indicator-delta">{bb_delta}</div></div>
+<div class="indicator-card" title="Stochastic: pod 20 = přeprodaná, nad 80 = překoupená."><div class="indicator-label">Stochastic K/D</div><div class="indicator-value" style="color:{stoch_color}">{signals['stoch_k']:.0f} / {signals['stoch_d']:.0f}</div><div class="indicator-delta">{stoch_delta}</div></div>
+<div class="indicator-card" title="EMA trend: Bullish = EMA20 > EMA50 > EMA200."><div class="indicator-label">Trend (EMA)</div><div class="indicator-value" style="color:{trend_color}">{_ind_trend}</div><div class="indicator-delta">EMA50: {signals['ema50']:.1f}</div></div>
+</div>
+""", unsafe_allow_html=True)
+
+            with st.expander("Co znamenají tyto indikátory?"):
+                st.markdown("""
+**Jak systém funguje:** Sleduje 5 indikátorů najednou. Signál KOUPIT nebo PRODAT se zobrazí teprve
+když **alespoň 3 indikátory souhlasí** — proto je konzervativní a nevydává falešné alarmy.
+
+| Indikátor | Co měří | Kdy říká KOUPIT | Kdy říká PRODAT |
+|---|---|---|---|
+| **RSI** | Síla trendu, přeprodanost | Pod 30 (levná) | Nad 70 (drahá) |
+| **MACD** | Momentum trendu | Křížení nahoru | Křížení dolů |
+| **Bollinger Bands** | Pozice vůči průměru | Cena pod spodním pásmem | Cena nad horním pásmem |
+| **Stochastic** | Přeprodanost za 14 dní | K/D pod 20 | K/D nad 80 |
+| **EMA trend** | Směr krátkodobého vs. dlouhodobého trendu | 20 > 50 > 200 | 20 < 50 < 200 |
+
+> Žádný indikátor není 100% spolehlivý. Vždy kombinuj s vlastním úsudkem a zprávami.
+                """)
 
         st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
 
