@@ -2553,16 +2553,18 @@ elif page == "Deník":
                     "[data-testid='stDownloadButton'] button{width:100% !important;}"
                     "[data-testid='stFileUploaderDropzone']{border:none !important;background:transparent !important;padding:0 !important;}"
                     "[data-testid='stFileUploaderDropzoneInstructions']{display:none !important;}"
-                    "[data-testid='stFileUploader'] > label{margin-bottom:2px !important;}"
+                    "[data-testid='stFileUploader'] > label{display:none !important;}"
                     "[data-testid='stFileUploader'] section{margin-top:0 !important;}"
                     "[data-testid='stFileUploader'] button{width:100% !important;}"
+                    "[data-testid='stFileUploader'] button p{display:none !important;}"
+                    "[data-testid='stFileUploader'] button::after{content:'Nahrát';}"
                     "</style>", unsafe_allow_html=True)
         _ie_dl, _ie_ul = st.columns(2)
         with _ie_dl:
             df_exp = get_trades()
             if not df_exp.empty:
                 csv_bytes = df_exp.to_csv(index=False).encode("utf-8")
-                st.markdown("⬇️ **Stáhnout zálohu (CSV)**")
+                st.markdown('<p style="font-size:0.85rem;margin-bottom:4px">⬇️ Stáhnout zálohu (CSV)</p>', unsafe_allow_html=True)
                 st.download_button(
                     "Stáhnout",
                     data=csv_bytes,
@@ -2572,7 +2574,8 @@ elif page == "Deník":
                     use_container_width=True,
                 )
         with _ie_ul:
-            uploaded = st.file_uploader("⬆️ Nahrát zálohu (CSV)", type="csv", label_visibility="visible")
+            st.markdown('<p style="font-size:0.85rem;margin-bottom:4px">⬆️ Nahrát zálohu (CSV)</p>', unsafe_allow_html=True)
+            uploaded = st.file_uploader("Nahrát zálohu", type="csv", label_visibility="collapsed")
             if uploaded:
                 try:
                     n = import_from_csv(uploaded.read())
