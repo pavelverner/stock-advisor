@@ -454,7 +454,8 @@ def get_performance(df: pd.DataFrame) -> pd.DataFrame:
         entry    = float(r["price"])
         shares   = float(r["shares"])
         action   = r["action"]
-        realized = None
+        realized     = None
+        realized_pct = None
 
         if action == "BUY" and cur is not None:
             pnl_pct = (cur - entry) / entry * 100
@@ -473,6 +474,7 @@ def get_performance(df: pd.DataFrame) -> pd.DataFrame:
             # Realizovaný zisk = sell_price − průměrná nákupní cena
             avg_buy = _avg_buy_price(df, r["ticker"], str(r["date"]))
             realized = (entry - avg_buy) * shares if avg_buy is not None else None
+            realized_pct = (entry - avg_buy) / avg_buy * 100 if avg_buy is not None else None
             status = "Prodáno"
 
         try:
@@ -492,7 +494,8 @@ def get_performance(df: pd.DataFrame) -> pd.DataFrame:
             "Aktuální":    cur,
             "P&L %":       pnl_pct,
             "P&L Kč/USD":  pnl_abs,
-            "Realizováno": realized if action == "SELL" else None,
+            "Realizováno":   realized     if action == "SELL" else None,
+            "Realizováno %": realized_pct if action == "SELL" else None,
             "Status":      status,
             "Poznámka":    r.get("note", ""),
             "Důvody":      " · ".join(reasons[:2]) if reasons else "",
@@ -508,13 +511,19 @@ def get_stats(perf_df: pd.DataFrame) -> dict:
     open_pos = perf_df[perf_df["Status"] == "Otevřená"]
     sold_pos = perf_df[perf_df["Status"] == "Prodáno"]
 
-    pnl      = open_pos["P&L %"].dropna()
-    abs_pnl  = open_pos["P&L Kč/USD"].dropna()
-    invested = open_pos["Investováno"].sum()
-    winners  = (pnl > 0).sum()
-    total    = len(pnl)
+    # Otevřené pozice
+    open_pnl_pct = open_pos["P&L %"].dropna()
+    open_pnl_abs = open_pos["P&L Kč/USD"].dropna()
+    invested     = open_pos["Investováno"].sum()
 
+    # Prodané pozice – realizované procento zisku
+    sold_pnl_pct = sold_pos["Realizováno %"].dropna() if "Realizováno %" in sold_pos.columns else pd.Series([], dtype=float)
     realized_abs = float(sold_pos["Realizováno"].dropna().sum()) if "Realizováno" in sold_pos.columns else 0.0
+
+    # Kombinované statistiky (otevřené + prodané)
+    all_pnl_pct = pd.concat([open_pnl_pct, sold_pnl_pct])
+    winners     = (all_pnl_pct > 0).sum()
+    total       = len(all_pnl_pct)
 
     if open_pos.empty and sold_pos.empty:
         return {"total_trades": len(perf_df), "open_positions": 0, "realized_pnl_abs": 0.0}
@@ -522,21 +531,26 @@ def get_stats(perf_df: pd.DataFrame) -> dict:
     buy_count  = int((perf_df["Akce"] == "BUY").sum())
     sell_count = int((perf_df["Akce"] == "SELL").sum())
 
+    # Nejlepší/nejhorší ze všech obchodů
+    best_idx  = all_pnl_pct.idxmax() if not all_pnl_pct.empty else None
+    worst_idx = all_pnl_pct.idxmin() if not all_pnl_pct.empty else None
+    all_pos   = pd.concat([open_pos, sold_pos])
+
     return {
         "total_trades":     len(perf_df),
         "buy_count":        buy_count,
         "sell_count":       sell_count,
-        "open_positions":   total,
+        "open_positions":   len(open_pnl_pct),
         "win_rate":         winners / total * 100 if total else 0,
         "winners":          int(winners),
-        "losers":           int((pnl < 0).sum()),
-        "total_pnl_abs":    float(abs_pnl.sum()),
+        "losers":           int((all_pnl_pct < 0).sum()),
+        "total_pnl_abs":    float(open_pnl_abs.sum()),
         "total_invested":   float(invested),
-        "total_pnl_pct":    float(abs_pnl.sum() / invested * 100) if invested else 0,
-        "best_trade":       float(pnl.max()) if not pnl.empty else 0,
-        "best_ticker":      open_pos.loc[pnl.idxmax(), "Ticker"] if not pnl.empty else "",
-        "worst_trade":      float(pnl.min()) if not pnl.empty else 0,
-        "worst_ticker":     open_pos.loc[pnl.idxmin(), "Ticker"] if not pnl.empty else "",
-        "avg_pnl":          float(pnl.mean()) if not pnl.empty else 0,
+        "total_pnl_pct":    float(open_pnl_abs.sum() / invested * 100) if invested else 0,
+        "best_trade":       float(all_pnl_pct.max()) if not all_pnl_pct.empty else 0,
+        "best_ticker":      all_pos.loc[best_idx, "Ticker"] if best_idx is not None else "",
+        "worst_trade":      float(all_pnl_pct.min()) if not all_pnl_pct.empty else 0,
+        "worst_ticker":     all_pos.loc[worst_idx, "Ticker"] if worst_idx is not None else "",
+        "avg_pnl":          float(all_pnl_pct.mean()) if not all_pnl_pct.empty else 0,
         "realized_pnl_abs": realized_abs,
     }
