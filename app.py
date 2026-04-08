@@ -1124,11 +1124,9 @@ if page == "Přehled portfolia":
         f'<span style="color:#64748b"> · </span>'
         f'<span style="color:#ef4444;font-weight:600">▼ {_dn_today}</span>'
         f'<span style="color:#334155;margin:0 4px">|</span>'
-        f'<span style="color:#64748b">Nejlepší:</span>'
-        f'<span style="color:{_best_c};font-weight:600">{_best_r["ticker"]} {_best_r["chg_pct"]:+.1f}%</span>'
+        f'<span style="white-space:nowrap"><span style="color:#64748b">Nejlepší: </span><span style="color:{_best_c};font-weight:600">{_best_r["ticker"]} {_best_r["chg_pct"]:+.1f}%</span></span>'
         f'<span style="color:#334155;margin:0 4px">|</span>'
-        f'<span style="color:#64748b">Nejhorší:</span>'
-        f'<span style="color:{_worst_c};font-weight:600">{_worst_r["ticker"]} {_worst_r["chg_pct"]:+.1f}%</span>'
+        f'<span style="white-space:nowrap"><span style="color:#64748b">Nejhorší: </span><span style="color:{_worst_c};font-weight:600">{_worst_r["ticker"]} {_worst_r["chg_pct"]:+.1f}%</span></span>'
         '</div>',
         unsafe_allow_html=True
     )
