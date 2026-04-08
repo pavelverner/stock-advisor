@@ -2550,39 +2550,35 @@ elif page == "Deník":
         st.divider()
         st.subheader("Import / Export")
         st.markdown("<style>"
-                    "[data-testid='stDownloadButton'] button{width:100% !important;box-sizing:border-box !important;}"
                     "[data-testid='stFileUploader']>label{display:none !important;}"
                     "[data-testid='stFileUploaderDropzoneInstructions']{display:none !important;}"
                     "[data-testid='stFileUploaderDropzone']{border:none !important;background:transparent !important;padding:0 !important;}"
-                    "[data-testid='stFileUploader'] section{width:100% !important;padding:0 !important;margin:0 !important;}"
-                    "[data-testid='stFileUploader'] button{width:100% !important;min-width:100% !important;box-sizing:border-box !important;position:relative !important;}"
+                    "[data-testid='stFileUploader'] section{padding:0 !important;margin:0 !important;}"
                     "[data-testid='stFileUploader'] button>*{display:none !important;}"
                     "[data-testid='stFileUploader'] button::after{content:'Nahrát';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:1rem !important;font-family:inherit !important;white-space:nowrap;pointer-events:none;}"
+                    "[data-testid='stFileUploader'] button{position:relative !important;}"
                     "</style>", unsafe_allow_html=True)
-        _ie_dl, _ie_ul = st.columns(2)
-        with _ie_dl:
-            df_exp = get_trades()
-            if not df_exp.empty:
-                csv_bytes = df_exp.to_csv(index=False).encode("utf-8")
-                st.markdown('<p style="font-size:0.85rem;margin-top:-8px;margin-bottom:6px;color:#94a3b8">Záloha dat (CSV)</p>', unsafe_allow_html=True)
-                st.download_button(
-                    "Stáhnout",
-                    data=csv_bytes,
-                    file_name=f"trades_{datetime.now().strftime('%Y%m%d')}.csv",
-                    mime="text/csv",
-                    icon=":material/download:",
-                    use_container_width=True,
-                )
-        with _ie_ul:
-            st.markdown('<p style="font-size:0.85rem;margin-top:-8px;margin-bottom:6px;color:#94a3b8">Obnovit ze zálohy (CSV)</p>', unsafe_allow_html=True)
-            uploaded = st.file_uploader("Nahrát zálohu", type="csv", label_visibility="collapsed")
-            if uploaded:
-                try:
-                    n = import_from_csv(uploaded.read())
-                    st.success(f"Importováno {n} obchodů.")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Chyba importu: {e}")
+        df_exp = get_trades()
+        if not df_exp.empty:
+            csv_bytes = df_exp.to_csv(index=False).encode("utf-8")
+            st.caption("Záloha dat (CSV)")
+            st.download_button(
+                "Stáhnout",
+                data=csv_bytes,
+                file_name=f"trades_{datetime.now().strftime('%Y%m%d')}.csv",
+                mime="text/csv",
+                icon=":material/download:",
+                use_container_width=True,
+            )
+        st.caption("Obnovit ze zálohy (CSV)")
+        uploaded = st.file_uploader("Nahrát zálohu", type="csv", label_visibility="collapsed")
+        if uploaded:
+            try:
+                n = import_from_csv(uploaded.read())
+                st.success(f"Importováno {n} obchodů.")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Chyba importu: {e}")
 
     # ── Tab 2: Historie ───────────────────────────────────────────────────────
     with tab_history:
