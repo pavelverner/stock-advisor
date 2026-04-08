@@ -2582,12 +2582,16 @@ elif page == "Deník":
                 if action_r == "SELL" and pd.notna(row.get("Realizováno %")):
                     pnl     = row["Realizováno %"]
                     pnl_abs = row["Realizováno"]
+                elif action_r == "SELL":
+                    pnl = pnl_abs = None  # žádná koupě v deníku → nelze spočítat
                 else:
                     pnl     = row["P&L %"]
                     pnl_abs = row["P&L Kč/USD"]
 
                 pnl_html = ""
-                if pd.notna(pnl):
+                if action_r == "SELL" and pd.isna(row.get("Realizováno %")):
+                    pnl_html = '<div style="color:#64748b;font-size:0.78rem">P&L: nákup nenalezen v deníku</div>'
+                elif pd.notna(pnl):
                     pnl_color = "#22c55e" if pnl >= 0 else "#ef4444"
                     pnl_czk   = pnl_abs * get_usdczk() if pd.notna(pnl_abs) else 0
                     pnl_html  = (f'<div style="color:{pnl_color};font-weight:700;font-size:0.85rem">'
