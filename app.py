@@ -2554,31 +2554,32 @@ elif page == "Deník":
         st.divider()
         st.subheader("Import / Export")
         st.markdown("<style>"
-                    "[data-testid='stDownloadButton'] button{width:100% !important;}"
+                    ".ie-btn button{width:100% !important;font-size:0.875rem !important;padding:0.45rem 0.5rem !important;justify-content:center !important;}"
                     "[data-testid='stFileUploaderDropzone']{border:none !important;background:transparent !important;padding:0 !important;}"
                     "[data-testid='stFileUploaderDropzoneInstructions']{display:none !important;}"
                     "[data-testid='stFileUploader'] > label{display:none !important;}"
                     "[data-testid='stFileUploader'] section{margin-top:0 !important;}"
-                    "[data-testid='stFileUploader'] button{width:100% !important;}"
+                    "[data-testid='stFileUploader'] button{width:100% !important;font-size:0.875rem !important;padding:0.45rem 0.5rem !important;justify-content:center !important;}"
                     "[data-testid='stFileUploader'] button p{display:none !important;}"
-                    "[data-testid='stFileUploader'] button::after{content:'Nahrát';}"
+                    "[data-testid='stFileUploader'] button::after{content:'⬆\ufe0e  Nahrát';}"
                     "</style>", unsafe_allow_html=True)
         _ie_dl, _ie_ul = st.columns(2)
         with _ie_dl:
             df_exp = get_trades()
             if not df_exp.empty:
                 csv_bytes = df_exp.to_csv(index=False).encode("utf-8")
-                st.markdown('<p style="font-size:0.85rem;margin-bottom:4px">⬇️ Stáhnout zálohu (CSV)</p>', unsafe_allow_html=True)
+                st.markdown('<p style="font-size:0.85rem;margin-bottom:4px;color:#94a3b8">Záloha dat (CSV)</p>', unsafe_allow_html=True)
+                st.markdown('<div class="ie-btn">', unsafe_allow_html=True)
                 st.download_button(
-                    "Stáhnout",
+                    "⬇  Stáhnout",
                     data=csv_bytes,
                     file_name=f"trades_{datetime.now().strftime('%Y%m%d')}.csv",
                     mime="text/csv",
-                    icon=":material/download:",
                     use_container_width=True,
                 )
+                st.markdown('</div>', unsafe_allow_html=True)
         with _ie_ul:
-            st.markdown('<p style="font-size:0.85rem;margin-bottom:4px">⬆️ Nahrát zálohu (CSV)</p>', unsafe_allow_html=True)
+            st.markdown('<p style="font-size:0.85rem;margin-bottom:4px;color:#94a3b8">Obnovit ze zálohy (CSV)</p>', unsafe_allow_html=True)
             uploaded = st.file_uploader("Nahrát zálohu", type="csv", label_visibility="collapsed")
             if uploaded:
                 try:
