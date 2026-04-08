@@ -1065,143 +1065,6 @@ if page == "Přehled portfolia":
     st.title("Portfolio přehled")
     st.caption(f"Aktualizováno: {datetime.now().strftime('%d.%m.%Y %H:%M')}")
 
-    # Tržní kontext – gauge + VIX
-    with st.spinner("Načítám tržní kontext..."):
-        _fg = fetch_fear_greed()
-        _macro_mini = fetch_macro_tickers()
-
-    _fg_score = _fg.get("score") if _fg.get("ok") else None
-    _vix      = _macro_mini.get("VIX", {}).get("price") if _macro_mini else None
-    _vix_chg  = _macro_mini.get("VIX", {}).get("chg")   if _macro_mini else None
-    _fg_label_str, _fg_color = fg_label(_fg_score) if _fg_score is not None else ("N/A", "#888")
-
-    # Detekce mobilu přes User-Agent → layout v Pythonu, žádné CSS triky
-    _ua = st.context.headers.get("User-Agent", "")
-    _is_mobile = any(k in _ua for k in ("Mobile", "Android", "iPhone", "iPad"))
-
-    if _is_mobile:
-        _ctx_left = st.container()
-        _ctx_right = st.container()
-    else:
-        _ctx_left, _ctx_right = st.columns([1, 1])
-
-    with _ctx_left:
-        st.markdown("**Index strachu a chamtivosti**")
-        if _fg_score is not None:
-            _fig_gauge = go.Figure(go.Indicator(
-                mode="gauge+number",
-                value=_fg_score,
-                title={"text": _fg_label_str, "font": {"size": 14}},
-                number={"font": {"size": 36}},
-                gauge={
-                    "axis": {"range": [0, 100], "tickvals": [0, 25, 45, 55, 75, 100],
-                             "ticktext": ["0", "25", "45", "55", "75", "100"]},
-                    "bar": {"color": _fg_color, "thickness": 0.25},
-                    "steps": [
-                        {"range": [0,  25], "color": "#7f1d1d"},
-                        {"range": [25, 45], "color": "#9a3412"},
-                        {"range": [45, 55], "color": "#713f12"},
-                        {"range": [55, 75], "color": "#365314"},
-                        {"range": [75,100], "color": "#14532d"},
-                    ],
-                    "threshold": {"line": {"color": "white", "width": 3},
-                                  "thickness": 0.85, "value": _fg_score},
-                },
-            ))
-            _gauge_h = 280 if _is_mobile else 500
-            _fig_gauge.update_layout(
-                height=_gauge_h, template="plotly_dark",
-                margin=dict(l=10, r=10, t=60, b=10),
-            )
-            st.plotly_chart(_fig_gauge, use_container_width=True, config={"displayModeBar": False, "scrollZoom": False})
-            if _fg_score <= 25:
-                st.error("Extrémní strach – trh v panice. Historicky dobrá příležitost pro long-term nákup.")
-            elif _fg_score <= 45:
-                st.warning("Strach – pesimismus převládá. Opatrný optimismus může být opodstatněný.")
-            elif _fg_score <= 55:
-                st.info("Neutrální – trh neví kam. Čekej na jasný signál.")
-            elif _fg_score <= 75:
-                st.success("Chamtivost – optimismus na trhu. Pozor na předražení.")
-            else:
-                st.error("Extrémní chamtivost – euforie! Zvažuj profit-taking, trh může být přehřátý.")
-        else:
-            st.warning("Index strachu a chamtivosti se nepodařilo načíst.")
-
-    _MACRO_DESC = {
-        "VIX":          "index volatility – čím vyšší, tím větší nervozita trhu",
-        "10Y Treasury": "výnos 10letých US dluhopisů – nad 5% tlačí akcie dolů",
-        "Gold":         "zlato – roste, když jsou investoři v panice",
-        "Oil (WTI)":    "cena ropy – ovlivňuje inflaci i energetické firmy",
-        "USD Index":    "síla dolaru – silný dolar zhoršuje zisky US firem ze zahraničí",
-        "S&P 500":      "hlavní US akciový index – celkový tep amerického trhu",
-    }
-
-    # Zóny pro makro ukazatele: (max_val, label, barva)
-    _MACRO_ZONES = {
-        "VIX":          [(12,"Klid","#22c55e"),(20,"Normální","#94a3b8"),(30,"Nervozita","#f59e0b"),(999,"Panika","#ef4444")],
-        "10Y Treasury": [(2,"Velmi nízké","#94a3b8"),(4,"Normální","#22c55e"),(5,"Zvýšené","#f59e0b"),(999,"Tlak na akcie","#ef4444")],
-        "Oil (WTI)":    [(60,"Nízká","#22c55e"),(80,"Normální","#94a3b8"),(100,"Vyšší","#f59e0b"),(999,"Inflační tlak","#ef4444")],
-        "USD Index":    [(95,"Slabý $","#f59e0b"),(103,"Normální","#94a3b8"),(108,"Silný $","#f59e0b"),(999,"Velmi silný $","#ef4444")],
-        "Gold":         [(1800,"Nízké","#94a3b8"),(2200,"Normální","#94a3b8"),(2800,"Zvýšené","#f59e0b"),(999999,"Krizová poptávka","#ef4444")],
-    }
-    def _macro_zone(name, val):
-        for threshold, label, color in _MACRO_ZONES.get(name, []):
-            if val <= threshold:
-                return label, color
-        return "", "#94a3b8"
-
-    def _macro_bar(name, val):
-        """Mini progress bar v normálním rozsahu."""
-        ranges = {"VIX":(8,50),"10Y Treasury":(0.5,6),"Oil (WTI)":(30,130),"USD Index":(85,115),"Gold":(1200,3200)}
-        if name not in ranges:
-            return ""
-        lo, hi = ranges[name]
-        if val is None or (isinstance(val, float) and (val != val)):  # NaN check
-            return ""
-        pct = max(0, min(100, int((val - lo) / (hi - lo) * 100))) if hi != lo else 0
-        _, zcolor = _macro_zone(name, val)
-        return (f'<div style="background:#1e293b;border-radius:3px;height:5px;width:100%;margin-top:4px;position:relative">'
-                f'<div style="position:absolute;left:33%;top:0;bottom:0;width:1px;background:#334155"></div>'
-                f'<div style="position:absolute;left:66%;top:0;bottom:0;width:1px;background:#334155"></div>'
-                f'<div style="background:{zcolor};border-radius:3px;height:5px;width:{pct}%"></div>'
-                f'</div>'
-                f'<div style="display:flex;justify-content:space-between;font-size:0.6rem;color:#334155;margin-top:1px">'
-                f'<span>{lo}</span><span>normální rozsah</span><span>{hi}</span></div>')
-
-    with _ctx_right:
-        st.markdown("**Klíčové makro ukazatele**")
-        if _macro_mini:
-            for _name, _data in _macro_mini.items():
-                _p   = _data["price"]
-                _c   = _data["chg"]
-                _arr = "▲" if _c >= 0 else "▼"
-                _col = "#22c55e" if _c >= 0 else "#ef4444"
-                _desc = _MACRO_DESC.get(_name, "")
-                _zone_lbl, _zone_col = _macro_zone(_name, _p)
-                _bar_html = _macro_bar(_name, _p)
-                _zone_badge = (f'<span style="background:{_zone_col}22;color:{_zone_col};border:1px solid {_zone_col}55;'
-                               f'border-radius:4px;padding:1px 6px;font-size:0.7rem;font-weight:600;white-space:nowrap">'
-                               f'{_zone_lbl}</span>') if _zone_lbl else ""
-                st.markdown(
-                    f'<div class="card-hold" style="margin:3px 0;padding:8px 12px">'
-                    f'<div style="display:flex;align-items:center;justify-content:space-between;gap:6px">'
-                    f'<span style="font-size:0.9rem;font-weight:700;white-space:nowrap">{_name}</span>'
-                    f'{_zone_badge}'
-                    f'</div>'
-                    f'<div style="color:#555;font-size:0.72rem;margin:2px 0 3px">{_desc}</div>'
-                    f'<div style="display:flex;align-items:center;gap:10px">'
-                    f'<span style="font-size:1.05rem;font-weight:600">{_p:.2f}</span>'
-                    f'<span style="color:{_col};font-weight:600;font-size:0.85rem">{_arr} {_c:+.1f}%</span>'
-                    f'</div>'
-                    f'{_bar_html}'
-                    f'</div>',
-                    unsafe_allow_html=True,
-                )
-        else:
-            st.info("Makro data se nepodařilo načíst.")
-
-    st.divider()
-
     with st.expander("Jak číst tento přehled?"):
         st.markdown("""
 - **KOUPIT** (zelená) = alespoň 3 technické indikátory najednou naznačují, že akcie je podhodnocená nebo se chystá růst
@@ -1362,6 +1225,167 @@ if page == "Přehled portfolia":
         showlegend=False,
     )
     st.plotly_chart(fig_chg, use_container_width=True, config={"displayModeBar": False, "scrollZoom": False})
+
+    st.divider()
+
+    # ── Tržní kontext – gauge + makro ────────────────────────────────────────
+    with st.spinner("Načítám tržní kontext..."):
+        _fg = fetch_fear_greed()
+        _macro_mini = fetch_macro_tickers()
+
+    _fg_score     = _fg.get("score")     if _fg.get("ok") else None
+    _fg_prev_week = _fg.get("prev_week") if _fg.get("ok") else None
+    _fg_prev_month= _fg.get("prev_month")if _fg.get("ok") else None
+    _fg_label_str, _fg_color = fg_label(_fg_score) if _fg_score is not None else ("N/A", "#888")
+
+    _ua = st.context.headers.get("User-Agent", "")
+    _is_mobile = any(k in _ua for k in ("Mobile", "Android", "iPhone", "iPad"))
+
+    if _is_mobile:
+        _ctx_left = st.container()
+        _ctx_right = st.container()
+    else:
+        _ctx_left, _ctx_right = st.columns([1, 1])
+
+    with _ctx_left:
+        st.markdown("**Index strachu a chamtivosti**")
+        if _fg_score is not None:
+            _fig_gauge = go.Figure(go.Indicator(
+                mode="gauge+number",
+                value=_fg_score,
+                title={"text": _fg_label_str, "font": {"size": 14}},
+                number={"font": {"size": 36}},
+                gauge={
+                    "axis": {"range": [0, 100], "tickvals": [0, 25, 45, 55, 75, 100],
+                             "ticktext": ["0", "25", "45", "55", "75", "100"]},
+                    "bar": {"color": _fg_color, "thickness": 0.25},
+                    "steps": [
+                        {"range": [0,  25], "color": "#7f1d1d"},
+                        {"range": [25, 45], "color": "#9a3412"},
+                        {"range": [45, 55], "color": "#713f12"},
+                        {"range": [55, 75], "color": "#365314"},
+                        {"range": [75,100], "color": "#14532d"},
+                    ],
+                    "threshold": {"line": {"color": "white", "width": 3},
+                                  "thickness": 0.85, "value": _fg_score},
+                },
+            ))
+            _gauge_h = 280 if _is_mobile else 500
+            _fig_gauge.update_layout(
+                height=_gauge_h, template="plotly_dark",
+                margin=dict(l=10, r=10, t=60, b=10),
+            )
+            st.plotly_chart(_fig_gauge, use_container_width=True, config={"displayModeBar": False, "scrollZoom": False})
+            # Hodnoty před týdnem / měsícem
+            _hist_cols = st.columns(2)
+            with _hist_cols[0]:
+                if _fg_prev_week is not None:
+                    _pw_lbl, _pw_col = fg_label(_fg_prev_week)
+                    _pw_delta = _fg_score - _fg_prev_week
+                    _pw_arr = "▲" if _pw_delta >= 0 else "▼"
+                    _pw_clr = "#22c55e" if _pw_delta >= 0 else "#ef4444"
+                    st.markdown(
+                        f'<div style="background:#1e293b;border-radius:8px;padding:8px 12px;text-align:center">'
+                        f'<div style="color:#64748b;font-size:0.7rem">Před týdnem</div>'
+                        f'<div style="font-size:1.1rem;font-weight:700;color:{_pw_col}">{_fg_prev_week:.0f}</div>'
+                        f'<div style="font-size:0.75rem;color:{_pw_col}">{_pw_lbl}</div>'
+                        f'<div style="font-size:0.75rem;color:{_pw_clr}">{_pw_arr} {_pw_delta:+.0f}</div>'
+                        f'</div>', unsafe_allow_html=True)
+            with _hist_cols[1]:
+                if _fg_prev_month is not None:
+                    _pm_lbl, _pm_col = fg_label(_fg_prev_month)
+                    _pm_delta = _fg_score - _fg_prev_month
+                    _pm_arr = "▲" if _pm_delta >= 0 else "▼"
+                    _pm_clr = "#22c55e" if _pm_delta >= 0 else "#ef4444"
+                    st.markdown(
+                        f'<div style="background:#1e293b;border-radius:8px;padding:8px 12px;text-align:center">'
+                        f'<div style="color:#64748b;font-size:0.7rem">Před měsícem</div>'
+                        f'<div style="font-size:1.1rem;font-weight:700;color:{_pm_col}">{_fg_prev_month:.0f}</div>'
+                        f'<div style="font-size:0.75rem;color:{_pm_col}">{_pm_lbl}</div>'
+                        f'<div style="font-size:0.75rem;color:{_pm_clr}">{_pm_arr} {_pm_delta:+.0f}</div>'
+                        f'</div>', unsafe_allow_html=True)
+            if _fg_score <= 25:
+                st.error("Extrémní strach – trh v panice. Historicky dobrá příležitost pro long-term nákup.")
+            elif _fg_score <= 45:
+                st.warning("Strach – pesimismus převládá. Opatrný optimismus může být opodstatněný.")
+            elif _fg_score <= 55:
+                st.info("Neutrální – trh neví kam. Čekej na jasný signál.")
+            elif _fg_score <= 75:
+                st.success("Chamtivost – optimismus na trhu. Pozor na předražení.")
+            else:
+                st.error("Extrémní chamtivost – euforie! Zvažuj profit-taking, trh může být přehřátý.")
+        else:
+            st.warning("Index strachu a chamtivosti se nepodařilo načíst.")
+
+    _MACRO_DESC = {
+        "VIX":          "index volatility – čím vyšší, tím větší nervozita trhu",
+        "10Y Treasury": "výnos 10letých US dluhopisů – nad 5% tlačí akcie dolů",
+        "Gold":         "zlato – roste, když jsou investoři v panice",
+        "Oil (WTI)":    "cena ropy – ovlivňuje inflaci i energetické firmy",
+        "USD Index":    "síla dolaru – silný dolar zhoršuje zisky US firem ze zahraničí",
+        "S&P 500":      "hlavní US akciový index – celkový tep amerického trhu",
+    }
+    _MACRO_ZONES = {
+        "VIX":          [(12,"Klid","#22c55e"),(20,"Normální","#94a3b8"),(30,"Nervozita","#f59e0b"),(999,"Panika","#ef4444")],
+        "10Y Treasury": [(2,"Velmi nízké","#94a3b8"),(4,"Normální","#22c55e"),(5,"Zvýšené","#f59e0b"),(999,"Tlak na akcie","#ef4444")],
+        "Oil (WTI)":    [(60,"Nízká","#22c55e"),(80,"Normální","#94a3b8"),(100,"Vyšší","#f59e0b"),(999,"Inflační tlak","#ef4444")],
+        "USD Index":    [(95,"Slabý $","#f59e0b"),(103,"Normální","#94a3b8"),(108,"Silný $","#f59e0b"),(999,"Velmi silný $","#ef4444")],
+        "Gold":         [(1800,"Nízké","#94a3b8"),(2200,"Normální","#94a3b8"),(2800,"Zvýšené","#f59e0b"),(999999,"Krizová poptávka","#ef4444")],
+    }
+    def _macro_zone(name, val):
+        for threshold, label, color in _MACRO_ZONES.get(name, []):
+            if val <= threshold:
+                return label, color
+        return "", "#94a3b8"
+
+    def _macro_bar(name, val):
+        ranges = {"VIX":(8,50),"10Y Treasury":(0.5,6),"Oil (WTI)":(30,130),"USD Index":(85,115),"Gold":(1200,3200)}
+        if name not in ranges:
+            return ""
+        lo, hi = ranges[name]
+        if val is None or (isinstance(val, float) and (val != val)):
+            return ""
+        pct = max(0, min(100, int((val - lo) / (hi - lo) * 100))) if hi != lo else 0
+        _, zcolor = _macro_zone(name, val)
+        return (f'<div style="background:#1e293b;border-radius:3px;height:5px;width:100%;margin-top:4px;position:relative">'
+                f'<div style="position:absolute;left:33%;top:0;bottom:0;width:1px;background:#334155"></div>'
+                f'<div style="position:absolute;left:66%;top:0;bottom:0;width:1px;background:#334155"></div>'
+                f'<div style="background:{zcolor};border-radius:3px;height:5px;width:{pct}%"></div>'
+                f'</div>'
+                f'<div style="display:flex;justify-content:space-between;font-size:0.6rem;color:#334155;margin-top:1px">'
+                f'<span>{lo}</span><span>normální rozsah</span><span>{hi}</span></div>')
+
+    with _ctx_right:
+        st.markdown("**Klíčové makro ukazatele**")
+        if _macro_mini:
+            for _name, _data in _macro_mini.items():
+                _p   = _data["price"]
+                _c   = _data["chg"]
+                _arr = "▲" if _c >= 0 else "▼"
+                _col = "#22c55e" if _c >= 0 else "#ef4444"
+                _desc = _MACRO_DESC.get(_name, "")
+                _zone_lbl, _zone_col = _macro_zone(_name, _p)
+                _bar_html = _macro_bar(_name, _p)
+                _zone_badge = (f'<span style="background:{_zone_col}22;color:{_zone_col};border:1px solid {_zone_col}55;'
+                               f'border-radius:4px;padding:1px 6px;font-size:0.7rem;font-weight:600;white-space:nowrap">'
+                               f'{_zone_lbl}</span>') if _zone_lbl else ""
+                st.markdown(
+                    f'<div class="card-hold" style="margin:3px 0;padding:8px 12px">'
+                    f'<div style="display:flex;align-items:center;justify-content:space-between;gap:6px">'
+                    f'<span style="font-size:0.9rem;font-weight:700;white-space:nowrap">{_name}</span>'
+                    f'{_zone_badge}'
+                    f'</div>'
+                    f'<div style="color:#555;font-size:0.72rem;margin:2px 0 3px">{_desc}</div>'
+                    f'<div style="display:flex;align-items:center;gap:10px">'
+                    f'<span style="font-size:1.05rem;font-weight:600">{_p:.2f}</span>'
+                    f'<span style="color:{_col};font-weight:600;font-size:0.85rem">{_arr} {_c:+.1f}%</span>'
+                    f'</div>'
+                    f'{_bar_html}'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
+        else:
+            st.info("Makro data se nepodařilo načíst.")
 
     st.divider()
     with st.expander("Top příležitosti z Radaru (rozbal)"):
