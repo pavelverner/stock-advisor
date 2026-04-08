@@ -2553,7 +2553,7 @@ elif page == "Deník":
                     "[data-testid='stDownloadButton'] button{"
                     "  width:100% !important;box-sizing:border-box !important;}"
                     "[data-testid='stFileUploader'],"
-                    "[data-testid='stFileUploader']>div,"
+                    "[data-testid='stFileUploader'] div,"
                     "[data-testid='stFileUploaderDropzone'],"
                     "[data-testid='stFileUploader'] section{"
                     "  display:block !important;width:100% !important;max-width:100% !important;"
