@@ -2552,16 +2552,18 @@ elif page == "Deník":
         st.markdown("<style>"
                     "[data-testid='stDownloadButton'] button,"
                     "[data-testid='stFileUploader'] button{"
-                    "  width:100% !important;height:38px !important;"
+                    "  width:100% !important;height:38px !important;min-height:38px !important;max-height:38px !important;"
+                    "  box-sizing:border-box !important;"
                     "  font-size:0.875rem !important;font-family:inherit !important;"
                     "  display:flex !important;align-items:center !important;justify-content:center !important;"
-                    "  padding:0 !important;gap:6px !important;}"
+                    "  padding:0 8px !important;gap:6px !important;}"
                     "[data-testid='stFileUploader'] > label{display:none !important;}"
                     "[data-testid='stFileUploaderDropzone']{border:none !important;background:transparent !important;padding:0 !important;margin:0 !important;}"
                     "[data-testid='stFileUploaderDropzoneInstructions']{display:none !important;}"
                     "[data-testid='stFileUploader'] section{padding:0 !important;margin:0 !important;}"
                     "[data-testid='stFileUploader'] button > *{display:none !important;}"
-                    "[data-testid='stFileUploader'] button::before{content:'\\2191\\00A0\\00A0Nahrát';font-size:1rem !important;font-family:inherit;display:block;line-height:1;}"
+                    "[data-testid='stFileUploader'] button::before{font-family:'Material Symbols Rounded';content:'\\e2c6';font-size:1.1rem;line-height:1;font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;}"
+                    "[data-testid='stFileUploader'] button::after{content:'Nahrát';font-family:inherit;font-size:0.875rem;}"
                     "</style>", unsafe_allow_html=True)
         _ie_dl, _ie_ul = st.columns(2)
         with _ie_dl:
