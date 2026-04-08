@@ -337,6 +337,31 @@ def delete_trade(trade_id: int):
         _sqlite_delete(trade_id)
 
 
+def update_trade(trade_id: int, price: float, shares: float, note: str):
+    """Aktualizuje cenu, počet a poznámku záznamu."""
+    total = round(price * shares, 4)
+    if _use_pg():
+        con, pool = _pg_conn()
+        try:
+            with con.cursor() as cur:
+                cur.execute(
+                    "UPDATE trades SET price=%s, shares=%s, total=%s, note=%s WHERE id=%s",
+                    (price, shares, total, note, trade_id),
+                )
+            con.commit()
+        finally:
+            _pg_put(con, pool)
+    elif _use_sheets():
+        pass  # sheets update složitější, přeskočit
+    else:
+        init_db()
+        with _conn() as con:
+            con.execute(
+                "UPDATE trades SET price=?, shares=?, total=?, note=? WHERE id=?",
+                (price, shares, total, note, trade_id),
+            )
+
+
 def import_from_csv(csv_bytes: bytes) -> int:
     import io
     df = pd.read_csv(io.BytesIO(csv_bytes))
@@ -377,6 +402,27 @@ def _current_price(ticker: str) -> float | None:
         return None
 
 
+def _fetch_prices(tickers: list[str]) -> dict[str, float | None]:
+    """Stáhne ceny pro všechny tickery najednou – jeden request místo N."""
+    if not tickers:
+        return {}
+    try:
+        raw = yf.download(tickers, period="5d", auto_adjust=True, progress=False, group_by="ticker")
+        prices: dict[str, float | None] = {}
+        if len(tickers) == 1:
+            raw.columns = [c[0] if isinstance(c, tuple) else c for c in raw.columns]
+            prices[tickers[0]] = float(raw["Close"].iloc[-1]) if not raw.empty else None
+        else:
+            for t in tickers:
+                try:
+                    prices[t] = float(raw[t]["Close"].iloc[-1])
+                except Exception:
+                    prices[t] = None
+        return prices
+    except Exception:
+        return {t: None for t in tickers}
+
+
 def _avg_buy_price(df: pd.DataFrame, ticker: str, before_date: str) -> float | None:
     """Průměrná nákupní cena pro daný ticker před datem prodeje (vážená počtem akcií)."""
     buys = df[(df["ticker"] == ticker) & (df["action"] == "BUY") & (df["date"] <= before_date)]
@@ -395,9 +441,13 @@ def get_performance(df: pd.DataFrame) -> pd.DataFrame:
     # Seřadit podle data pro správný výpočet průměrné nákupní ceny
     df = df.sort_values("date").reset_index(drop=True)
 
+    # Stáhnout všechny ceny najednou
+    unique_tickers = df["ticker"].unique().tolist()
+    price_map = _fetch_prices(unique_tickers)
+
     rows = []
     for _, r in df.iterrows():
-        cur      = _current_price(r["ticker"])
+        cur      = price_map.get(r["ticker"])
         entry    = float(r["price"])
         shares   = float(r["shares"])
         action   = r["action"]

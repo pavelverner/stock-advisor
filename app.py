@@ -24,7 +24,7 @@ from earnings import get_portfolio_earnings, get_earnings
 from backtest import run_backtest, backtest_summary_table
 from ai_sentiment import enrich_news_with_ai, news_ai_summary, sentiment_to_signal
 from claude_analysis import analyze_stock_with_claude, get_peer_comparison
-from trade_journal import add_trade, get_trades, get_performance, get_stats, delete_trade, import_from_csv, init_db
+from trade_journal import add_trade, get_trades, get_performance, get_stats, delete_trade, update_trade, import_from_csv, init_db
 
 # ── Konfigurace stránky ──────────────────────────────────────────────────────
 st.set_page_config(
@@ -2771,9 +2771,24 @@ elif page == "Deník":
                     unsafe_allow_html=True,
                 )
                 st.markdown("<div style='margin-top:2px'></div>", unsafe_allow_html=True)
-                if st.button("🗑 Smazat", key=f"del_{row['id']}", help="Smazat záznam"):
-                    delete_trade(int(row["id"]))
-                    st.rerun()
+                _btn_col1, _btn_col2 = st.columns([1, 1])
+                with _btn_col1:
+                    if st.button("✏️ Upravit", key=f"edit_toggle_{row['id']}", use_container_width=True):
+                        st.session_state[f"edit_open_{row['id']}"] = not st.session_state.get(f"edit_open_{row['id']}", False)
+                with _btn_col2:
+                    if st.button("🗑 Smazat", key=f"del_{row['id']}", use_container_width=True):
+                        delete_trade(int(row["id"]))
+                        st.rerun()
+                if st.session_state.get(f"edit_open_{row['id']}", False):
+                    with st.form(key=f"edit_form_{row['id']}"):
+                        _ep = st.number_input("Cena", value=float(row["Vstup"]), step=0.01, format="%.2f")
+                        _es = st.number_input("Počet akcií", value=float(row["Počet"]), min_value=0.0001, step=0.1, format="%g")
+                        _en = st.text_input("Poznámka", value=str(row["Poznámka"]))
+                        if st.form_submit_button("Uložit", type="primary", use_container_width=True):
+                            update_trade(int(row["id"]), _ep, _es, _en)
+                            st.session_state[f"edit_open_{row['id']}"] = False
+                            st.toast("Záznam upraven", icon="✅")
+                            st.rerun()
                 st.markdown("<div style='margin-bottom:8px'></div>", unsafe_allow_html=True)
 
     # ── Tab 3: Výkonnost ──────────────────────────────────────────────────────
