@@ -2565,7 +2565,7 @@ elif page == "Deník":
                     "  display:block !important;width:100% !important;min-width:100% !important;"
                     "  box-sizing:border-box !important;"
                     "  position:relative !important;overflow:hidden !important;}"
-                    "[data-testid='stFileUploader'] button p{font-size:0 !important;}"
+                    "[data-testid='stFileUploader'] button > *{display:none !important;}"
                     "[data-testid='stFileUploader'] button::after{"
                     "  content:'Nahrát';"
                     "  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);"
