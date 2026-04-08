@@ -1075,21 +1075,8 @@ if page == "Přehled portfolia":
 - **Síla signálu** = kolik % z maximálního počtu indikátorů souhlasí (60%+ = silný signál)
         """)
 
-    # Výběr horizontu – segmented control (1 řádek, mobilní přátelský)
-    _hz_opts = ["Krátkodobý", "Střednědobý", "Dlouhodobý"]
-    _pf_hz_label = st.segmented_control(
-        "Horizont",
-        _hz_opts,
-        default=st.session_state.get("pf_horizon", "Krátkodobý"),
-        label_visibility="collapsed",
-        key="pf_horizon_seg",
-    ) or "Krátkodobý"
-    st.session_state["pf_horizon"] = _pf_hz_label
-    _pf_period_map = {"Krátkodobý": "3mo", "Střednědobý": "1y", "Dlouhodobý": "2y"}
-    _pf_period = _pf_period_map.get(_pf_hz_label, "3mo")
-
     with st.spinner("Načítám data pro celé portfolio..."):
-        results = scan_stocks(PORTFOLIO, _pf_period)
+        results = scan_stocks(PORTFOLIO, "3mo")
 
     if not results:
         st.error("Nepodařilo se načíst data. Zkontroluj připojení.")
@@ -1133,11 +1120,30 @@ if page == "Přehled portfolia":
     if _pf_filter != "ALL":
         sorted_results = [r for r in sorted_results if r["action"] == _pf_filter]
 
+    _ACT_LBL = {"BUY": "KOUPIT", "SELL": "PRODAT", "HOLD": "DRŽET"}
+    _ACT_CLR = {"BUY": "#22c55e", "SELL": "#ef4444", "HOLD": "#94a3b8"}
+
+    def _pf_hz_badge(sig, title, subtitle):
+        if sig is None:
+            return (f'<div style="background:#1e293b;border:1px solid #334155;border-radius:6px;'
+                    f'padding:4px 6px;text-align:center">'
+                    f'<div style="color:#475569;font-size:0.6rem">{title}<div style="font-size:0.55rem">{subtitle}</div></div>'
+                    f'<div style="color:#475569;font-size:0.72rem">N/A</div></div>')
+        act = sig.get("action", "HOLD")
+        lbl = _ACT_LBL.get(act, act)
+        clr = _ACT_CLR.get(act, "#94a3b8")
+        return (f'<div style="background:{clr}18;border:1px solid {clr};border-radius:6px;'
+                f'padding:4px 6px;text-align:center">'
+                f'<div style="color:#64748b;font-size:0.6rem;line-height:1.3">{title}'
+                f'<div style="color:#475569;font-size:0.55rem">{subtitle}</div></div>'
+                f'<div style="color:{clr};font-size:0.72rem;font-weight:700">{lbl}</div>'
+                f'</div>')
+
     for r in sorted_results:
         action = r["action"]
         card_css = {"BUY": "pf-card pf-card-buy", "SELL": "pf-card pf-card-sell", "HOLD": "pf-card pf-card-hold"}[action]
         badge    = {"BUY": "badge-buy", "SELL": "badge-sell", "HOLD": "badge-hold"}[action]
-        label    = {"BUY": "KOUPIT", "SELL": "PRODAT", "HOLD": "DRŽET"}[action]
+        label    = _ACT_LBL[action]
         arrow    = "▲" if r["chg_pct"] >= 0 else "▼"
         chg_color = "#22c55e" if r["chg_pct"] >= 0 else "#ef4444"
         trend_color = {"Bullish": "#22c55e", "Bearish": "#ef4444", "Smíšený": "#888"}[r["ema_trend"]]
@@ -1156,11 +1162,21 @@ if page == "Přehled portfolia":
                 + '</div>'
             )
 
+        # Reálné signály pro všechny 3 horizonty
+        _mh = cached_multi_horizon(r["ticker"])
+        hz_row = (
+            f'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:6px">'
+            f'{_pf_hz_badge(_mh.get("short"),  "Krátkodobý", "< 3 měs.")}'
+            f'{_pf_hz_badge(_mh.get("medium"), "Střednědobý", "6m – 2r")}'
+            f'{_pf_hz_badge(_mh.get("long"),   "Dlouhodobý",  "3+ roky")}'
+            f'</div>'
+        )
+
         st.markdown(f"""
 <a href="?page=1&ticker={r['ticker']}" target="_self" style="text-decoration:none;color:inherit;display:block">
 <div class="{card_css}" style="cursor:pointer">
+  {hz_row}
   <div class="pf-left">
-    <span class="{badge}">{label}</span>
     <span style="color:{score_color};font-weight:700;font-size:0.8rem;white-space:nowrap">{score}/10</span>
   </div>
   <div class="pf-name">
