@@ -2730,10 +2730,9 @@ elif page == "Deník":
     # ── Tab 2: Historie ───────────────────────────────────────────────────────
     with tab_history:
         st.markdown("<style>"
-                    "@media(max-width:640px){"
                     "[data-testid='stHorizontalBlock']{gap:4px !important;}"
-                    "[data-testid='stHorizontalBlock'] button{padding:4px 6px !important;font-size:0.78rem !important;min-height:0 !important;}"
-                    "}"
+                    "[data-testid='stHorizontalBlock'] [data-testid='stColumn']{padding:0 2px !important;min-width:0 !important;}"
+                    "[data-testid='stHorizontalBlock'] button{padding:4px 4px !important;font-size:0.76rem !important;min-height:0 !important;width:100% !important;}"
                     "</style>", unsafe_allow_html=True)
         st.subheader("Historie obchodů")
         df_raw = get_trades()
@@ -2780,10 +2779,10 @@ elif page == "Deník":
                 st.markdown("<div style='margin-top:2px'></div>", unsafe_allow_html=True)
                 _btn_col1, _btn_col2 = st.columns([1, 1])
                 with _btn_col1:
-                    if st.button("✏️ Upravit", key=f"edit_toggle_{row['id']}", use_container_width=True):
+                    if st.button("✏️ Upravit", key=f"edit_toggle_{row['id']}", use_container_width=True, help="Upravit záznam"):
                         st.session_state[f"edit_open_{row['id']}"] = not st.session_state.get(f"edit_open_{row['id']}", False)
                 with _btn_col2:
-                    if st.button("🗑 Smazat", key=f"del_{row['id']}", use_container_width=True):
+                    if st.button("🗑️ Smazat", key=f"del_{row['id']}", use_container_width=True, help="Smazat záznam"):
                         delete_trade(int(row["id"]))
                         st.rerun()
                 if st.session_state.get(f"edit_open_{row['id']}", False):
