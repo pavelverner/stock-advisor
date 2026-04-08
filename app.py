@@ -1550,7 +1550,7 @@ elif page == "Detail akcie":
             f'<div style="color:#64748b;font-size:0.78rem">{_hero_b} buy / {_hero_s} sell</div>'
             + (f'<div style="color:#94a3b8;font-size:0.78rem"><span style="color:{_hero_hc};font-weight:700;text-transform:uppercase">{_hero_hint}</span>'
                + (f' · jistota: {_hero_conf}' if _hero_conf else '') + '</div>' if _hero_hint else '')
-            + f'<div style="color:{_sent_c};font-size:0.78rem">{_sent_lbl} ({ai_sent["score"]:+.2f})</div>'
+            + f'<div style="color:{_sent_c};font-size:0.78rem">Sentiment: {_sent_lbl} <span style="color:#64748b">skóre {ai_sent["score"]:+.2f}</span></div>'
             '</div></div>'
             f'{_hero_summ_html}'
             '</div>',
