@@ -2575,14 +2575,20 @@ elif page == "Deník":
 
             for _, row in df_perf.iterrows():
                 action_r  = row["Akce"]
-                pnl       = row["P&L %"]
                 clr       = "#22c55e" if action_r == "BUY" else "#ef4444"
                 badge_lbl = "KOUPENO" if action_r == "BUY" else "PRODÁNO"
+
+                # Pro SELL: zobraz realizovaný zisk (prodej vs. nákup), ne pohyb od prodeje
+                if action_r == "SELL" and pd.notna(row.get("Realizováno %")):
+                    pnl     = row["Realizováno %"]
+                    pnl_abs = row["Realizováno"]
+                else:
+                    pnl     = row["P&L %"]
+                    pnl_abs = row["P&L Kč/USD"]
 
                 pnl_html = ""
                 if pd.notna(pnl):
                     pnl_color = "#22c55e" if pnl >= 0 else "#ef4444"
-                    pnl_abs   = row["P&L Kč/USD"]
                     pnl_czk   = pnl_abs * get_usdczk() if pd.notna(pnl_abs) else 0
                     pnl_html  = (f'<div style="color:{pnl_color};font-weight:700;font-size:0.85rem">'
                                  f'P&L: {pnl:+.1f}% ({pnl_czk:+.0f} Kč)</div>')
