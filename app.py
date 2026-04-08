@@ -2458,10 +2458,6 @@ elif page == "Deník":
         if _fetched_price:
             st.caption(f"Načteno: **{_fetched_price:.2f} {j_currency}** ({_price_label})")
 
-        st.markdown("<style>"
-                    "[data-testid='stForm'] [data-testid='stRadio'] label:first-of-type input:checked + div{background:#22c55e !important;border-color:#22c55e !important;}"
-                    "[data-testid='stForm'] [data-testid='stRadio'] label:last-of-type input:checked + div{background:#ef4444 !important;border-color:#ef4444 !important;}"
-                    "</style>", unsafe_allow_html=True)
         with st.form("trade_form"):
             action_j = st.radio(
                 "Typ obchodu",
@@ -2558,13 +2554,14 @@ elif page == "Deník":
                     "[data-testid='stFileUploader'] button{"
                     "  width:100% !important;height:38px !important;"
                     "  font-size:0.875rem !important;font-family:inherit !important;"
-                    "  padding:0 !important;justify-content:center !important;}"
+                    "  display:flex !important;align-items:center !important;justify-content:center !important;"
+                    "  padding:0 !important;gap:6px !important;}"
                     "[data-testid='stFileUploader'] > label{display:none !important;}"
                     "[data-testid='stFileUploaderDropzone']{border:none !important;background:transparent !important;padding:0 !important;margin:0 !important;}"
                     "[data-testid='stFileUploaderDropzoneInstructions']{display:none !important;}"
                     "[data-testid='stFileUploader'] section{padding:0 !important;margin:0 !important;}"
-                    "[data-testid='stFileUploader'] button p{display:none !important;}"
-                    "[data-testid='stFileUploader'] button::after{content:'Nahrát';font-size:0.875rem;font-family:inherit;}"
+                    "[data-testid='stFileUploader'] button > *{display:none !important;}"
+                    "[data-testid='stFileUploader'] button::before{content:'Nahrát';font-size:0.875rem;font-family:inherit;display:block;}"
                     "</style>", unsafe_allow_html=True)
         _ie_dl, _ie_ul = st.columns(2)
         with _ie_dl:
@@ -2577,6 +2574,7 @@ elif page == "Deník":
                     data=csv_bytes,
                     file_name=f"trades_{datetime.now().strftime('%Y%m%d')}.csv",
                     mime="text/csv",
+                    icon=":material/download:",
                     use_container_width=True,
                 )
         with _ie_ul:
