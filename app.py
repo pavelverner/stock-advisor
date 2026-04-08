@@ -1291,13 +1291,13 @@ if page == "Přehled portfolia":
                 _pm_delta = _fg_score - _fg_prev_month
                 _pm_clr = "#22c55e" if _pm_delta >= 0 else "#ef4444"
                 _pm_arr = "▲" if _pm_delta >= 0 else "▼"
-                _pm_html = (f'<div style="flex:1;min-width:0">'
+                _pm_html = (f'<div style="margin-left:auto;text-align:right">'
                             f'<div style="color:#94a3b8;font-size:0.72rem;white-space:nowrap">Před měsícem</div>'
                             f'<div style="font-size:1.4rem;font-weight:700">{_fg_prev_month:.0f}</div>'
                             f'<div style="color:{_pm_clr};font-size:0.8rem">{_pm_arr} {_pm_delta:+.1f}</div>'
                             f'</div>')
             if _pw_html or _pm_html:
-                st.markdown(f'<div style="display:flex;justify-content:space-between;padding:4px 0">{_pw_html}{_pm_html}</div>',
+                st.markdown(f'<div style="display:flex;width:100%;padding:4px 0">{_pw_html}{_pm_html}</div>',
                             unsafe_allow_html=True)
             if _fg_score <= 25:
                 st.error("Extrémní strach – trh v panice. Historicky dobrá příležitost pro long-term nákup.")
