@@ -2492,6 +2492,8 @@ Myslíš si, že máš 3 různé pozice, ale ve skutečnosti máš 1 velkou sáz
             corr     = returns.corr()
 
             # Heatmapa
+            _corr_ua = st.context.headers.get("User-Agent", "")
+            _corr_mobile = any(k in _corr_ua for k in ("Mobile", "Android", "iPhone", "iPad"))
             fig_corr = go.Figure(go.Heatmap(
                 z=corr.values,
                 x=corr.columns.tolist(),
@@ -2502,13 +2504,13 @@ Myslíš si, že máš 3 různé pozice, ale ve skutečnosti máš 1 velkou sáz
                     [1.0,  "#b91c1c"],
                 ],
                 zmin=-1, zmax=1,
-                text=[[f"{v:.2f}" for v in row] for row in corr.values],
-                texttemplate="%{text}",
-                textfont={"size": 11},
+                text=[[f"{v:.1f}" for v in row] for row in corr.values],
+                texttemplate="" if _corr_mobile else "%{text}",
+                textfont={"size": 9},
             ))
             fig_corr.update_layout(
                 template="plotly_dark",
-                height=500,
+                height=350 if _corr_mobile else 500,
                 margin=dict(l=0, r=0, t=20, b=0),
             )
             st.plotly_chart(fig_corr, use_container_width=True, config={"displayModeBar": False, "scrollZoom": False})
