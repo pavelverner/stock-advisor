@@ -1533,14 +1533,8 @@ elif page == "Detail akcie":
         _hero_bar   = _score_bar_html(_hero_score)
         _sent_c     = "#22c55e" if ai_sent["score"] > 0.15 else ("#ef4444" if ai_sent["score"] < -0.15 else "#94a3b8")
         _sent_lbl   = {"positive": "Pozitivní", "negative": "Negativní", "neutral": "Neutrální"}.get(ai_sent.get("dominant", "neutral"), "Neutrální")
-        _hero_meta = (
-            f'<div style="color:#94a3b8;font-size:0.78rem;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
-            + (f'<span style="color:{_hero_hc};font-weight:700;text-transform:uppercase">{_hero_hint}</span> · ' if _hero_hint else '')
-            + (f'jistota: {_hero_conf} · ' if _hero_conf else '')
-            + f'<span style="color:{_sent_c}">{_sent_lbl}</span> ({ai_sent["score"]:+.2f})'
-            + (f' · <span style="color:#60a5fa">{_ai_prov}</span>' if _ai_prov else '')
-            + '</div>'
-        )
+        _hero_b = len(_hero_sig.get("buy_signals", []))
+        _hero_s = len(_hero_sig.get("sell_signals", []))
         _hero_summ_html = (
             f'<div style="color:#cbd5e1;font-size:0.87rem;line-height:1.5;'
             f'margin-top:10px;border-top:1px solid #334155;padding-top:10px">{_hero_summ}</div>'
@@ -1548,14 +1542,17 @@ elif page == "Detail akcie":
 
         st.markdown(
             '<div style="background:#1e293b;border-radius:12px;padding:16px;margin-bottom:12px">'
-            '<div style="display:flex;align-items:center;gap:12px">'
+            '<div style="display:flex;align-items:center;gap:14px">'
             f'<div style="background:{_hero_sc}22;border:2px solid {_hero_sc};border-radius:10px;'
-            f'padding:8px 20px;font-size:1.4rem;font-weight:800;color:{_hero_sc};white-space:nowrap">{_hero_lbl}</div>'
-            f'<div style="flex:1;min-width:0">{_hero_bar}'
-            f'<div style="color:#94a3b8;font-size:0.8rem;margin-top:3px">'
-            f'{_hero_slbl} · {len(_hero_sig.get("buy_signals", []))} buy / {len(_hero_sig.get("sell_signals", []))} sell'
-            f'</div>{_hero_meta}</div>'
-            f'</div>'
+            f'padding:10px 18px;font-size:1.4rem;font-weight:800;color:{_hero_sc};white-space:nowrap;flex-shrink:0">{_hero_lbl}</div>'
+            '<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">'
+            f'{_hero_bar}'
+            f'<div style="color:#94a3b8;font-size:0.82rem">{_hero_slbl}</div>'
+            f'<div style="color:#64748b;font-size:0.78rem">{_hero_b} buy / {_hero_s} sell</div>'
+            + (f'<div style="color:#94a3b8;font-size:0.78rem"><span style="color:{_hero_hc};font-weight:700;text-transform:uppercase">{_hero_hint}</span>'
+               + (f' · jistota: {_hero_conf}' if _hero_conf else '') + '</div>' if _hero_hint else '')
+            + f'<div style="color:{_sent_c};font-size:0.78rem">{_sent_lbl} ({ai_sent["score"]:+.2f})</div>'
+            '</div></div>'
             f'{_hero_summ_html}'
             '</div>',
             unsafe_allow_html=True
