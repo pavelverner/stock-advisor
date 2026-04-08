@@ -1297,7 +1297,7 @@ if page == "Přehled portfolia":
                             f'<div style="color:{_pm_clr};font-size:0.8rem">{_pm_arr} {_pm_delta:+.1f}</div>'
                             f'</div>')
             if _pw_html or _pm_html:
-                st.markdown(f'<div style="display:flex;gap:24px;padding:4px 0">{_pw_html}{_pm_html}</div>',
+                st.markdown(f'<div style="display:flex;gap:24px;padding:4px 0;justify-content:flex-start;margin:0 -8px">{_pw_html}{_pm_html}</div>',
                             unsafe_allow_html=True)
             if _fg_score <= 25:
                 st.error("Extrémní strach – trh v panice. Historicky dobrá příležitost pro long-term nákup.")
