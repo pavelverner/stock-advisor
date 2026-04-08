@@ -2728,6 +2728,12 @@ elif page == "Deník":
 
     # ── Tab 2: Historie ───────────────────────────────────────────────────────
     with tab_history:
+        st.markdown("<style>"
+                    "@media(max-width:640px){"
+                    "[data-testid='stHorizontalBlock']{gap:4px !important;}"
+                    "[data-testid='stHorizontalBlock'] button{padding:4px 6px !important;font-size:0.78rem !important;min-height:0 !important;}"
+                    "}"
+                    "</style>", unsafe_allow_html=True)
         st.subheader("Historie obchodů")
         df_raw = get_trades()
         if df_raw.empty:
