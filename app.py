@@ -1233,7 +1233,7 @@ if page == "Přehled portfolia":
                 f'<div style="border-top:1px solid #1e293b;padding-top:8px;margin-top:8px">'
                 + "".join(
                     f'<div style="color:{"#86efac" if action=="BUY" else "#fca5a5"};font-size:0.78rem;padding:1px 0">'
-                    f'{"+" if action=="BUY" else "−"} {s}</div>'
+                    f'· {s}</div>'
                     for s in reasons
                 )
                 + '</div>'
