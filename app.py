@@ -2550,27 +2550,14 @@ elif page == "Deník":
         st.divider()
         st.subheader("Import / Export")
         st.markdown("<style>"
-                    "[data-testid='stDownloadButton'] button{"
-                    "  width:100% !important;box-sizing:border-box !important;}"
-                    "[data-testid='stFileUploader'],"
-                    "[data-testid='stFileUploader'] div,"
-                    "[data-testid='stFileUploaderDropzone'],"
-                    "[data-testid='stFileUploader'] section{"
-                    "  display:block !important;width:100% !important;max-width:100% !important;"
-                    "  box-sizing:border-box !important;"
-                    "  border:none !important;background:transparent !important;padding:0 !important;margin:0 !important;}"
+                    "[data-testid='stDownloadButton'] button{width:100% !important;box-sizing:border-box !important;}"
                     "[data-testid='stFileUploader']>label{display:none !important;}"
                     "[data-testid='stFileUploaderDropzoneInstructions']{display:none !important;}"
-                    "[data-testid='stFileUploader'] button{"
-                    "  display:block !important;width:100% !important;min-width:100% !important;"
-                    "  box-sizing:border-box !important;"
-                    "  position:relative !important;overflow:hidden !important;}"
-                    "[data-testid='stFileUploader'] button > *{display:none !important;}"
-                    "[data-testid='stFileUploader'] button::after{"
-                    "  content:'Nahrát';"
-                    "  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);"
-                    "  font-size:1rem !important;font-family:inherit !important;"
-                    "  white-space:nowrap;pointer-events:none;}"
+                    "[data-testid='stFileUploaderDropzone']{border:none !important;background:transparent !important;padding:0 !important;}"
+                    "[data-testid='stFileUploader'] section{width:100% !important;padding:0 !important;margin:0 !important;}"
+                    "[data-testid='stFileUploader'] button{width:100% !important;min-width:100% !important;box-sizing:border-box !important;position:relative !important;}"
+                    "[data-testid='stFileUploader'] button>*{display:none !important;}"
+                    "[data-testid='stFileUploader'] button::after{content:'Nahrát';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:1rem !important;font-family:inherit !important;white-space:nowrap;pointer-events:none;}"
                     "</style>", unsafe_allow_html=True)
         _ie_dl, _ie_ul = st.columns(2)
         with _ie_dl:
