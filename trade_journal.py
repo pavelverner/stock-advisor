@@ -465,10 +465,10 @@ def get_performance(df: pd.DataFrame) -> pd.DataFrame:
             pnl_pct = pnl_abs = None
             status  = "Data N/A"
         else:
-            # SELL – P&L = jak se akcie pohnula od prodeje (cur vs. prodejní cena)
+            # SELL – P&L = prodejní cena vs. aktuální (záporné = akcie zdražila po prodeji)
             if cur is not None:
-                pnl_pct = (cur - entry) / entry * 100
-                pnl_abs = (cur - entry) * shares
+                pnl_pct = (entry - cur) / entry * 100
+                pnl_abs = (entry - cur) * shares
             else:
                 pnl_pct = pnl_abs = None
             # Realizovaný zisk = sell_price − průměrná nákupní cena
