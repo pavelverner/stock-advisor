@@ -481,7 +481,9 @@ def get_stats(perf_df: pd.DataFrame) -> dict:
         "total_invested":   float(invested),
         "total_pnl_pct":    float(abs_pnl.sum() / invested * 100) if invested else 0,
         "best_trade":       float(pnl.max()) if not pnl.empty else 0,
+        "best_ticker":      open_pos.loc[pnl.idxmax(), "Ticker"] if not pnl.empty else "",
         "worst_trade":      float(pnl.min()) if not pnl.empty else 0,
+        "worst_ticker":     open_pos.loc[pnl.idxmin(), "Ticker"] if not pnl.empty else "",
         "avg_pnl":          float(pnl.mean()) if not pnl.empty else 0,
         "realized_pnl_abs": realized_abs,
     }

@@ -2796,9 +2796,16 @@ elif page == "Deník":
                 pnl_clr    = "#22c55e" if total_pnl >= 0 else "#ef4444"
                 real_clr   = "#22c55e" if real_pnl >= 0 else "#ef4444"
                 wr_clr     = "#22c55e" if win_rate >= 50 else "#ef4444"
-                best  = stats.get("best_trade", 0)
-                worst = stats.get("worst_trade", 0)
-                avg   = stats.get("avg_pnl", 0)
+                best        = stats.get("best_trade", 0)
+                best_ticker = stats.get("best_ticker", "")
+                worst       = stats.get("worst_trade", 0)
+                worst_ticker= stats.get("worst_ticker", "")
+                avg         = stats.get("avg_pnl", 0)
+                avg_label   = ("Daří se skvěle" if avg >= 10 else
+                               "Daří se dobře"  if avg >= 3  else
+                               "Průměrně"       if avg >= 0  else
+                               "Mírná ztráta"   if avg >= -5 else
+                               "Nedaří se")
 
                 def _stat_box(label, value, sub="", clr="#f1f5f9"):
                     sub_html = f'<div style="color:#64748b;font-size:0.68rem;margin-top:2px">{sub}</div>' if sub else ""
@@ -2821,9 +2828,9 @@ elif page == "Deník":
   {_stat_box("Celkový P&L", f"{total_pnl:+.0f} Kč", f"{total_pct:+.1f}% investovaného", pnl_clr)}
 </div>
 <div class="stats-grid3">
-  {_stat_box("Nejlepší obchod", f"{best:+.1f}%", clr="#22c55e" if best>=0 else "#ef4444")}
-  {_stat_box("Nejhorší obchod", f"{worst:+.1f}%", clr="#22c55e" if worst>=0 else "#ef4444")}
-  {_stat_box("Průměrný P&L",   f"{avg:+.1f}%",   clr="#22c55e" if avg>=0   else "#ef4444")}
+  {_stat_box("Nejlepší obchod", f"{best:+.1f}%", best_ticker, "#22c55e" if best>=0 else "#ef4444")}
+  {_stat_box("Nejhorší obchod", f"{worst:+.1f}%", worst_ticker, "#22c55e" if worst>=0 else "#ef4444")}
+  {_stat_box("Průměrný P&L",   f"{avg:+.1f}%",   avg_label,   "#22c55e" if avg>=0   else "#ef4444")}
 </div>
 """, unsafe_allow_html=True)
 
