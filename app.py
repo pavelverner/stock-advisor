@@ -1546,8 +1546,7 @@ elif page == "Detail akcie":
             f'<div style="background:{_hero_sc}22;border:2px solid {_hero_sc};border-radius:10px;'
             f'padding:10px 18px;font-size:1.4rem;font-weight:800;color:{_hero_sc};white-space:nowrap;flex-shrink:0">{_hero_lbl}</div>'
             '<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">'
-            f'{_hero_bar}'
-            f'<div style="color:#94a3b8;font-size:0.82rem">{_hero_slbl}</div>'
+            f'<div style="color:#94a3b8;font-size:0.82rem;white-space:nowrap">{_hero_bar} &nbsp; {_hero_slbl}</div>'
             f'<div style="color:#64748b;font-size:0.78rem">{_hero_b} buy / {_hero_s} sell</div>'
             + (f'<div style="color:#94a3b8;font-size:0.78rem"><span style="color:{_hero_hc};font-weight:700;text-transform:uppercase">{_hero_hint}</span>'
                + (f' · jistota: {_hero_conf}' if _hero_conf else '') + '</div>' if _hero_hint else '')
