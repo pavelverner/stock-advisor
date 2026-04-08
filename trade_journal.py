@@ -397,7 +397,8 @@ def _current_price(ticker: str) -> float | None:
         if df.empty:
             return None
         df.columns = [c[0] if isinstance(c, tuple) else c for c in df.columns]
-        return float(df["Close"].iloc[-1])
+        df = df.dropna(subset=["Close"])
+        return float(df["Close"].iloc[-1]) if not df.empty else None
     except Exception:
         return None
 
@@ -411,11 +412,13 @@ def _fetch_prices(tickers: list[str]) -> dict[str, float | None]:
         prices: dict[str, float | None] = {}
         if len(tickers) == 1:
             raw.columns = [c[0] if isinstance(c, tuple) else c for c in raw.columns]
-            prices[tickers[0]] = float(raw["Close"].iloc[-1]) if not raw.empty else None
+            _cl = raw["Close"].dropna()
+            prices[tickers[0]] = float(_cl.iloc[-1]) if not _cl.empty else None
         else:
             for t in tickers:
                 try:
-                    prices[t] = float(raw[t]["Close"].iloc[-1])
+                    _cl = raw[t]["Close"].dropna()
+                    prices[t] = float(_cl.iloc[-1]) if not _cl.empty else None
                 except Exception:
                     prices[t] = None
         return prices

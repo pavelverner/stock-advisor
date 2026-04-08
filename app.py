@@ -741,7 +741,8 @@ def load_data(ticker: str, period: str):
     if df.empty:
         return None
     df.columns = [c[0] if isinstance(c, tuple) else c for c in df.columns]
-    return df
+    df = df.dropna(subset=["Close"])
+    return df if not df.empty else None
 
 
 @st.cache_data(ttl=1800)
