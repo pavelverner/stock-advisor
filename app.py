@@ -2754,8 +2754,9 @@ elif page == "Deník":
                 if pd.notna(pnl):
                     pnl_color = "#22c55e" if pnl >= 0 else "#ef4444"
                     pnl_abs   = row["P&L Kč/USD"]
+                    pnl_czk   = pnl_abs * get_usdczk() if pd.notna(pnl_abs) else 0
                     pnl_html  = (f'<div style="color:{pnl_color};font-weight:700;font-size:0.85rem">'
-                                 f'P&L: {pnl:+.1f}% ({pnl_abs:+.0f})</div>')
+                                 f'P&L: {pnl:+.1f}% ({pnl_czk:+.0f} Kč)</div>')
 
                 cur_html  = (f'<div style="color:#94a3b8;font-size:0.78rem">Aktuálně: {row["Aktuální"]:.2f}</div>'
                              if row["Aktuální"] else "")
