@@ -1548,115 +1548,147 @@ elif page == "Detail akcie":
 </div>
 """, unsafe_allow_html=True)
 
-        _sel_hz = st.segmented_control(
-            "Detail horizontu",
-            ["Krátkodobý", "Střednědobý", "Dlouhodobý"],
-            default="Krátkodobý",
-            key=f"hz_detail_{ticker}",
-            label_visibility="collapsed",
-        )
-        _hz_key = {"Krátkodobý": "short", "Střednědobý": "medium", "Dlouhodobý": "long"}.get(_sel_hz or "Krátkodobý", "short")
-        _hz_sig = _mh.get(_hz_key) or signals  # fallback na 6mo signály
+        # ── Porovnávací tabulka 3 horizontů ─────────────────────────
+        def _hz_col(hk):
+            sig = _mh.get(hk) or signals
+            cd  = _claude.get(hk, {}) if _claude.get("ok") else {}
+            act = sig.get("action", "HOLD")
+            sc  = {"BUY": "#22c55e", "SELL": "#ef4444", "HOLD": "#94a3b8"}[act]
+            sl  = {"BUY": "KOUPIT",  "SELL": "PRODAT",  "HOLD": "DRŽET"}[act]
+            rsi = sig["rsi"]
+            rc  = "#22c55e" if rsi < 30 else ("#ef4444" if rsi > 70 else "#94a3b8")
+            tr  = ("Bullish" if sig["ema20"] > sig["ema50"] > sig["ema200"]
+                   else "Bearish" if sig["ema20"] < sig["ema50"] < sig["ema200"]
+                   else "Smíšený")
+            tc  = "#22c55e" if tr == "Bullish" else ("#ef4444" if tr == "Bearish" else "#94a3b8")
+            ml  = "Bullish" if sig["macd"] > sig["macd_signal"] else "Bearish"
+            mc  = "#22c55e" if sig["macd"] > sig["macd_signal"] else "#ef4444"
+            _, slbl = _score_label(len(sig.get("buy_signals", [])), len(sig.get("sell_signals", [])), act)
+            hint  = cd.get("action_hint", "")
+            hc    = _HINT_COLOR.get(hint, "#94a3b8")
+            b_cnt = len(sig.get("buy_signals",  []))
+            s_cnt = len(sig.get("sell_signals", []))
+            return f"""
+              <div style="background:#0f172a;border-radius:10px;padding:12px 10px;text-align:center">
+                <div style="background:{sc}22;border:1px solid {sc};border-radius:6px;
+                            padding:4px 0;font-size:0.88rem;font-weight:700;color:{sc};margin-bottom:10px">{sl}</div>
+                <div style="font-size:0.68rem;color:#64748b;margin-bottom:1px">RSI</div>
+                <div style="font-size:0.95rem;font-weight:700;color:{rc};margin-bottom:8px">{rsi:.1f}</div>
+                <div style="font-size:0.68rem;color:#64748b;margin-bottom:1px">Trend</div>
+                <div style="font-size:0.9rem;font-weight:600;color:{tc};margin-bottom:8px">{tr}</div>
+                <div style="font-size:0.68rem;color:#64748b;margin-bottom:1px">MACD</div>
+                <div style="font-size:0.9rem;font-weight:600;color:{mc};margin-bottom:8px">{ml}</div>
+                <div style="font-size:0.68rem;color:#64748b;margin-bottom:1px">Signály</div>
+                <div style="font-size:0.8rem;color:#94a3b8;margin-bottom:6px">
+                  <span style="color:#22c55e">{b_cnt}↑</span> / <span style="color:#ef4444">{s_cnt}↓</span>
+                </div>
+                {f'<div style="font-size:0.7rem;color:{hc};text-transform:uppercase;font-weight:600">{hint}</div>' if hint else ""}
+              </div>"""
 
-        _hz_data = _claude.get(_hz_key, {}) if _claude.get("ok") else {}
-        _hz_summ = _hz_data.get("summary", "")
-        _hz_hint = _hz_data.get("action_hint", "")
-        _hz_conf = _hz_data.get("confidence", "")
-        _hz_events = _hz_data.get("events", [])
-        _hz_risks  = _hz_data.get("risk_factors", [])
-        _hz_opp    = _hz_data.get("opportunity", "")
-
-        # Technické hodnoty z vybraného horizontu
-        _trend = ("Bullish" if _hz_sig["ema20"] > _hz_sig["ema50"] > _hz_sig["ema200"]
-                  else "Bearish" if _hz_sig["ema20"] < _hz_sig["ema50"] < _hz_sig["ema200"]
-                  else "Smíšený")
-        _rsi   = _hz_sig["rsi"]
-        _rsi_lbl = "Oversold" if _rsi < 30 else ("Overbought" if _rsi > 70 else "Neutrální")
-        _rsi_c   = "#22c55e" if _rsi < 30 else ("#ef4444" if _rsi > 70 else "#94a3b8")
-        _trend_c = "#22c55e" if _trend == "Bullish" else ("#ef4444" if _trend == "Bearish" else "#94a3b8")
-        _macd_c  = "#22c55e" if _hz_sig["macd"] > _hz_sig["macd_signal"] else "#ef4444"
-        _macd_lbl = "Bullish" if _hz_sig["macd"] > _hz_sig["macd_signal"] else "Bearish"
-        _sent_c  = "#22c55e" if ai_sent["score"] > 0.15 else ("#ef4444" if ai_sent["score"] < -0.15 else "#94a3b8")
-        _sent_lbl = {"positive": "Pozitivní", "negative": "Negativní", "neutral": "Neutrální"}.get(ai_sent.get("dominant","neutral"), "Neutrální")
-        _hz_action = _hz_sig.get("action", "HOLD")
-        _sig_c   = {"BUY": "#22c55e", "SELL": "#ef4444", "HOLD": "#94a3b8"}[_hz_action]
-        _sig_lbl = {"BUY": "KOUPIT", "SELL": "PRODAT", "HOLD": "DRŽET"}[_hz_action]
-
-        score, score_label = _score_label(
-            len(_hz_sig.get("buy_signals", [])), len(_hz_sig.get("sell_signals", [])), _hz_action
-        )
-        score_html = _score_bar_html(score)
-
-        _buy_html  = "".join(f'<div style="color:#22c55e;font-size:0.82rem;padding:2px 0">+ {s}</div>' for s in _hz_sig.get("buy_signals", [])) or '<div style="color:#555;font-size:0.82rem">Žádné</div>'
-        _sell_html = "".join(f'<div style="color:#ef4444;font-size:0.82rem;padding:2px 0">− {s}</div>' for s in _hz_sig.get("sell_signals", [])) or '<div style="color:#555;font-size:0.82rem">Žádné</div>'
-        _hint_c = _HINT_COLOR.get(_hz_hint, "#94a3b8")
-        _ai_row = (f'<div style="color:#94a3b8;font-size:0.78rem;margin-top:4px">AI: '
-                   f'<span style="color:{_hint_c};font-weight:600;text-transform:uppercase">{_hz_hint}</span>'
-                   f' · jistota: {_hz_conf} · <span style="color:#60a5fa">{_ai_prov}</span></div>') if _hz_hint else ""
+        _col_s = _hz_col("short")
+        _col_m = _hz_col("medium")
+        _col_l = _hz_col("long")
 
         st.markdown(f"""
-    <style>
-    .summary-grid {{
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
-      margin: 10px 0;
-    }}
-    @media (max-width: 640px) {{
-      .summary-grid {{ grid-template-columns: repeat(2, 1fr); }}
-    }}
-    .summary-cell {{
-      background: #0f172a;
-      border-radius: 8px;
-      padding: 8px;
-      text-align: center;
-    }}
-    .summary-label {{ color: #64748b; font-size: 0.72rem; }}
-    .summary-value {{ font-size: 1.1rem; font-weight: 700; }}
-    .summary-sub   {{ color: #64748b; font-size: 0.7rem; }}
-    </style>
-    <div style="background:#1e293b;border-radius:12px;padding:14px 16px;margin-bottom:12px">
-      <!-- Signál + skóre -->
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
-        <div style="background:{_sig_c}22;border:2px solid {_sig_c};border-radius:8px;
-                    padding:5px 16px;font-size:1.2rem;font-weight:700;color:{_sig_c}">{_sig_lbl}</div>
-        <div style="flex:1;min-width:120px">{score_html}
-          <div style="color:#94a3b8;font-size:0.78rem;margin-top:2px">{score_label} · {len(_hz_sig.get('buy_signals',[]))} buy / {len(_hz_sig.get('sell_signals',[]))} sell</div>
-          {_ai_row}
-        </div>
-      </div>
-      <!-- Metriky 4×2 -->
-      <div class="summary-grid">
-        <div class="summary-cell">
-          <div class="summary-label">RSI (14)</div>
-          <div class="summary-value" style="color:{_rsi_c}">{_rsi:.1f}</div>
-          <div class="summary-sub">{_rsi_lbl}</div>
-        </div>
-        <div class="summary-cell">
-          <div class="summary-label">EMA Trend</div>
-          <div class="summary-value" style="color:{_trend_c}">{_trend}</div>
-          <div class="summary-sub">20/50/200</div>
-        </div>
-        <div class="summary-cell">
-          <div class="summary-label">MACD</div>
-          <div class="summary-value" style="color:{_macd_c}">{_macd_lbl}</div>
-          <div class="summary-sub">{_hz_sig['macd']:.3f}</div>
-        </div>
-        <div class="summary-cell">
-          <div class="summary-label">Sentiment</div>
-          <div class="summary-value" style="color:{_sent_c}">{_sent_lbl}</div>
-          <div class="summary-sub">{ai_sent['score']:+.2f}</div>
-        </div>
-      </div>
-      <!-- AI shrnutí -->
-      {f'<div style="border-top:1px solid #334155;padding-top:10px;margin-top:4px;color:#cbd5e1;font-size:0.85rem"><span style="color:#60a5fa;font-size:0.72rem;font-weight:600">{_ai_prov.upper()} · </span>{_hz_summ}</div>' if _hz_summ else ""}
-      <!-- Signály detail -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;border-top:1px solid #334155;padding-top:10px">
-        <div><div style="color:#64748b;font-size:0.72rem;margin-bottom:4px">BUY signály</div>{_buy_html}</div>
-        <div><div style="color:#64748b;font-size:0.72rem;margin-bottom:4px">SELL signály</div>{_sell_html}</div>
-      </div>
+<div style="background:#1e293b;border-radius:12px;padding:14px 16px;margin-bottom:12px">
+  <div style="color:#64748b;font-size:0.7rem;font-weight:600;margin-bottom:10px;letter-spacing:.05em">POROVNÁNÍ HORIZONTŮ</div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+    <div>
+      <div style="color:#94a3b8;font-size:0.75rem;font-weight:600;margin-bottom:6px;text-align:center">Krátkodobý <span style="color:#64748b;font-weight:400">&lt; 3 měs.</span></div>
+      {_col_s}
     </div>
-    """, unsafe_allow_html=True)
+    <div>
+      <div style="color:#94a3b8;font-size:0.75rem;font-weight:600;margin-bottom:6px;text-align:center">Střednědobý <span style="color:#64748b;font-weight:400">6m – 2r</span></div>
+      {_col_m}
+    </div>
+    <div>
+      <div style="color:#94a3b8;font-size:0.75rem;font-weight:600;margin-bottom:6px;text-align:center">Dlouhodobý <span style="color:#64748b;font-weight:400">3+ roky</span></div>
+      {_col_l}
+    </div>
+  </div>
+</div>
+""", unsafe_allow_html=True)
+
+        # ── Default AI analýza (krátkodobý) ─────────────────────────
+        _def_cd   = _claude.get("short", {}) if _claude.get("ok") else {}
+        _def_summ = _def_cd.get("summary", "")
+        _def_hint = _def_cd.get("action_hint", "")
+        _def_conf = _def_cd.get("confidence", "")
+        if _def_summ:
+            _dh_c = _HINT_COLOR.get(_def_hint, "#94a3b8")
+            st.markdown(f"""
+<div style="background:#1e293b;border-radius:12px;padding:14px 16px;margin-bottom:12px">
+  <div style="color:#64748b;font-size:0.7rem;font-weight:600;margin-bottom:6px;letter-spacing:.05em">AI ANALÝZA · KRÁTKODOBÝ · <span style="color:#60a5fa">{_ai_prov}</span></div>
+  <div style="color:#cbd5e1;font-size:0.87rem;line-height:1.5">{_def_summ}</div>
+  {f'<div style="color:#94a3b8;font-size:0.78rem;margin-top:8px">Doporučení: <span style="color:{_dh_c};font-weight:600;text-transform:uppercase">{_def_hint}</span> · jistota: {_def_conf}</div>' if _def_hint else ""}
+</div>
+""", unsafe_allow_html=True)
+
+        # ── Stacked detaily pro každý horizont ──────────────────────
+        _sent_c   = "#22c55e" if ai_sent["score"] > 0.15 else ("#ef4444" if ai_sent["score"] < -0.15 else "#94a3b8")
+        _sent_lbl = {"positive": "Pozitivní", "negative": "Negativní", "neutral": "Neutrální"}.get(ai_sent.get("dominant", "neutral"), "Neutrální")
+
+        for _hk, _hname, _hsub, _expanded in [
+            ("short",  "Krátkodobý",  "< 3 měs.",  True),
+            ("medium", "Střednědobý", "6m – 2 roky", False),
+            ("long",   "Dlouhodobý",  "3+ roky",   False),
+        ]:
+            _hz_sig    = _mh.get(_hk) or signals
+            _hz_data   = _claude.get(_hk, {}) if _claude.get("ok") else {}
+            _hz_summ   = _hz_data.get("summary", "")
+            _hz_hint   = _hz_data.get("action_hint", "")
+            _hz_conf   = _hz_data.get("confidence", "")
+            _hz_events = _hz_data.get("events", [])
+            _hz_risks  = _hz_data.get("risk_factors", [])
+            _hz_opp    = _hz_data.get("opportunity", "")
+
+            _hz_action = _hz_sig.get("action", "HOLD")
+            _sig_c  = {"BUY": "#22c55e", "SELL": "#ef4444", "HOLD": "#94a3b8"}[_hz_action]
+            _sig_lbl = {"BUY": "KOUPIT", "SELL": "PRODAT", "HOLD": "DRŽET"}[_hz_action]
+            _hint_c = _HINT_COLOR.get(_hz_hint, "#94a3b8")
+
+            score, score_label = _score_label(
+                len(_hz_sig.get("buy_signals", [])), len(_hz_sig.get("sell_signals", [])), _hz_action
+            )
+            score_html = _score_bar_html(score)
+            _ai_row = (f'<div style="color:#94a3b8;font-size:0.78rem;margin-top:4px">AI: '
+                       f'<span style="color:{_hint_c};font-weight:600;text-transform:uppercase">{_hz_hint}</span>'
+                       f' · jistota: {_hz_conf} · <span style="color:#60a5fa">{_ai_prov}</span></div>') if _hz_hint else ""
+
+            _buy_html  = "".join(f'<div style="color:#22c55e;font-size:0.82rem;padding:2px 0">+ {s}</div>' for s in _hz_sig.get("buy_signals",  [])) or '<div style="color:#555;font-size:0.82rem">Žádné</div>'
+            _sell_html = "".join(f'<div style="color:#ef4444;font-size:0.82rem;padding:2px 0">− {s}</div>' for s in _hz_sig.get("sell_signals", [])) or '<div style="color:#555;font-size:0.82rem">Žádné</div>'
+
+            _events_html = "".join(f'<div style="color:#f59e0b;font-size:0.82rem;padding:2px 0">▸ {e}</div>' for e in _hz_events) if _hz_events else ""
+            _risks_html  = "".join(f'<div style="color:#ef4444;font-size:0.82rem;padding:2px 0">⚠ {r}</div>'   for r in _hz_risks)  if _hz_risks  else ""
+            _opp_html    = f'<div style="color:#22c55e;font-size:0.82rem;margin-top:4px">💡 {_hz_opp}</div>'   if _hz_opp else ""
+
+            _er_block = ""
+            if _hz_events or _hz_risks or _hz_opp:
+                _er_block = f"""
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;border-top:1px solid #334155;padding-top:10px">
+  <div><div style="color:#64748b;font-size:0.72rem;margin-bottom:4px">Klíčové události</div>{_events_html or '<div style="color:#555;font-size:0.82rem">–</div>'}</div>
+  <div><div style="color:#64748b;font-size:0.72rem;margin-bottom:4px">Rizika</div>{_risks_html or '<div style="color:#555;font-size:0.82rem">–</div>'}</div>
+</div>{_opp_html}"""
+
+            with st.expander(f"{_hname} · {_hsub}", expanded=_expanded):
+                st.markdown(f"""
+<div style="background:#1e293b;border-radius:12px;padding:14px 16px">
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+    <div style="background:{_sig_c}22;border:2px solid {_sig_c};border-radius:8px;
+                padding:5px 16px;font-size:1.2rem;font-weight:700;color:{_sig_c}">{_sig_lbl}</div>
+    <div style="flex:1;min-width:120px">{score_html}
+      <div style="color:#94a3b8;font-size:0.78rem;margin-top:2px">{score_label} · {len(_hz_sig.get('buy_signals',[]))} buy / {len(_hz_sig.get('sell_signals',[]))} sell</div>
+      {_ai_row}
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;border-top:1px solid #334155;padding-top:10px">
+    <div><div style="color:#64748b;font-size:0.72rem;margin-bottom:4px">BUY signály</div>{_buy_html}</div>
+    <div><div style="color:#64748b;font-size:0.72rem;margin-bottom:4px">SELL signály</div>{_sell_html}</div>
+  </div>
+  {f'<div style="color:#cbd5e1;font-size:0.85rem;border-top:1px solid #334155;padding-top:10px;margin-top:10px">{_hz_summ}</div>' if _hz_summ and _hk != "short" else ""}
+  {_er_block}
+</div>
+""", unsafe_allow_html=True)
 
         st.markdown("<div style='margin:8px 0'></div>", unsafe_allow_html=True)
 
