@@ -1110,7 +1110,41 @@ if page == "Přehled portfolia":
                      type="primary" if _pf_filter == "HOLD" else "secondary"):
             st.session_state["pf_filter"] = "HOLD"; st.rerun()
 
-    st.divider()
+    # ── Summary bar ──────────────────────────────────────────────────────────
+    _up_today  = sum(1 for r in results if r["chg_pct"] >= 0)
+    _dn_today  = len(results) - _up_today
+    _best_r    = max(results, key=lambda x: x["chg_pct"])
+    _worst_r   = min(results, key=lambda x: x["chg_pct"])
+    _best_c    = "#22c55e"
+    _worst_c   = "#ef4444"
+    st.markdown(
+        '<div style="background:#1e293b;border-radius:10px;padding:10px 14px;margin:8px 0 12px;'
+        'display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:0.82rem">'
+        f'<span style="color:#22c55e;font-weight:600">▲ {_up_today}</span>'
+        f'<span style="color:#64748b"> · </span>'
+        f'<span style="color:#ef4444;font-weight:600">▼ {_dn_today}</span>'
+        f'<span style="color:#334155;margin:0 4px">|</span>'
+        f'<span style="color:#64748b">Nejlepší:</span>'
+        f'<span style="color:{_best_c};font-weight:600">{_best_r["ticker"]} {_best_r["chg_pct"]:+.1f}%</span>'
+        f'<span style="color:#334155;margin:0 4px">|</span>'
+        f'<span style="color:#64748b">Nejhorší:</span>'
+        f'<span style="color:{_worst_c};font-weight:600">{_worst_r["ticker"]} {_worst_r["chg_pct"]:+.1f}%</span>'
+        '</div>',
+        unsafe_allow_html=True
+    )
+
+    # ── P&L z Deníku pro otevřené pozice ─────────────────────────────────────
+    try:
+        _denik_raw  = get_trades()
+        _denik_perf = get_performance(_denik_raw) if not _denik_raw.empty else pd.DataFrame()
+        _open_pf    = _denik_perf[_denik_perf["Status"] == "Otevřená"] if not _denik_perf.empty else pd.DataFrame()
+        _pnl_map    = {
+            row["Ticker"]: {"pct": row["P&L %"], "abs": row["P&L Kč/USD"]}
+            for _, row in _open_pf.iterrows()
+            if pd.notna(row.get("P&L %"))
+        }
+    except Exception:
+        _pnl_map = {}
 
     # ── Karty akcií ───────────────────────────────────────────────────────────
     def action_order(r):
@@ -1162,6 +1196,16 @@ if page == "Přehled portfolia":
                 + '</div>'
             )
 
+        # P&L z Deníku
+        _pnl_card = _pnl_map.get(r["ticker"])
+        _pnl_card_html = ""
+        if _pnl_card:
+            _pc = "#22c55e" if _pnl_card["pct"] >= 0 else "#ef4444"
+            _pabs = _pnl_card["abs"] * get_usdczk() if pd.notna(_pnl_card["abs"]) else 0
+            _pnl_card_html = (
+                f'<span class="pf-pill" style="color:{_pc}">P&L {_pnl_card["pct"]:+.1f}% ({_pabs:+.0f} Kč)</span>'
+            )
+
         # Reálné signály pro všechny 3 horizonty
         _mh = cached_multi_horizon(r["ticker"])
         hz_row = (
@@ -1185,6 +1229,7 @@ if page == "Přehled portfolia":
         <span class="pf-pill" style="color:{rsi_color}">RSI {r['rsi']:.0f}</span>
         <span class="pf-pill" style="color:{trend_color}">{r['ema_trend']}</span>
         <span class="pf-pill" style="color:#94a3b8">{r['sector']}</span>
+        {_pnl_card_html}
       </div>
     </div>
     <div style="text-align:right;white-space:nowrap;flex-shrink:0">
@@ -1198,137 +1243,79 @@ if page == "Přehled portfolia":
 </a>
 """, unsafe_allow_html=True)
 
-    st.divider()
+    with st.expander("Grafy portfolia (RSI + denní změna)", expanded=False):
+        rsi_names  = [r["name"].split()[0] for r in results]
+        rsi_values = [r["rsi"] for r in results]
+        rsi_colors = ["#22c55e" if v < 35 else "#ef4444" if v > 65 else "#60a5fa" for v in rsi_values]
+        fig_rsi = go.Figure(go.Bar(x=rsi_names, y=rsi_values, marker_color=rsi_colors,
+                                   text=[f"{v:.0f}" for v in rsi_values], textposition="outside"))
+        fig_rsi.add_hline(y=70, line=dict(color="#ef4444", dash="dash"), annotation_text="Overbought 70")
+        fig_rsi.add_hline(y=30, line=dict(color="#22c55e", dash="dash"), annotation_text="Oversold 30")
+        fig_rsi.update_layout(template="plotly_dark", height=250, margin=dict(l=0,r=0,t=10,b=0),
+                               yaxis=dict(range=[0,100]), showlegend=False)
+        st.caption("RSI portfolia")
+        st.plotly_chart(fig_rsi, use_container_width=True, config={"displayModeBar": False, "scrollZoom": False})
 
-    # ── RSI přehled – mini heatmapa ───────────────────────────────────────────
-    st.subheader("RSI přehled portfolia")
-    rsi_names  = [r["name"].split()[0] for r in results]
-    rsi_values = [r["rsi"] for r in results]
-    rsi_colors = [
-        "#22c55e" if v < 35 else "#ef4444" if v > 65 else "#60a5fa"
-        for v in rsi_values
-    ]
-    fig_rsi = go.Figure(go.Bar(
-        x=rsi_names,
-        y=rsi_values,
-        marker_color=rsi_colors,
-        text=[f"{v:.0f}" for v in rsi_values],
-        textposition="outside",
-    ))
-    fig_rsi.add_hline(y=70, line=dict(color="#ef4444", dash="dash"), annotation_text="Overbought 70")
-    fig_rsi.add_hline(y=30, line=dict(color="#22c55e", dash="dash"), annotation_text="Oversold 30")
-    fig_rsi.update_layout(
-        template="plotly_dark", height=280,
-        margin=dict(l=0, r=0, t=10, b=0),
-        yaxis=dict(range=[0, 100]),
-        showlegend=False,
-    )
-    st.plotly_chart(fig_rsi, use_container_width=True, config={"displayModeBar": False, "scrollZoom": False})
+        chg_names  = [r["name"].split()[0] for r in results]
+        chg_values = [r["chg_pct"] for r in results]
+        chg_colors = ["#22c55e" if v >= 0 else "#ef4444" for v in chg_values]
+        fig_chg = go.Figure(go.Bar(x=chg_names, y=chg_values, marker_color=chg_colors,
+                                   text=[f"{v:+.1f}%" for v in chg_values], textposition="outside"))
+        fig_chg.add_hline(y=0, line=dict(color="#666", width=1))
+        fig_chg.update_layout(template="plotly_dark", height=230, margin=dict(l=0,r=0,t=10,b=0), showlegend=False)
+        st.caption("Denní změna (%)")
+        st.plotly_chart(fig_chg, use_container_width=True, config={"displayModeBar": False, "scrollZoom": False})
 
-    # ── Výkonnost portfolia (změna %) ─────────────────────────────────────────
-    st.subheader("Dnešní změna (%)")
-    chg_names  = [r["name"].split()[0] for r in results]
-    chg_values = [r["chg_pct"] for r in results]
-    chg_colors = ["#22c55e" if v >= 0 else "#ef4444" for v in chg_values]
-    fig_chg = go.Figure(go.Bar(
-        x=chg_names, y=chg_values,
-        marker_color=chg_colors,
-        text=[f"{v:+.1f}%" for v in chg_values],
-        textposition="outside",
-    ))
-    fig_chg.add_hline(y=0, line=dict(color="#666", width=1))
-    fig_chg.update_layout(
-        template="plotly_dark", height=260,
-        margin=dict(l=0, r=0, t=10, b=0),
-        showlegend=False,
-    )
-    st.plotly_chart(fig_chg, use_container_width=True, config={"displayModeBar": False, "scrollZoom": False})
-
-    st.divider()
-
-    # ── Tržní kontext – gauge + makro ────────────────────────────────────────
+    # ── Tržní kontext – kompaktní karta + expander ───────────────────────────
     with st.spinner("Načítám tržní kontext..."):
         _fg = fetch_fear_greed()
         _macro_mini = fetch_macro_tickers()
 
-    _fg_score     = _fg.get("score")     if _fg.get("ok") else None
-    _fg_prev_week = _fg.get("prev_week") if _fg.get("ok") else None
-    _fg_prev_month= _fg.get("prev_month")if _fg.get("ok") else None
+    _fg_score      = _fg.get("score")      if _fg.get("ok") else None
+    _fg_prev_week  = _fg.get("prev_week")  if _fg.get("ok") else None
+    _fg_prev_month = _fg.get("prev_month") if _fg.get("ok") else None
     _fg_label_str, _fg_color = fg_label(_fg_score) if _fg_score is not None else ("N/A", "#888")
+    _fg_pct_bar = int(_fg_score) if _fg_score is not None else 50
 
-    _ua = st.context.headers.get("User-Agent", "")
-    _is_mobile = any(k in _ua for k in ("Mobile", "Android", "iPhone", "iPad"))
+    # Kompaktní F&G karta
+    def _fg_mini_item(label, val):
+        if val is None:
+            return ""
+        delta = _fg_score - val
+        clr = "#22c55e" if delta >= 0 else "#ef4444"
+        arr = "▲" if delta >= 0 else "▼"
+        return (f'<div style="text-align:center">'
+                f'<div style="color:#64748b;font-size:0.68rem">{label}</div>'
+                f'<div style="font-size:1rem;font-weight:700">{val:.0f}</div>'
+                f'<div style="color:{clr};font-size:0.72rem">{arr} {delta:+.1f}</div>'
+                f'</div>')
 
-    if _is_mobile:
-        _ctx_left = st.container()
-        _ctx_right = st.container()
-    else:
-        _ctx_left, _ctx_right = st.columns([1, 1])
+    _fg_interp = {"Extrémní strach": "Historicky dobrý čas na nákup.",
+                  "Strach": "Pesimismus převládá — opatrný optimismus.",
+                  "Neutrální": "Trh neví kam — čekej na signál.",
+                  "Chamtivost": "Optimismus — pozor na předražení.",
+                  "Extrémní chamtivost": "Euforie — zvaž profit-taking."}.get(_fg_label_str, "")
 
-    with _ctx_left:
-        st.markdown("**Index strachu a chamtivosti**")
-        if _fg_score is not None:
-            _fig_gauge = go.Figure(go.Indicator(
-                mode="gauge+number",
-                value=_fg_score,
-                title={"text": _fg_label_str, "font": {"size": 14}},
-                number={"font": {"size": 36}},
-                gauge={
-                    "axis": {"range": [0, 100], "tickvals": [0, 25, 45, 55, 75, 100],
-                             "ticktext": ["0", "25", "45", "55", "75", "100"]},
-                    "bar": {"color": _fg_color, "thickness": 0.25},
-                    "steps": [
-                        {"range": [0,  25], "color": "#7f1d1d"},
-                        {"range": [25, 45], "color": "#9a3412"},
-                        {"range": [45, 55], "color": "#713f12"},
-                        {"range": [55, 75], "color": "#365314"},
-                        {"range": [75,100], "color": "#14532d"},
-                    ],
-                    "threshold": {"line": {"color": "white", "width": 3},
-                                  "thickness": 0.85, "value": _fg_score},
-                },
-            ))
-            _gauge_h = 210 if _is_mobile else 500
-            _fig_gauge.update_layout(
-                height=_gauge_h, template="plotly_dark",
-                margin=dict(l=10, r=10, t=60, b=10),
-            )
-            st.plotly_chart(_fig_gauge, use_container_width=True, config={"displayModeBar": False, "scrollZoom": False})
-            # Hodnoty před týdnem / měsícem
-            _pw_html = _pm_html = ""
-            if _fg_prev_week is not None:
-                _pw_delta = _fg_score - _fg_prev_week
-                _pw_clr = "#22c55e" if _pw_delta >= 0 else "#ef4444"
-                _pw_arr = "▲" if _pw_delta >= 0 else "▼"
-                _pw_html = (f'<div style="flex:1;min-width:0">'
-                            f'<div style="color:#94a3b8;font-size:0.72rem;white-space:nowrap">Před týdnem</div>'
-                            f'<div style="font-size:1.4rem;font-weight:700">{_fg_prev_week:.0f}</div>'
-                            f'<div style="color:{_pw_clr};font-size:0.8rem">{_pw_arr} {_pw_delta:+.1f}</div>'
-                            f'</div>')
-            if _fg_prev_month is not None:
-                _pm_delta = _fg_score - _fg_prev_month
-                _pm_clr = "#22c55e" if _pm_delta >= 0 else "#ef4444"
-                _pm_arr = "▲" if _pm_delta >= 0 else "▼"
-                _pm_html = (f'<div style="margin-left:auto;text-align:right">'
-                            f'<div style="color:#94a3b8;font-size:0.72rem;white-space:nowrap">Před měsícem</div>'
-                            f'<div style="font-size:1.4rem;font-weight:700">{_fg_prev_month:.0f}</div>'
-                            f'<div style="color:{_pm_clr};font-size:0.8rem">{_pm_arr} {_pm_delta:+.1f}</div>'
-                            f'</div>')
-            if _pw_html or _pm_html:
-                st.markdown(f'<div style="display:flex;width:100%;padding:4px 0">{_pw_html}{_pm_html}</div>',
-                            unsafe_allow_html=True)
-            if _fg_score <= 25:
-                st.error("Extrémní strach – trh v panice. Historicky dobrá příležitost pro long-term nákup.")
-            elif _fg_score <= 45:
-                st.warning("Strach – pesimismus převládá. Opatrný optimismus může být opodstatněný.")
-            elif _fg_score <= 55:
-                st.info("Neutrální – trh neví kam. Čekej na jasný signál.")
-            elif _fg_score <= 75:
-                st.success("Chamtivost – optimismus na trhu. Pozor na předražení.")
-            else:
-                st.error("Extrémní chamtivost – euforie! Zvažuj profit-taking, trh může být přehřátý.")
-        else:
-            st.warning("Index strachu a chamtivosti se nepodařilo načíst.")
+    st.markdown(
+        '<div style="background:#1e293b;border-radius:12px;padding:14px 16px;margin:8px 0">'
+        '<div style="color:#64748b;font-size:0.7rem;font-weight:600;margin-bottom:10px;letter-spacing:.05em">TRŽNÍ KONTEXT</div>'
+        '<div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">'
+        '<div style="flex:1;min-width:140px">'
+        '<div style="color:#64748b;font-size:0.72rem;margin-bottom:4px">Index strachu &amp; chamtivosti</div>'
+        f'<div style="font-size:1.15rem;font-weight:700;color:{_fg_color}">{_fg_label_str}</div>'
+        f'<div style="position:relative;height:6px;background:#334155;border-radius:3px;margin:6px 0;max-width:160px">'
+        f'<div style="position:absolute;left:{_fg_pct_bar}%;top:50%;transform:translate(-50%,-50%);'
+        f'width:10px;height:10px;border-radius:50%;background:{_fg_color}"></div></div>'
+        f'<div style="color:#64748b;font-size:0.72rem">{_fg_pct_bar} / 100'
+        + (f' · {_fg_interp}' if _fg_interp else '') + '</div>'
+        '</div>'
+        f'<div style="display:flex;gap:20px">'
+        f'{_fg_mini_item("Před týdnem", _fg_prev_week)}'
+        f'{_fg_mini_item("Před měsícem", _fg_prev_month)}'
+        f'</div>'
+        '</div></div>',
+        unsafe_allow_html=True
+    )
 
     _MACRO_DESC = {
         "VIX":          "index volatility – čím vyšší, tím větší nervozita trhu",
@@ -1368,8 +1355,7 @@ if page == "Přehled portfolia":
                 f'<div style="display:flex;justify-content:space-between;font-size:0.6rem;color:#334155;margin-top:1px">'
                 f'<span>{lo}</span><span>normální rozsah</span><span>{hi}</span></div>')
 
-    with _ctx_right:
-        st.markdown("**Klíčové makro ukazatele**")
+    with st.expander("Klíčové makro ukazatele", expanded=False):
         if _macro_mini:
             for _name, _data in _macro_mini.items():
                 _p   = _data["price"]
@@ -1399,19 +1385,6 @@ if page == "Přehled portfolia":
                 )
         else:
             st.info("Makro data se nepodařilo načíst.")
-
-    st.divider()
-    with st.expander("Top příležitosti z Radaru (rozbal)"):
-        st.caption("Akcie mimo tvoje portfolio se silným signálem.")
-        with st.spinner("Skenuji radar..."):
-            _radar_results = scan_stocks(RADAR_STOCKS_FULL, period)
-        _top = [r for r in _radar_results if r["action"] == "BUY" or (r["action"] == "SELL" and r["ticker"] in PORTFOLIO_TICKERS)]
-        _top = sorted(_top, key=lambda x: -_opportunity_score(x))[:5]
-        if _top:
-            for r in _top:
-                _render_radar_card(r)
-        else:
-            st.info("Žádné silné signály v radaru momentálně.")
 
 
 # ═════════════════════════════════════════════════════════════════════════════
