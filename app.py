@@ -1285,7 +1285,7 @@ if page == "Přehled portfolia":
             with _hist_cols[1]:
                 if _fg_prev_month is not None:
                     _pm_delta = _fg_score - _fg_prev_month
-                    _hist_cols[1].metric("Před měsícem", f"{_fg_prev_month:.0f}", f"{_pm_delta:+.1f}")
+                    _hist_cols[1].metric("Před měs.", f"{_fg_prev_month:.0f}", f"{_pm_delta:+.1f}")
             if _fg_score <= 25:
                 st.error("Extrémní strach – trh v panice. Historicky dobrá příležitost pro long-term nákup.")
             elif _fg_score <= 45:
