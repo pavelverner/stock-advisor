@@ -1270,7 +1270,7 @@ if page == "Přehled portfolia":
                                   "thickness": 0.85, "value": _fg_score},
                 },
             ))
-            _gauge_h = 240 if _is_mobile else 500
+            _gauge_h = 210 if _is_mobile else 500
             _fig_gauge.update_layout(
                 height=_gauge_h, template="plotly_dark",
                 margin=dict(l=10, r=10, t=60, b=10),
