@@ -2877,18 +2877,16 @@ elif page == "Deník":
                             f'{sub_html}</div>')
 
                 st.markdown(f"""<style>
-.stats-grid3 {{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:8px; align-items:stretch; }}
-.stats-grid3 > div {{ min-height:80px; display:flex; flex-direction:column; justify-content:center; }}
+.stats-grid6 {{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:8px; align-items:stretch; }}
+.stats-grid6 > div {{ min-height:80px; display:flex; flex-direction:column; justify-content:center; }}
 @media(max-width:640px) {{
-  .stats-grid3 {{ grid-template-columns:repeat(2,1fr); }}
+  .stats-grid6 {{ grid-template-columns:repeat(2,1fr); }}
 }}
 </style>
-<div class="stats-grid3">
+<div class="stats-grid6">
   {_stat_box("Celkem obchodů", stats.get("total_trades", 0), f"Nákupy: {stats.get('buy_count',0)} · Prodeje: {stats.get('sell_count',0)}")}
   {_stat_box("Win rate", f"{win_rate:.0f}%", "≥50% = funguje", wr_clr)}
   {_stat_box("Celkový P&L", f"{total_pnl:+.0f} Kč", f"{total_pct:+.1f}% investovaného", pnl_clr)}
-</div>
-<div class="stats-grid3">
   {_stat_box("Nejlepší obchod", f"{best:+.1f}%", best_ticker, "#22c55e" if best>=0 else "#ef4444")}
   {_stat_box("Nejhorší obchod", f"{worst:+.1f}%", worst_ticker, "#22c55e" if worst>=0 else "#ef4444")}
   {_stat_box("Průměrný P&L",   f"{avg:+.1f}%",   avg_label,   "#22c55e" if avg>=0   else "#ef4444")}

@@ -516,8 +516,11 @@ def get_stats(perf_df: pd.DataFrame) -> dict:
     open_pnl_abs = open_pos["P&L Kč/USD"].dropna()
     invested     = open_pos["Investováno"].sum()
 
-    # Prodané pozice – realizované procento zisku
-    sold_pnl_pct = sold_pos["Realizováno %"].dropna() if "Realizováno %" in sold_pos.columns else pd.Series([], dtype=float)
+    # Prodané pozice – použij Realizováno % (vs. avg buy) pokud existuje, jinak P&L % (post-sale pohyb)
+    if "Realizováno %" in sold_pos.columns:
+        sold_pnl_pct = sold_pos["Realizováno %"].fillna(sold_pos["P&L %"]).dropna()
+    else:
+        sold_pnl_pct = sold_pos["P&L %"].dropna() if not sold_pos.empty else pd.Series([], dtype=float)
     realized_abs = float(sold_pos["Realizováno"].dropna().sum()) if "Realizováno" in sold_pos.columns else 0.0
 
     # Kombinované statistiky (otevřené + prodané)
