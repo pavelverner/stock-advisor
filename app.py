@@ -2458,14 +2458,18 @@ elif page == "Deník":
         if _fetched_price:
             st.caption(f"Načteno: **{_fetched_price:.2f} {j_currency}** ({_price_label})")
 
+        st.markdown("<style>"
+                    "[data-testid='stForm'] [data-testid='stRadio'] label:first-of-type span:last-child{color:#3b82f6 !important;font-weight:600}"
+                    "[data-testid='stForm'] [data-testid='stRadio'] label:last-of-type span:last-child{color:#f97316 !important;font-weight:600}"
+                    "</style>", unsafe_allow_html=True)
         with st.form("trade_form"):
             action_j = st.radio(
                 "Typ obchodu",
-                ["🟢  Koupil jsem", "🔴  Prodal jsem"],
+                ["↑  Koupil jsem", "↓  Prodal jsem"],
                 horizontal=True,
                 label_visibility="collapsed",
             )
-            action_j = "BUY" if action_j.startswith("🟢") else "SELL"
+            action_j = "BUY" if action_j.startswith("↑") else "SELL"
 
             price_j = st.number_input(
                 f"Cena ({j_currency})",
