@@ -701,7 +701,7 @@ _mob_links = "".join(
 st.markdown(f'<div class="mob-nav">{_mob_links}</div>', unsafe_allow_html=True)
 
 # Výchozí období pro grafy (pevné – horizonty se načítají interně)
-period = "6mo"
+period = "1y"
 
 with st.sidebar:
     if page == "Detail akcie":
@@ -2153,8 +2153,8 @@ elif page == "Příležitosti":
             key="radar_hz",
             label_visibility="collapsed",
         )
-        _radar_period_map = {"Krátkodobý": "3mo", "Střednědobý": "6mo", "Dlouhodobý": "2y"}
-        _radar_period = _radar_period_map.get(_radar_hz or "Střednědobý", "6mo")
+        _radar_period_map = {"Krátkodobý": "3mo", "Střednědobý": "1y", "Dlouhodobý": "2y"}
+        _radar_period = _radar_period_map.get(_radar_hz or "Střednědobý", "1y")
 
         # ── Data ─────────────────────────────────────────────────────────────
         with st.spinner("Načítám data..."):
