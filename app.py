@@ -2554,6 +2554,8 @@ elif page == "Deník":
                     "[data-testid='stFileUploaderDropzoneInstructions']{display:none !important;}"
                     "[data-testid='stFileUploaderDropzone']{border:none !important;background:transparent !important;padding:0 !important;}"
                     "[data-testid='stFileUploader'] section{padding:0 !important;margin:0 !important;}"
+                    "[data-testid='stFileUploader'] button p{font-size:0 !important;}"
+                    "[data-testid='stFileUploader'] button p::after{content:'Nahrát';font-size:0.875rem;}"
                     "</style>", unsafe_allow_html=True)
         df_exp = get_trades()
         if not df_exp.empty:
