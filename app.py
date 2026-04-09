@@ -2049,10 +2049,10 @@ když **alespoň 3 indikátory souhlasí** — proto je konzervativní a nevydá
                 _buy_n   = _buy.get("count", 0)
 
                 if _buy_n == 0:
-                    _verdict = "Nedostatek dat"
+                    _verdict = "Žádný BUY signál v historii"
                     _verdict_color = "#64748b"
                     _verdict_icon = "⚪"
-                    _verdict_text = "Příliš málo BUY signálů v historii pro spolehlivý závěr."
+                    _verdict_text = "Za vybrané období systém pro tuto akcii nevygeneroval žádný BUY signál — nelze tedy vyhodnotit spolehlivost. Zkus prodloužit historické období (3y nebo 5y)."
                 elif _buy_wr >= 55 and _buy_avg > 0:
                     _verdict = "Signály fungují"
                     _verdict_color = "#22c55e"
