@@ -2554,7 +2554,8 @@ elif page == "Deník":
                     "[data-testid='stFileUploaderDropzoneInstructions']{display:none !important;}"
                     "[data-testid='stFileUploaderDropzone']{border:none !important;background:transparent !important;padding:0 !important;}"
                     "[data-testid='stFileUploader'] section{padding:0 !important;margin:0 !important;}"
-                    "div[data-testid='stFileUploader'] button{padding:0.25rem 0.75rem !important;min-height:38px !important;font-size:1rem !important;}"
+                    "[data-testid='stDownloadButton'] button{width:160px !important;}"
+                    "div[data-testid='stFileUploader'] button{width:160px !important;padding:0.25rem 0.75rem !important;min-height:38px !important;font-size:1rem !important;}"
                     "div[data-testid='stFileUploader'] button p{visibility:hidden !important;position:relative !important;}"
                     "div[data-testid='stFileUploader'] button p::after{content:'Nahrát';visibility:visible;position:absolute;left:0;right:0;text-align:center;}"
                     "</style>", unsafe_allow_html=True)
