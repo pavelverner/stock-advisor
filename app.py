@@ -986,11 +986,13 @@ def _render_radar_card(r: dict, highlight: bool = False):
         f'<strong style="font-size:1.05rem;margin-right:6px">{r["name"]}</strong>'
         f'<span style="color:#888;font-size:0.82rem">{r["ticker"]} · {r["sector"]}</span>'
         f'</div>'
-        f'<div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;margin-top:4px;font-size:0.85rem">'
-        f'<span>{r["price"]:.2f} <span style="color:#94a3b8">{r["currency"]}</span></span>'
-        f'<span style="color:{color};font-weight:600">{arrow}{r["chg_pct"]:+.1f}%</span>'
-        f'<span style="color:#aaa">RSI <b>{r["rsi"]:.0f}</b></span>'
-        + (f'<span>{sp_str}</span>' if sp_str else "")
+        f'<div style="display:flex;flex-wrap:wrap;align-items:center;gap:3px 0;margin-top:4px;font-size:0.85rem">'
+        f'<span style="margin-right:10px">{r["price"]:.2f} <span style="color:#94a3b8">{r["currency"]}</span></span>'
+        f'<span style="color:#475569;margin-right:10px">·</span>'
+        f'<span style="color:{color};font-weight:600;margin-right:10px">{arrow}{r["chg_pct"]:+.1f}%</span>'
+        f'<span style="color:#475569;margin-right:10px">·</span>'
+        f'<span style="color:#aaa;margin-right:10px">RSI <b>{r["rsi"]:.0f}</b></span>'
+        + (f'<span style="color:#475569;margin-right:10px">·</span><span>{sp_str}</span>' if sp_str else "")
         + f'</div>'
         + (f'<div style="margin-top:3px;font-size:0.8rem;line-height:1.5">{reasons_html}</div>' if reasons_html else "")
         + f'</div></a>',
