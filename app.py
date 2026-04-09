@@ -986,7 +986,7 @@ def _render_radar_card(r: dict, highlight: bool = False):
         f'<strong style="font-size:1.05rem;margin-right:6px">{r["name"]}</strong>'
         f'<span style="color:#888;font-size:0.82rem">{r["ticker"]} · {r["sector"]}</span>'
         f'</div>'
-        f'<div style="display:flex;flex-wrap:wrap;align-items:center;gap:2px 10px;margin-top:2px;font-size:0.85rem">'
+        f'<div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;margin-top:4px;font-size:0.85rem">'
         f'<span>{r["price"]:.2f} <span style="color:#94a3b8">{r["currency"]}</span></span>'
         f'<span style="color:{color};font-weight:600">{arrow}{r["chg_pct"]:+.1f}%</span>'
         f'<span style="color:#aaa">RSI <b>{r["rsi"]:.0f}</b></span>'
@@ -1129,15 +1129,16 @@ if page == "Přehled portfolia":
     _best_c    = "#22c55e"
     _worst_c   = "#ef4444"
     st.markdown(
-        '<div style="background:#1e293b;border-radius:10px;padding:10px 14px;margin:8px 0 12px;'
-        'display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:0.82rem">'
-        f'<span style="color:#22c55e;font-weight:600">▲ {_up_today}</span>'
-        f'<span style="color:#64748b"> · </span>'
-        f'<span style="color:#ef4444;font-weight:600">▼ {_dn_today}</span>'
-        f'<span style="color:#334155;margin:0 4px">|</span>'
-        f'<span style="white-space:nowrap"><span style="color:#64748b">Nejlepší: </span><span style="color:{_best_c};font-weight:600">{_best_r["ticker"]} {_best_r["chg_pct"]:+.1f}%</span></span>'
-        f'<span style="color:#334155;margin:0 4px">|</span>'
-        f'<span style="white-space:nowrap"><span style="color:#64748b">Nejhorší: </span><span style="color:{_worst_c};font-weight:600">{_worst_r["ticker"]} {_worst_r["chg_pct"]:+.1f}%</span></span>'
+        '<div style="background:#1e293b;border-radius:10px;padding:10px 14px;margin:8px 0 12px;font-size:0.82rem">'
+        f'<div style="margin-bottom:4px">'
+        f'<span style="color:#22c55e;font-weight:600">▲ {_up_today} dnes nahoru</span>'
+        f'<span style="color:#64748b;margin:0 8px">·</span>'
+        f'<span style="color:#ef4444;font-weight:600">▼ {_dn_today} dnes dolů</span>'
+        f'</div>'
+        f'<div style="display:flex;gap:16px;flex-wrap:wrap">'
+        f'<span><span style="color:#64748b">Nejlepší: </span><span style="color:{_best_c};font-weight:600">{_best_r["ticker"]} {_best_r["chg_pct"]:+.1f}%</span></span>'
+        f'<span><span style="color:#64748b">Nejhorší: </span><span style="color:{_worst_c};font-weight:600">{_worst_r["ticker"]} {_worst_r["chg_pct"]:+.1f}%</span></span>'
+        f'</div>'
         '</div>',
         unsafe_allow_html=True
     )
@@ -2123,15 +2124,18 @@ když **alespoň 3 indikátory souhlasí** — proto je konzervativní a nevydá
                     _ac60  = "#22c55e" if _avg60 > 0 else "#ef4444"
                     _bc  = "#22c55e" if _act == "BUY" else "#ef4444"
                     _metrics.append(
-                        f'<div style="background:#1e293b;border-radius:8px;padding:12px 14px;flex:1">'
-                        f'<div style="font-size:0.7rem;font-weight:700;color:{_bc};letter-spacing:.05em;margin-bottom:6px">{_act} signály ({_n}×)</div>'
-                        f'<div style="display:flex;gap:16px">'
-                        f'<div><div style="color:#64748b;font-size:0.72rem">Win rate 20 dní</div>'
-                        f'<div style="font-size:1.3rem;font-weight:700;color:{_wrc20}">{_wr20:.0f} %</div></div>'
-                        f'<div><div style="color:#64748b;font-size:0.72rem">Win rate 60 dní</div>'
-                        f'<div style="font-size:1.3rem;font-weight:700;color:{_wrc60}">{_wr60:.0f} %</div></div>'
-                        f'<div><div style="color:#64748b;font-size:0.72rem">Prům. výnos 60d</div>'
-                        f'<div style="font-size:1.3rem;font-weight:700;color:{_ac60}">{_avg60:+.1f} %</div></div>'
+                        f'<div style="background:#1e293b;border-radius:8px;padding:12px 14px;flex:1;min-width:0">'
+                        f'<div style="font-size:0.7rem;font-weight:700;color:{_bc};letter-spacing:.05em;margin-bottom:8px">{_act} signály ({_n}×)</div>'
+                        f'<div style="display:flex;flex-direction:column;gap:6px">'
+                        f'<div style="display:flex;justify-content:space-between;align-items:baseline">'
+                        f'<span style="color:#64748b;font-size:0.72rem">Win rate 20 dní</span>'
+                        f'<span style="font-size:1.1rem;font-weight:700;color:{_wrc20}">{_wr20:.0f} %</span></div>'
+                        f'<div style="display:flex;justify-content:space-between;align-items:baseline">'
+                        f'<span style="color:#64748b;font-size:0.72rem">Win rate 60 dní</span>'
+                        f'<span style="font-size:1.1rem;font-weight:700;color:{_wrc60}">{_wr60:.0f} %</span></div>'
+                        f'<div style="display:flex;justify-content:space-between;align-items:baseline">'
+                        f'<span style="color:#64748b;font-size:0.72rem">Prům. výnos 60d</span>'
+                        f'<span style="font-size:1.1rem;font-weight:700;color:{_ac60}">{_avg60:+.1f} %</span></div>'
                         f'</div></div>'
                     )
                 if _metrics:
@@ -2320,6 +2324,7 @@ elif page == "Příležitosti":
                 )
 
         # ── SEKCE 4: Celý radar (schovaný) ───────────────────────────────────
+        st.markdown('<div style="margin-top:16px"></div>', unsafe_allow_html=True)
         with st.expander(f"Celý radar podle sektoru ({len(results)} akcií)", expanded=False):
             sectors_with_stocks: dict = {}
             for _r in sorted(results, key=lambda x: x["name"]):
