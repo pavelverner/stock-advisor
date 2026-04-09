@@ -2041,52 +2041,96 @@ když **alespoň 3 indikátory souhlasí** — proto je konzervativní a nevydá
             if not result.get("ok"):
                 st.error(f"Chyba: {result.get('error', 'Neznámá chyba')}")
             else:
-                st.subheader("Souhrnné výsledky")
-                tbl = backtest_summary_table(result)
-                if not tbl.empty:
-                    st.dataframe(tbl, hide_index=True, use_container_width=True)
+                # ── Verdikt ───────────────────────────────────────────────────
+                _buy  = result.get("BUY", {})
+                _sell = result.get("SELL", {})
+                _buy_wr  = _buy.get("win_rate_20d", 0)
+                _buy_avg = _buy.get("avg_return_20d", 0)
+                _buy_n   = _buy.get("count", 0)
 
-                for action in ("BUY", "SELL"):
-                    data = result.get(action, {})
-                    if data.get("count", 0) == 0:
-                        continue
-                    label = "BUY" if action == "BUY" else "SELL"
-                    color = "#22c55e" if action == "BUY" else "#ef4444"
-                    st.subheader(f"{label} signály – distribuce výnosů")
-                    trades = data.get("trades", [])
-                    for fd in [10, 20, 30]:
-                        key = f"ret_{fd}d"
-                        rets = [t[key] for t in trades if key in t]
-                        if not rets:
-                            continue
-                        fig_hist = go.Figure()
-                        fig_hist.add_trace(go.Histogram(
-                            x=rets,
-                            nbinsx=20,
-                            marker_color=color,
-                            opacity=0.8,
-                            name=f"{fd}D výnosy",
-                        ))
-                        fig_hist.add_vline(x=0, line=dict(color="white", dash="dash"))
-                        fig_hist.add_vline(
-                            x=float(np.mean(rets)),
-                            line=dict(color="#f59e0b", dash="dot"),
-                            annotation_text=f"avg {np.mean(rets):+.1f}%",
-                        )
-                        wr = sum(1 for r in rets if r > 0) / len(rets) * 100
-                        fig_hist.update_layout(
-                            title=f"Horizon {fd} dní | Win rate: {wr:.0f}% | n={len(rets)}",
-                            template="plotly_dark", height=220,
-                            margin=dict(l=0, r=0, t=40, b=10),
-                            showlegend=False,
-                        )
-                        st.plotly_chart(fig_hist, use_container_width=True, config={"displayModeBar": False, "scrollZoom": False})
+                if _buy_n == 0:
+                    _verdict = "Nedostatek dat"
+                    _verdict_color = "#64748b"
+                    _verdict_icon = "⚪"
+                    _verdict_text = "Příliš málo BUY signálů v historii pro spolehlivý závěr."
+                elif _buy_wr >= 55 and _buy_avg > 0:
+                    _verdict = "Signály fungují"
+                    _verdict_color = "#22c55e"
+                    _verdict_icon = "✅"
+                    _verdict_text = f"Když systém řekne BUY, akcie historicky rostla v {_buy_wr:.0f} % případů. Signálům lze důvěřovat."
+                elif _buy_wr >= 48:
+                    _verdict = "Signály jsou smíšené"
+                    _verdict_color = "#f59e0b"
+                    _verdict_icon = "⚠️"
+                    _verdict_text = f"BUY signál vedl k zisku v {_buy_wr:.0f} % případů — mírně nad náhodou. Berte jako doplňkový pohled."
+                else:
+                    _verdict = "Signály jsou nespolehlivé"
+                    _verdict_color = "#ef4444"
+                    _verdict_icon = "❌"
+                    _verdict_text = f"BUY signál vedl k zisku jen v {_buy_wr:.0f} % případů. Pro tuto akcii systém nefunguje dobře."
 
-                st.info(
-                    "Interpretace: Win rate > 55% a průměrný výnos > 0 naznačuje, "
-                    "že signály mají historicky prediktivní hodnotu. "
-                    "Pod 45% win rate je signální systém pro danou akcii méně spolehlivý."
+                st.markdown(
+                    f'<div style="background:{_verdict_color}22;border-left:4px solid {_verdict_color};border-radius:8px;padding:14px 16px;margin:12px 0">'
+                    f'<div style="font-size:1.1rem;font-weight:700;color:{_verdict_color}">{_verdict_icon} {_verdict}</div>'
+                    f'<div style="color:#cbd5e1;font-size:0.88rem;margin-top:4px">{_verdict_text}</div>'
+                    f'</div>',
+                    unsafe_allow_html=True
                 )
+
+                # ── Klíčová čísla ─────────────────────────────────────────────
+                _metrics = []
+                for _act, _dat in [("BUY", _buy), ("SELL", _sell)]:
+                    if _dat.get("count", 0) == 0:
+                        continue
+                    _wr  = _dat.get("win_rate_20d", 0)
+                    _avg = _dat.get("avg_return_20d", 0)
+                    _n   = _dat.get("count", 0)
+                    _wrc = "#22c55e" if _wr >= 55 else "#f59e0b" if _wr >= 45 else "#ef4444"
+                    _ac  = "#22c55e" if _avg > 0 else "#ef4444"
+                    _bc  = "#22c55e" if _act == "BUY" else "#ef4444"
+                    _metrics.append(
+                        f'<div style="background:#1e293b;border-radius:8px;padding:12px 14px;flex:1">'
+                        f'<div style="font-size:0.7rem;font-weight:700;color:{_bc};letter-spacing:.05em;margin-bottom:6px">{_act} signály ({_n}×)</div>'
+                        f'<div style="display:flex;gap:16px">'
+                        f'<div><div style="color:#64748b;font-size:0.72rem">Win rate (20 dní)</div>'
+                        f'<div style="font-size:1.3rem;font-weight:700;color:{_wrc}">{_wr:.0f} %</div></div>'
+                        f'<div><div style="color:#64748b;font-size:0.72rem">Prům. výnos (20 dní)</div>'
+                        f'<div style="font-size:1.3rem;font-weight:700;color:{_ac}">{_avg:+.1f} %</div></div>'
+                        f'</div></div>'
+                    )
+                if _metrics:
+                    st.markdown(
+                        '<div style="display:flex;gap:10px;margin:10px 0">' + "".join(_metrics) + '</div>',
+                        unsafe_allow_html=True
+                    )
+
+                # ── Detail v expanderu ────────────────────────────────────────
+                with st.expander("Detailní statistiky a grafy"):
+                    tbl = backtest_summary_table(result)
+                    if not tbl.empty:
+                        st.dataframe(tbl, hide_index=True, use_container_width=True)
+                    for action in ("BUY", "SELL"):
+                        data = result.get(action, {})
+                        if data.get("count", 0) == 0:
+                            continue
+                        color = "#22c55e" if action == "BUY" else "#ef4444"
+                        trades = data.get("trades", [])
+                        for fd in [10, 20, 30]:
+                            rets = [t[f"ret_{fd}d"] for t in trades if f"ret_{fd}d" in t]
+                            if not rets:
+                                continue
+                            wr = sum(1 for r in rets if r > 0) / len(rets) * 100
+                            fig_hist = go.Figure()
+                            fig_hist.add_trace(go.Histogram(x=rets, nbinsx=20, marker_color=color, opacity=0.8))
+                            fig_hist.add_vline(x=0, line=dict(color="white", dash="dash"))
+                            fig_hist.add_vline(x=float(np.mean(rets)), line=dict(color="#f59e0b", dash="dot"),
+                                               annotation_text=f"avg {np.mean(rets):+.1f}%")
+                            fig_hist.update_layout(
+                                title=f"{action} · {fd} dní | Win rate {wr:.0f}% | n={len(rets)}",
+                                template="plotly_dark", height=200,
+                                margin=dict(l=0, r=0, t=40, b=10), showlegend=False,
+                            )
+                            st.plotly_chart(fig_hist, use_container_width=True, config={"displayModeBar": False})
         else:
             st.info("Klikni na 'Spustit backtest' pro zahájení analýzy.")
 
