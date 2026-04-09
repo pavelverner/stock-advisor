@@ -197,8 +197,10 @@ def main():
     )
 
     MIN_STRENGTH = 0.6  # posílej jen silné signály (≥ 60 % indikátorů souhlasí)
+    _portfolio_tickers = set(PORTFOLIO.values())
     buy_signals  = [r for r in all_results if r["action"] == "BUY"  and r["strength"] >= MIN_STRENGTH]
-    sell_signals = [r for r in all_results if r["action"] == "SELL" and r["strength"] >= MIN_STRENGTH]
+    sell_signals = [r for r in all_results if r["action"] == "SELL" and r["strength"] >= MIN_STRENGTH
+                    and r["ticker"] in _portfolio_tickers]  # SELL jen pro akcie v portfoliu
 
     # HOLD akcie blízko signálu (2 signály z jedné strany)
     hold_notable = [
