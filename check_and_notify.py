@@ -34,6 +34,7 @@ PORTFOLIO = {
     "SAAB":                "SAAB-B.ST",
     "Taiwan Semi":         "TSM",
     "Rheinmetall":         "RHM.DE",
+    "Lockheed Martin":     "LMT",
 }
 
 RADAR = {

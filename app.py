@@ -395,7 +395,7 @@ PORTFOLIO = {
     "SAAB":                     ("SAAB-B.ST","SEK","defense"),
     "Taiwan Semiconductor":     ("TSM",     "USD", "tech"),
     "Rheinmetall":              ("RHM.DE",  "EUR", "defense"),
-    "Intel":                    ("INTC",    "USD", "tech"),
+    "Lockheed Martin":          ("LMT",     "USD", "defense"),
     "Oracle":                   ("ORCL",    "USD", "tech"),
     "Baidu":                    ("BIDU",    "USD", "tech"),
     "Virgin Galactic":          ("SPCE",    "USD", "tech"),
