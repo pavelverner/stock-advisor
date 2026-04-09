@@ -396,6 +396,7 @@ PORTFOLIO = {
     "Taiwan Semiconductor":     ("TSM",     "USD", "tech"),
     "Rheinmetall":              ("RHM.DE",  "EUR", "defense"),
     "Lockheed Martin":          ("LMT",     "USD", "defense"),
+    "Chevron":                  ("CVX",     "USD", "energy"),
     "Oracle":                   ("ORCL",    "USD", "tech"),
     "Baidu":                    ("BIDU",    "USD", "tech"),
     "Virgin Galactic":          ("SPCE",    "USD", "tech"),
@@ -1147,12 +1148,12 @@ if page == "Přehled portfolia":
 
     # ── Sektorové rozložení ───────────────────────────────────────────────────
     with st.expander("Sektorové rozložení portfolia", expanded=False):
-        _sector_map = {"tech": "Technologie", "defense": "Obrana & Průmysl", "etf": "ETF / Index"}
+        _sector_map = {"tech": "Technologie", "defense": "Obrana & Průmysl", "etf": "ETF / Index", "energy": "Energie"}
         _sec_counts: dict[str, int] = {}
         for _sn, (_st, _sc, _ss) in PORTFOLIO.items():
             _sl = _sector_map.get(_ss, _ss)
             _sec_counts[_sl] = _sec_counts.get(_sl, 0) + 1
-        _sec_colors = {"Technologie": "#3b82f6", "Obrana & Průmysl": "#f59e0b", "ETF / Index": "#22c55e"}
+        _sec_colors = {"Technologie": "#3b82f6", "Obrana & Průmysl": "#f59e0b", "ETF / Index": "#22c55e", "Energie": "#f97316"}
         _sec_labels = list(_sec_counts.keys())
         _sec_vals   = list(_sec_counts.values())
         _sec_clrs   = [_sec_colors.get(l, "#94a3b8") for l in _sec_labels]
