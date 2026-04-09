@@ -40,7 +40,7 @@ def run_backtest(ticker: str, period: str = "2y", forward_days: list[int] = None
     Vrátí statistiky výsledků BUY a SELL signálů.
     """
     if forward_days is None:
-        forward_days = [10, 20, 30]
+        forward_days = [20, 60]
 
     df = yf.download(ticker, period=period, auto_adjust=True, progress=False)
     if df.empty or len(df) < 80:

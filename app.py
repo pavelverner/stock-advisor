@@ -1142,6 +1142,36 @@ if page == "Přehled portfolia":
         unsafe_allow_html=True
     )
 
+    # ── Sektorové rozložení ───────────────────────────────────────────────────
+    with st.expander("Sektorové rozložení portfolia", expanded=False):
+        _sector_map = {"tech": "Technologie", "defense": "Obrana & Průmysl", "etf": "ETF / Index"}
+        _sec_counts: dict[str, int] = {}
+        for _sn, (_st, _sc, _ss) in PORTFOLIO.items():
+            _sl = _sector_map.get(_ss, _ss)
+            _sec_counts[_sl] = _sec_counts.get(_sl, 0) + 1
+        _sec_colors = {"Technologie": "#3b82f6", "Obrana & Průmysl": "#f59e0b", "ETF / Index": "#22c55e"}
+        _sec_labels = list(_sec_counts.keys())
+        _sec_vals   = list(_sec_counts.values())
+        _sec_clrs   = [_sec_colors.get(l, "#94a3b8") for l in _sec_labels]
+        _total_stocks = sum(_sec_vals)
+        _fig_sec = go.Figure(go.Bar(
+            x=_sec_labels, y=_sec_vals,
+            marker_color=_sec_clrs,
+            text=[f"{v} ({v/_total_stocks*100:.0f}%)" for v in _sec_vals],
+            textposition="outside",
+        ))
+        _fig_sec.update_layout(
+            template="plotly_dark", height=220,
+            margin=dict(l=0, r=0, t=10, b=0),
+            showlegend=False,
+            yaxis=dict(showticklabels=False, showgrid=False),
+            xaxis=dict(showgrid=False),
+        )
+        st.plotly_chart(_fig_sec, use_container_width=True, config={"displayModeBar": False})
+        _conc = max(_sec_vals) / _total_stocks * 100
+        if _conc >= 70:
+            st.warning(f"Portfolio je z {_conc:.0f} % koncentrované v jednom sektoru — zvažte diverzifikaci.")
+
     # ── P&L z Deníku pro otevřené pozice ─────────────────────────────────────
     try:
         _denik_raw  = get_trades()
@@ -2044,8 +2074,8 @@ když **alespoň 3 indikátory souhlasí** — proto je konzervativní a nevydá
                 # ── Verdikt ───────────────────────────────────────────────────
                 _buy  = result.get("BUY", {})
                 _sell = result.get("SELL", {})
-                _buy_wr  = _buy.get("win_rate_20d", 0)
-                _buy_avg = _buy.get("avg_return_20d", 0)
+                _buy_wr  = _buy.get("win_rate_60d") or _buy.get("win_rate_20d", 0)
+                _buy_avg = _buy.get("avg_return_60d") or _buy.get("avg_return_20d", 0)
                 _buy_n   = _buy.get("count", 0)
 
                 if _buy_n == 0:
@@ -2082,20 +2112,26 @@ když **alespoň 3 indikátory souhlasí** — proto je konzervativní a nevydá
                 for _act, _dat in [("BUY", _buy), ("SELL", _sell)]:
                     if _dat.get("count", 0) == 0:
                         continue
-                    _wr  = _dat.get("win_rate_20d", 0)
-                    _avg = _dat.get("avg_return_20d", 0)
+                    _wr20  = _dat.get("win_rate_20d", 0)
+                    _wr60  = _dat.get("win_rate_60d", 0)
+                    _avg20 = _dat.get("avg_return_20d", 0)
+                    _avg60 = _dat.get("avg_return_60d", 0)
                     _n   = _dat.get("count", 0)
-                    _wrc = "#22c55e" if _wr >= 55 else "#f59e0b" if _wr >= 45 else "#ef4444"
-                    _ac  = "#22c55e" if _avg > 0 else "#ef4444"
+                    _wrc20 = "#22c55e" if _wr20 >= 55 else "#f59e0b" if _wr20 >= 45 else "#ef4444"
+                    _wrc60 = "#22c55e" if _wr60 >= 55 else "#f59e0b" if _wr60 >= 45 else "#ef4444"
+                    _ac20  = "#22c55e" if _avg20 > 0 else "#ef4444"
+                    _ac60  = "#22c55e" if _avg60 > 0 else "#ef4444"
                     _bc  = "#22c55e" if _act == "BUY" else "#ef4444"
                     _metrics.append(
                         f'<div style="background:#1e293b;border-radius:8px;padding:12px 14px;flex:1">'
                         f'<div style="font-size:0.7rem;font-weight:700;color:{_bc};letter-spacing:.05em;margin-bottom:6px">{_act} signály ({_n}×)</div>'
                         f'<div style="display:flex;gap:16px">'
-                        f'<div><div style="color:#64748b;font-size:0.72rem">Win rate (20 dní)</div>'
-                        f'<div style="font-size:1.3rem;font-weight:700;color:{_wrc}">{_wr:.0f} %</div></div>'
-                        f'<div><div style="color:#64748b;font-size:0.72rem">Prům. výnos (20 dní)</div>'
-                        f'<div style="font-size:1.3rem;font-weight:700;color:{_ac}">{_avg:+.1f} %</div></div>'
+                        f'<div><div style="color:#64748b;font-size:0.72rem">Win rate 20 dní</div>'
+                        f'<div style="font-size:1.3rem;font-weight:700;color:{_wrc20}">{_wr20:.0f} %</div></div>'
+                        f'<div><div style="color:#64748b;font-size:0.72rem">Win rate 60 dní</div>'
+                        f'<div style="font-size:1.3rem;font-weight:700;color:{_wrc60}">{_wr60:.0f} %</div></div>'
+                        f'<div><div style="color:#64748b;font-size:0.72rem">Prům. výnos 60d</div>'
+                        f'<div style="font-size:1.3rem;font-weight:700;color:{_ac60}">{_avg60:+.1f} %</div></div>'
                         f'</div></div>'
                     )
                 if _metrics:
@@ -2115,7 +2151,7 @@ když **alespoň 3 indikátory souhlasí** — proto je konzervativní a nevydá
                             continue
                         color = "#22c55e" if action == "BUY" else "#ef4444"
                         trades = data.get("trades", [])
-                        for fd in [10, 20, 30]:
+                        for fd in [20, 60]:
                             rets = [t[f"ret_{fd}d"] for t in trades if f"ret_{fd}d" in t]
                             if not rets:
                                 continue
@@ -2212,29 +2248,38 @@ elif page == "Příležitosti":
             unsafe_allow_html=True
         )
 
-        # ── SEKCE 2: Top příležitosti ─────────────────────────────────────────
-        _buy_all = [r for r in results if r["action"] == "BUY"]
-        _double  = [r for r in _buy_all if (r.get("sector_chg") or 0) > 1.0]
-        _other   = [r for r in _buy_all if r not in _double]
-        _top5    = sorted(_double, key=lambda x: -_opportunity_score(x))[:5] or sorted(_other, key=lambda x: -_opportunity_score(x))[:5]
-        _all_buy_sorted = sorted(_double, key=lambda x: -_opportunity_score(x)) + sorted(_other, key=lambda x: -_opportunity_score(x))
+        # ── SEKCE 2: Přikoupit vs. nová pozice ───────────────────────────────
+        _buy_all     = [r for r in results if r["action"] == "BUY"]
+        _double      = [r for r in _buy_all if (r.get("sector_chg") or 0) > 1.0]
+        _buy_port    = sorted([r for r in _buy_all if r["ticker"] in PORTFOLIO_TICKERS], key=lambda x: -_opportunity_score(x))
+        _buy_new     = sorted([r for r in _buy_all if r["ticker"] not in PORTFOLIO_TICKERS], key=lambda x: -_opportunity_score(x))
 
-        st.markdown('<div style="color:#64748b;font-size:0.7rem;font-weight:600;margin:16px 0 8px;letter-spacing:.05em">TOP PŘÍLEŽITOSTI</div>', unsafe_allow_html=True)
         _opp_ua = st.context.headers.get("User-Agent", "")
         _opp_mobile = any(k in _opp_ua for k in ("Mobile", "Android", "iPhone", "iPad"))
-        if _top5:
+
+        def _render_opp_list(items, max_n=3):
+            shown = items[:max_n]
             if _opp_mobile:
-                for _r in _top5:
+                for _r in shown:
                     _render_radar_card(_r, highlight=_r in _double)
             else:
-                for _oi in range(0, len(_top5), 2):
+                for _oi in range(0, len(shown), 2):
                     _ocols = st.columns(2)
                     with _ocols[0]:
-                        _render_radar_card(_top5[_oi], highlight=_top5[_oi] in _double)
+                        _render_radar_card(shown[_oi], highlight=shown[_oi] in _double)
                     with _ocols[1]:
-                        if _oi + 1 < len(_top5):
-                            _render_radar_card(_top5[_oi + 1], highlight=_top5[_oi + 1] in _double)
-        else:
+                        if _oi + 1 < len(shown):
+                            _render_radar_card(shown[_oi + 1], highlight=shown[_oi + 1] in _double)
+
+        if _buy_port:
+            st.markdown('<div style="color:#22c55e;font-size:0.7rem;font-weight:600;margin:16px 0 8px;letter-spacing:.05em">PŘIKOUPIT — již máš v portfoliu</div>', unsafe_allow_html=True)
+            _render_opp_list(_buy_port)
+
+        if _buy_new:
+            st.markdown('<div style="color:#3b82f6;font-size:0.7rem;font-weight:600;margin:16px 0 8px;letter-spacing:.05em">NOVÁ POZICE — není v portfoliu</div>', unsafe_allow_html=True)
+            _render_opp_list(_buy_new)
+
+        if not _buy_port and not _buy_new:
             st.info("Žádné BUY signály. Trh je v klidném pásmu — čekej na příležitost.")
 
         # ── SEKCE 3: Sledovat portfolio ───────────────────────────────────────
