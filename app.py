@@ -34,7 +34,7 @@ st.set_page_config(
 )
 
 # ── Google login ─────────────────────────────────────────────────────────────
-_ALLOWED_EMAIL = "seusdt@gmail.com"
+_ALLOWED_EMAILS = {"seusdt@gmail.com", "jan.verner@gmail.com"}
 
 
 if not st.user.is_logged_in:
@@ -54,7 +54,7 @@ if not st.user.is_logged_in:
     st.login("google")
     st.stop()
 
-if st.user.email != _ALLOWED_EMAIL:
+if st.user.email not in _ALLOWED_EMAILS:
     st.logout()
     st.error("Přístup zamítnut.")
     st.stop()
